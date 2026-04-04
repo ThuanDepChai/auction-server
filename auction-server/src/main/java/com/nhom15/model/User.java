@@ -1,4 +1,3 @@
-
 public abstract class User {
     // Thuộc tính chung
     protected int id;

@@ -19,5 +19,3 @@ public class Bidder extends User{
         // logic hiển thị danh sách các bid đã đặt
     }
 }
-
-}
