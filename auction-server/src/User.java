@@ -1,3 +1,4 @@
+package com.nhom15.model.user;
 
 public abstract class User {
     // Thuộc tính chung

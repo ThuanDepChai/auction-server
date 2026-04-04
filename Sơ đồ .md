@@ -8,8 +8,8 @@ Nhom 15
  │   │       └── com/auction/server/
  │   │           ├── ServerMain.java  <-- File chạy server chính
  │   │           ├── network/         <-- Lớp quản lý Socket Server hoặc REST API endpoint
- │   │           ├── controller/      <-- Xử lý request từ Client (nhận Bid, tạo User, update Item)
- │   │           ├── model/           <-- Chứa các class Entity cốt lõi (User, Item, Auction, BidTransaction)
+ │   │           ├── controller/      <-- Xử lý request từ Client (nhận Bid, tạo com.nhom15.model.user.User, update Item)
+ │   │           ├── model/           <-- Chứa các class Entity cốt lõi (com.nhom15.model.user.User, Item, Auction, BidTransaction)
  │   │           ├── dao/             <-- Chứa logic truy xuất Database (Data Access Object)
  │   │           └── util/            <-- Các class tiện ích (Singleton kết nối DB, mã hóa mật khẩu)
  │   └── test/
@@ -28,7 +28,7 @@ Nhom 15
  │   │   │       │   ├── LoginController.java
  │   │   │       │   ├── AuctionListController.java
  │   │   │       │   ├── BiddingRoomController.java (Màn hình đấu giá trực tiếp)
- │   │   │       │   └── SellerDashboardController.java (Quản lý sản phẩm cho Seller)
+ │   │   │       │   └── SellerDashboardController.java (Quản lý sản phẩm cho com.nhom15.model.user.Seller)
  │   │   │       │
  │   │   │       ├── model/                     (Chứa các Data Transfer Object - DTO nhận từ Server)
  │   │   │       │   ├── UserDTO.java
@@ -40,7 +40,7 @@ Nhom 15
  │   │   │       │   └── SocketClient.java      (Lắng nghe Socket cho realtime update/Observer)
  │   │   │       │
  │   │   │       └── util/                      (Các lớp tiện ích dùng chung)
- │   │   │           ├── SessionManager.java    (Lưu trạng thái User đang đăng nhập)
+ │   │   │           ├── SessionManager.java    (Lưu trạng thái com.nhom15.model.user.User đang đăng nhập)
  │   │   │           └── ViewFactory.java       (Hỗ trợ load FXML và chuyển đổi giữa các màn hình)
  │   │   │
  │   │   └── resources/                         (Chứa các file tài nguyên tĩnh)

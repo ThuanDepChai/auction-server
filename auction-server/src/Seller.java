@@ -1,13 +1,15 @@
+package com.nhom15.model.user;
+
 public class Seller extends User{
     public Seller(int id, String username, String password, String email) {
         super(id, username, password, email, UserRole.SELLER);
     }
     @Override
     public void printInfo(){
-        System.out.println("Seller: " + username + " | Email: " + email);
+        System.out.println("com.nhom15.model.user.Seller: " + username + " | Email: " + email);
     }
 
-    // Chức năng đặc thù của Seller
+    // Chức năng đặc thù của com.nhom15.model.user.Seller
     public void addItem(Item item) {
         System.out.println("Thêm sản phẩm: " + item.getName());
         // logic thêm sản phẩm vào hệ thống

@@ -1,3 +1,5 @@
+package com.nhom15.model.user;
+
 public class Bidder extends User{
     // Constructor
     public Bidder(int id, String username, String password, String email) {
@@ -6,10 +8,10 @@ public class Bidder extends User{
 
     @Override
     public void printInfo() {
-        System.out.println("Bidder: " + username + " | Email: " + email);
+        System.out.println("com.nhom15.model.user.Bidder: " + username + " | Email: " + email);
     }
 
-    // Chức năng của Bidder
+    // Chức năng của com.nhom15.model.user.Bidder
     public void placeBid(Auction auction, double amount) {
         auction.addBid(this, amount); // thêm lượt đấu giá
     }
@@ -18,6 +20,4 @@ public class Bidder extends User{
         System.out.println("Lịch sử đấu giá của " + username);
         // logic hiển thị danh sách các bid đã đặt
     }
-}
-
 }
