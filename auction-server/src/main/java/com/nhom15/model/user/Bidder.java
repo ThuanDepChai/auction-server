@@ -1,4 +1,7 @@
 package com.nhom15.model.user;
+
+import com.nhom15.model.Auction;
+
 public class Bidder extends User{
     // Constructor
     public Bidder(int id, String username, String password, String email) {

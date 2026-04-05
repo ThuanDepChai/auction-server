@@ -1,4 +1,5 @@
 package com.nhom15.model.user;
+import com.nhom15.model.Auction;
 import com.nhom15.model.item.*;
 public class Seller extends User{
     public Seller(int id, String username, String password, String email) {
