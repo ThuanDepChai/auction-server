@@ -1,4 +1,4 @@
-package com.nhom15.model;
+package com.nhom15.model; // Nhớ check lại xem folder model của ông nằm ở đâu nhé
 
 import com.nhom15.model.item.Item;
 import java.util.Date;
@@ -10,6 +10,7 @@ public class Auction {
     private long startTime;
     private long endTime;
 
+    // Constructor này để khớp với dòng code của ông Thuận (dòng 29 trong ảnh)
     public Auction(int id, Item item, double startPrice, long startTime, long endTime) {
         this.id = id;
         this.item = item;
@@ -18,6 +19,7 @@ public class Auction {
         this.endTime = endTime;
     }
 
+    // Sau này ông sẽ viết thêm logic đấu giá ở đây
     public void startAuction() {
         System.out.println("Phiên đấu giá cho " + item.getName() + " bắt đầu!");
     }
