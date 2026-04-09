@@ -1,4 +1,4 @@
-package com.nhom15.database;
+package com.nhom15.util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
