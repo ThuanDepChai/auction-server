@@ -1,7 +1,7 @@
 package com.nhom15.model.user;
 
-import com.nhom15.model.Auction;
-import com.nhom15.model.Bid;
+import com.nhom15.model.auction.Auction;
+import com.nhom15.model.auction.Bid;
 
 public class Bidder extends User{
     // Constructor

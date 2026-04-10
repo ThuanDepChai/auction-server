@@ -1,8 +1,5 @@
-package com.nhom15.model;
+package com.nhom15.model.auction;
 import com.nhom15.model.user.Bidder;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Bid {
     private Bidder bidder;
