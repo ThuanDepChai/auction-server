@@ -1,29 +1,38 @@
-package com.nhom15.database;
+package com.nhom15.database; //
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBConnection {
+    private static Connection connection = null;
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/auction_db";
+    private static final String USER = "root";
+    private static final String PASSWORD = "";
+
+    private DBConnection() {}
+
     public static Connection getConnection() {
-        Connection conn = null;
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-
-            String url = "jdbc:mysql://localhost:3306/auction_db";
-            String user = "root";
-            String password = "";
-
-            conn = DriverManager.getConnection(url, user, password);
-            System.out.println("Database connection established.");
+            if (connection == null || connection.isClosed()) {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(DB_URL, USER, PASSWORD);
+                System.out.println(" [DBConnection] Kết nối Database thành công!");
+            }
         } catch (ClassNotFoundException | SQLException e) {
-            System.out.println("Lỗi kết nối rồi ông giáo ơi!");
             e.printStackTrace();
         }
-        return conn;
+        return connection;
     }
 
-    public static void main(String[] args) {
-        getConnection();
+    public static void closeConnection() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+                System.out.println(" [DBConnection] Đã ngắt kết nối an toàn.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
