@@ -1,6 +1,6 @@
 package com.nhom15.dao;
 
-import com.nhom15.database.DBConnection;
+import com.nhom15.util.DBConnection;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
