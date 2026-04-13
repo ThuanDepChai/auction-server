@@ -23,6 +23,7 @@ public class Auction {
     public int getId(){
         return id;
     }
+    public Item getItem(){ return item;}
     // viết thêm logic đấu giá ở đây
     public void startAuction() {
         System.out.println("Phiên đấu giá cho " + item.getName() + " bắt đầu!");
