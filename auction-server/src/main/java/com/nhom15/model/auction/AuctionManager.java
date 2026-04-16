@@ -1,5 +1,4 @@
-package com.nhom15.util;
-import com.nhom15.model.auction.Auction;
+package com.nhom15.model.auction;
 import java.util.*;
 
 public class AuctionManager {
