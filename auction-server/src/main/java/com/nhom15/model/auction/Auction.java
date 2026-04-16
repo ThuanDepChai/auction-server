@@ -12,6 +12,8 @@ public class Auction {
     private double startPrice;
     private long startTime;
     private long endTime;
+    //danh sách Observer
+    private List<Observer> observers = new ArrayList<>();
 
     public Auction(int id, Item item, double startPrice, long startTime, long endTime) {
         this.id = id;
@@ -20,24 +22,35 @@ public class Auction {
         this.startTime = startTime;
         this.endTime = endTime;
     }
-    public int getId(){
+
+    public int getId() {
         return id;
     }
-    public Item getItem(){ return item;}
+
+    public Item getItem() {
+        return item;
+    }
+
     // viết thêm logic đấu giá ở đây
     public void startAuction() {
         System.out.println("Phiên đấu giá cho " + item.getName() + " bắt đầu!");
     }
+
     // Danh sách lưu các bid
     private List<Bid> bids = new ArrayList<>();
+
     public void addBid(Bidder bidder, double amount) {
         Bid bid = new Bid(bidder, amount);
         bids.add(bid);
         System.out.println("Người dùng " + bidder.getUsername() + " vừa đặt giá: " + amount + " lúc " + bid.getTimestamp());
+        String msg = "Sản phẩm " + item.getName() + " có giá mới: " + amount + " từ " + bidder.getUsername();
+        notifyObservers(msg); // thêm thông báo ( observer)
     }
+
     public List<Bid> getBids() {
         return bids;
     }
+
     // Thêm bid mới
     // Lấy giá cao nhất
     public double getCurrentHighestBid() {
@@ -48,5 +61,19 @@ public class Auction {
             }
         }
         return highest;
+    }
+
+    //  đăng ký người theo dõi
+    public void registerObserver(Observer o) {
+        if (!observers.contains(o)) {
+            observers.add(o);
+        }
+    }
+
+    //phát thông báo
+    private void notifyObservers(String message) {
+        for (Observer o : observers) {
+            o.update(message);
+        }
     }
 }

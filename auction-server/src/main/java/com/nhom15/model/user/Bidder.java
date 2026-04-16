@@ -2,8 +2,9 @@ package com.nhom15.model.user;
 
 import com.nhom15.model.auction.Auction;
 import com.nhom15.model.auction.Bid;
+import com.nhom15.model.auction.Observer;
 
-public class Bidder extends User{
+public class Bidder extends User implements Observer {
     // Constructor
     public Bidder(int id, String username, String password, String email) {
         super(id, username, password, email, UserRole.BIDDER);
@@ -35,6 +36,11 @@ public class Bidder extends User{
                 System.out.println(" - Giá: " + bid.getAmount() + " | Thời điểm: " + bid.getTimestamp());
             }
         }
+    }
+
+    @Override
+    public void update(String message) {
+        System.out.println("[Thông báo cho " + username + "]: " + message);
     }
 }
 
