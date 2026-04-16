@@ -1,20 +1,24 @@
 package com.nhom15.model.user;
-public abstract class User {
+
+import com.nhom15.model.Entity;
+import org.mindrot.jbcrypt.BCrypt;
+
+public abstract class User extends Entity {
     // Thuộc tính chung
-    protected int id;
     protected String username;
-    protected String password;
+    protected String passwordHash;
     protected String email;
     protected UserRole role;
 
     // Constructor
-    public User(int id, String username, String password, String email, UserRole role) {
+    public User(int id, String username, String passwordHash, String email, UserRole role) {
         this.id = id;
         this.username = username;
-        this.password = password;
+        this.passwordHash = passwordHash;
         this.email = email;
         this.role = role;
     }
+    public User(){}
 
     // Getter & Setter
     public int getId() {
@@ -33,6 +37,12 @@ public abstract class User {
         return email;
     }
 
+    public String getPasswordHash(){return getPasswordHash();}
+
+    public void setPasswordHash(String passwordHash){
+        this.passwordHash = passwordHash;
+    }
+
     public void setEmail(String email) {
         this.email = email;
     }
@@ -43,22 +53,6 @@ public abstract class User {
 
     public void setRole(UserRole role) {
         this.role = role;
-    }
-
-    // Phương thức chung
-    public boolean login(String username, String password) {
-        // Kiểm tra username và password
-        if (this.username.equals(username) && this.password.equals(password)) {
-            System.out.println("Đăng nhập thành công!");
-            return true;
-        } else {
-            System.out.println("Sai thông tin đăng nhập!");
-            return false;
-        }
-    }
-
-    public void logout() {
-        System.out.println(username + " đã đăng xuất.");
     }
 
     // Phương thức trừu tượng
