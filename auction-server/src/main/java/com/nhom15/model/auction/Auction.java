@@ -10,8 +10,15 @@ public class Auction {
     private int id;
     private Item item;
     private double startPrice;
+    private double currentHighestBid;
+    private Bidder highestBidder;
     private long startTime;
     private long endTime;
+    private List<Bid> bids = new ArrayList<>();
+    // Danh sách lưu các bids
+    public List<Bid> getBids() {
+        return bids;
+    }
     //danh sách Observer
     private List<Observer> observers = new ArrayList<>();
 
@@ -26,33 +33,31 @@ public class Auction {
     public int getId() {
         return id;
     }
-
     public Item getItem() {
         return item;
     }
+    public double getStartPrice(){ return startPrice;}
+    public long getStartTime(){ return startTime;}
+    public long getEndTime() { return endTime;}
+    public Bidder getHighestBidder() { return highestBidder;}
 
-    // viết thêm logic đấu giá ở đây
-    public void startAuction() {
-        System.out.println("Phiên đấu giá cho " + item.getName() + " bắt đầu!");
-    }
-
-    // Danh sách lưu các bid
-    private List<Bid> bids = new ArrayList<>();
-
+    // Thêm bids mới
     public void addBid(Bidder bidder, double amount) {
         Bid bid = new Bid(bidder, amount);
         bids.add(bid);
         System.out.println("Người dùng " + bidder.getUsername() + " vừa đặt giá: " + amount + " lúc " + bid.getTimestamp());
         String msg = "Sản phẩm " + item.getName() + " có giá mới: " + amount + " từ " + bidder.getUsername();
-        notifyObservers(msg); // thêm thông báo ( observer)
+        notifyObservers("Có bid mới: " + amount + " từ " + bidder.getUsername()); // thêm thông báo ( observer)
     }
 
-    public List<Bid> getBids() {
-        return bids;
+    public boolean isStarted() {
+        return System.currentTimeMillis() >= startTime;
     }
 
-    // Thêm bid mới
-    // Lấy giá cao nhất
+    public boolean isEnded() {
+        return System.currentTimeMillis() > endTime;
+    }
+        // Lấy giá cao nhất
     public double getCurrentHighestBid() {
         double highest = startPrice;
         for (Bid bid : bids) {
@@ -75,5 +80,10 @@ public class Auction {
         for (Observer o : observers) {
             o.update(message);
         }
+    }
+    public void printInfo() {
+        System.out.println("Auction #" + id + " | Item: " + item.getName() +
+                " | Highest Bid: " + currentHighestBid +
+                " | Bidder: " + (highestBidder != null ? highestBidder.getUsername() : "None"));
     }
 }
