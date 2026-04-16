@@ -1,9 +1,10 @@
 package com.nhom15.model.user;
 
 import com.nhom15.model.Entity;
+import com.nhom15.model.auction.Observer;
 import org.mindrot.jbcrypt.BCrypt;
 
-public abstract class User extends Entity {
+public abstract class User extends Entity implements Observer {
     // Thuộc tính chung
     protected String username;
     protected String passwordHash;
@@ -57,5 +58,9 @@ public abstract class User extends Entity {
 
     // Phương thức trừu tượng
     public abstract void printInfo();
+    @Override
+    public void update(String message) {
+        System.out.println("[Thông báo cho " + username + "]: " + message);
+    }
 }
 
