@@ -1,3 +1,4 @@
+<img width="1799" height="895" alt="class-diagram" src="https://github.com/user-attachments/assets/005c1862-1148-4a52-9696-d66ce936faba" />
 ```text 
 Nhom 15
  auction-server/
