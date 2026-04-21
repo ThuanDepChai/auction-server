@@ -1,4 +1,5 @@
-<img width="1799" height="895" alt="class-diagram" src="https://github.com/user-attachments/assets/005c1862-1148-4a52-9696-d66ce936faba" />
+<img width="1799" height="895" alt="class-diagram" src="https://github.com/user-attachments/assets/005c1862-1148-4a52-9696-d66ce936faba" /><img width="8498" height="3376" alt="Nhom15" src="https://github.com/user-attachments/assets/fef2b52f-3db8-4345-94a1-9e87b2c70cb4" />
+
 
 ```text
 Nhom 15
