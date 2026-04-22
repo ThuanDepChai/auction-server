@@ -6,7 +6,7 @@ public class DAOTest {
 
         // 1. Test UserDAO
         UserDAO userDAO = new UserDAO();
-        boolean userOk = userDAO.registerUser("DucLeader", "123456");
+        boolean userOk = userDAO.registerUser("DucLeader", "123456","abc123@gmail.com");
         System.out.println("Test UserDAO: " + (userOk ? "Thành công" : "Thất bại"));
 
         // 2. Test BidDAO
