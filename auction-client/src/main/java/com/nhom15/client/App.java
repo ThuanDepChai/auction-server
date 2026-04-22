@@ -8,29 +8,33 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
+import static javafx.application.Application.launch;
+
 public class App extends Application {
 
+    // Bên trong file App.java (phần start)
     @Override
     public void start(Stage primaryStage) {
         try {
-            // ĐÃ FIX: Sửa đường dẫn thành "/view/Main.fxml"
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/Main.fxml"));
+            // Đổi đường dẫn thành login.fxml
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
             Parent root = loader.load();
 
-            Scene scene = new Scene(root, 1200, 700);
+            // Không cần set cứng kích thước 1200x700 nữa để form đăng nhập gọn gàng
+            Scene scene = new Scene(root);
 
-            primaryStage.setTitle("Hệ thống Đấu giá - Nhóm 15");
+            primaryStage.setTitle("Đăng nhập - Hệ thống Đấu giá");
             primaryStage.setScene(scene);
             primaryStage.centerOnScreen();
             primaryStage.show();
 
         } catch (IOException e) {
-            System.err.println("Lỗi không thể tải giao diện: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public static void main(String[] args) {
+        // Hàm launch() là bắt buộc để khởi động vòng đời của một app JavaFX
         launch(args);
     }
 }

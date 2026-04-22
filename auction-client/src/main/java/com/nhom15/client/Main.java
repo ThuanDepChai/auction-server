@@ -1,6 +1,8 @@
+package com.nhom15.client;
+
 public class Main {
     public static void main(String[] args) {
-        // Gọi hàm main của class App
+        // Khởi chạy hàm main của App
         App.main(args);
     }
 }
