@@ -1,4 +1,7 @@
 <img width="1799" height="895" alt="class-diagram" src="https://github.com/user-attachments/assets/005c1862-1148-4a52-9696-d66ce936faba" /><img width="8498" height="3376" alt="Nhom15" src="https://github.com/user-attachments/assets/fef2b52f-3db8-4345-94a1-9e87b2c70cb4" />
+<img width="855" height="683" alt="image" src="https://github.com/user-attachments/assets/a65310c8-6527-4dab-9c3b-60ce9346895d" />
+<img width="968" height="506" alt="image" src="https://github.com/user-attachments/assets/a17130fc-2680-4648-b259-5669b9d66b58" />
+<img width="717" height="794" alt="image" src="https://github.com/user-attachments/assets/2a907384-46bd-4177-9657-97192915026d" />
 
 
 ```text
