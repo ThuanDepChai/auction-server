@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="650.0" prefWidth="500.0" style="-fx-background-color: #FFFFFF;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.RegisterController">
+    <children>
+        <VBox alignment="CENTER" layoutX="50.0" layoutY="35.0" prefHeight="580.0" prefWidth="400.0" spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #F0F0F0; -fx-border-width: 1;">
+            <children>
+
+                <Label style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;" text="✧ Đăng Ký">
+                    <font>
+                        <Font size="36.0" />
+                    </font>
+                    <VBox.margin>
+                        <Insets bottom="5.0" />
+                    </VBox.margin>
+                </Label>
+
+                <Label text="Tạo tài khoản mới để tham gia đấu giá" textFill="#888888">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <VBox.margin>
+                        <Insets bottom="10.0" />
+                    </VBox.margin>
+                </Label>
+
+                <TextField fx:id="txtUsername" prefHeight="45.0" promptText="Tên đăng nhập" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </TextField>
+
+                <TextField fx:id="txtEmail" prefHeight="45.0" promptText="Địa chỉ Email" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </TextField>
+
+                <PasswordField fx:id="txtPassword" prefHeight="45.0" promptText="Mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </PasswordField>
+
+                <PasswordField fx:id="txtConfirmPassword" prefHeight="45.0" promptText="Xác nhận lại mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                    <VBox.margin>
+                        <Insets bottom="10.0" />
+                    </VBox.margin>
+                </PasswordField>
+
+                <Button fx:id="btnRegister" mnemonicParsing="false" onAction="#handleRegister" prefHeight="45.0" prefWidth="360.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-background-radius: 25; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="XÁC NHẬN ĐĂNG KÝ">
+                    <font>
+                        <Font size="15.0" />
+                    </font>
+                    <effect>
+                        <DropShadow height="10.0" offsetY="3.0" radius="4.5" width="10.0">
+                            <color>
+                                <Color blue="0.8" green="0.4" opacity="0.4" red="0.6" />
+                            </color>
+                        </DropShadow>
+                    </effect>
+                </Button>
+
+                <Button fx:id="btnBackToLogin" mnemonicParsing="false" onAction="#handleBackToLogin" prefHeight="45.0" prefWidth="360.0" style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-font-weight: bold; -fx-cursor: hand;" text="← Quay lại trang đăng nhập">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </Button>
+
+            </children>
+            <padding>
+                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
+            </padding>
+            <effect>
+                <DropShadow blurType="GAUSSIAN" height="50.0" radius="24.5" width="50.0">
+                    <color>
+                        <Color opacity="0.1" />
+                    </color>
+                </DropShadow>
+            </effect>
+        </VBox>
+    </children>
+</AnchorPane>
