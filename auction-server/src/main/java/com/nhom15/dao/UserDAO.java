@@ -8,7 +8,7 @@ public class UserDAO {
     public boolean registerUser(String username, String password, String email) {
         try (Connection conn = DBConnection.getConnection()) {
             // 1. Kiểm tra username
-            String checkUserSql = "SELECT user_id FROM user WHERE username = ?";
+            String checkUserSql = "SELECT id FROM users WHERE username = ?";
             try(PreparedStatement ps = conn.prepareStatement(checkUserSql)) {
                 ps.setString(1, username);
                 ResultSet rs = ps.executeQuery();
@@ -19,7 +19,7 @@ public class UserDAO {
             }
             
             // 2. Kiểm tra email
-            String checkEmailSql = "SELECT user_id FROM user WHERE email = ?";
+            String checkEmailSql = "SELECT id FROM users WHERE email = ?";
             try (PreparedStatement ps = conn.prepareStatement(checkEmailSql)) {
                 ps.setString(1, email);
                 ResultSet rs = ps.executeQuery();
@@ -30,7 +30,7 @@ public class UserDAO {
             }
             
             // 3. Nếu chưa tồn tại thì tạo user mới
-            String sql = "INSERT INTO user (username, password, email) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO users (username, password, email) VALUES (?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, username);
                 ps.setString(2, password);
@@ -47,7 +47,7 @@ public class UserDAO {
     // Hàm đăng nhập
     public boolean loginUser(String username, String password) {
        
-        String sql = "SELECT * FROM user WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, username);
