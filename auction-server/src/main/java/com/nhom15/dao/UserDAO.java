@@ -46,7 +46,7 @@ public class UserDAO {
 
     // Hàm đăng nhập
     public boolean loginUser(String username, String password) {
-        // Lưu ý: Đồng bộ tên bảng là 'user' thay vì 'users' để khớp với hàm registerUser
+       
         String sql = "SELECT * FROM user WHERE username = ? AND password = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
