@@ -86,7 +86,7 @@ public class LoginController {
                     // 2. CHUYỂN SANG MÀN HÌNH TRANG CHỦ (HOME)
                     try {
                         // Tải file giao diện Trang chủ (Nhớ sửa lại tên file .fxml cho đúng với dự án của bạn)
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("view/Home.fxml"));
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/Home.fxml"));
                         Parent root = loader.load();
 
                         // Lấy cái cửa sổ (Stage) hiện tại đang chứa nút Đăng nhập
@@ -102,7 +102,7 @@ public class LoginController {
                          * thì bạn sẽ lấy HomeController ra và set dữ liệu ở đây.
                          */
 
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         showAlert(Alert.AlertType.ERROR, "Lỗi giao diện", "Không thể tải được màn hình Trang chủ!");
                     }
