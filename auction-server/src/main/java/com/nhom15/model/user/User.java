@@ -38,7 +38,7 @@ public abstract class User extends Entity implements Observer {
         return email;
     }
 
-    public String getPasswordHash(){return getPasswordHash();}
+    public String getPasswordHash(){return passwordHash;}
 
     public void setPasswordHash(String passwordHash){
         this.passwordHash = passwordHash;

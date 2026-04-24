@@ -1,19 +1,21 @@
 package com.nhom15;
 
+
 import com.nhom15.dao.UserDAO;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+
+
+
+import java.sql.Connection;
+import java.sql.SQLException;
+
+
 public class ServerMain {
-    public static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
+    public static void main(String[] args) {
+        UserDAO userDAO = new UserDAO();
+        boolean user1 = userDAO.registerUser("TranDucThuan","123456","xyz@gmail.com");
+        System.out.println("Đăng ký newUser: " + (user1 ? "Thành công" : "Thất bại"));
 
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
-        }
     }
 }

@@ -7,29 +7,31 @@ public class UserDAO {
     // Hàm thêm người dùng mới
     public boolean registerUser(String username, String password, String email) {
         try (Connection conn = DBConnection.getConnection()) {
-            // Kiểm tra username
-             String checkUserSql = "SELECT user_id FROM user WHERE username = ?";
-             try(PreparedStatement ps = conn.prepareStatement(checkUserSql)) {
-                 ps.setString(1, username);
-                 ResultSet rs = ps.executeQuery();
-                 if (rs.next()) {
-                     System.out.println("Username đã tồn tại, vui lòng chọn tên khác!");
-                     return false;
-                 }
-             }
-             // Kiểm tra email
-            String checkEmailSql = "SELECT user_id FROM user WHERE email = ?";
-             try (PreparedStatement ps = conn.prepareStatement(checkEmailSql)) {
-                 ps.setString(1,email);
-                 ResultSet rs = ps.executeQuery();
-                 if (rs.next()) {
-                     System.out.println("Email đã đăng kí, vui lòng chọn email khác!");
-                     return false;
-                 }
+            // 1. Kiểm tra username
+            String checkUserSql = "SELECT user_id FROM user WHERE username = ?";
+            try(PreparedStatement ps = conn.prepareStatement(checkUserSql)) {
+                ps.setString(1, username);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    System.out.println("Username đã tồn tại, vui lòng chọn tên khác!");
+                    return false;
+                }
             }
-            // Nếu chưa tồn tại thì tạo user mới
+            
+            // 2. Kiểm tra email
+            String checkEmailSql = "SELECT user_id FROM user WHERE email = ?";
+            try (PreparedStatement ps = conn.prepareStatement(checkEmailSql)) {
+                ps.setString(1, email);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    System.out.println("Email đã đăng kí, vui lòng chọn email khác!");
+                    return false;
+                }
+            }
+            
+            // 3. Nếu chưa tồn tại thì tạo user mới
             String sql = "INSERT INTO user (username, password, email) VALUES (?, ?, ?)";
-            try ( PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, username);
                 ps.setString(2, password);
                 ps.setString(3, email);
@@ -44,6 +46,7 @@ public class UserDAO {
 
     // Hàm đăng nhập
     public boolean loginUser(String username, String password) {
+        // Lưu ý: Đồng bộ tên bảng là 'user' thay vì 'users' để khớp với hàm registerUser
         String sql = "SELECT * FROM user WHERE username = ? AND password = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

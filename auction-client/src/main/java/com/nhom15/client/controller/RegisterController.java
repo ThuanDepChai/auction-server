@@ -1,5 +1,9 @@
 package com.nhom15.client.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.nhom15.client.model.UserDTO;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,7 +15,11 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 
 public class RegisterController {
 
@@ -52,7 +60,47 @@ public class RegisterController {
             showAlert(Alert.AlertType.ERROR, "Lỗi mật khẩu", "Mật khẩu xác nhận không khớp!");
             return;
         }
+        // 1. Đóng gói đối tượng User
+        UserDTO newUser = new UserDTO(username, email, password);
+        Gson gson = new Gson();
 
+// 2. Tạo chuỗi JSON theo chuẩn giao thức đã quy ước
+        JsonObject requestJson = new JsonObject();
+        requestJson.addProperty("action", "REGISTER");
+        requestJson.add("data", gson.toJsonTree(newUser));
+
+        String messageToSend = requestJson.toString();
+
+// 3. Mở Socket kết nối tới Server (Giả sử Server chạy ở localhost, port 8888)
+        try (Socket socket = new Socket("localhost", 8888);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            // 4. Gửi chuỗi JSON đi
+            out.println(messageToSend);
+
+            // 5. Đợi Server phản hồi
+            String responseMessage = in.readLine();
+            if (responseMessage != null) {
+                // 6. Phân tích phản hồi từ Server
+                JsonObject responseJson = JsonParser.parseString(responseMessage).getAsJsonObject();
+                String status = responseJson.get("status").getAsString();
+                String message = responseJson.get("message").getAsString();
+
+                if ("SUCCESS".equals(status)) {
+                    showAlert(Alert.AlertType.INFORMATION, "Thành công", message);
+                    goToLoginScreen(btnRegister);
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Lỗi đăng ký", message);
+                }
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Server không phản hồi!");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Lỗi mạng", "Không thể kết nối đến Server! Vui lòng kiểm tra lại xem Server đã bật chưa.");
+        }
         // TODO: Xử lý lưu vào Database hoặc gửi API lên Server ở đây
 
         // Giả lập đăng ký thành công
