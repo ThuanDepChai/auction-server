@@ -5,8 +5,8 @@ import java.util.List;
 public class Seller extends User {
     private List<Item> items;
 
-    public Seller(int id, String username, String password, String email) {
-        super(id, username, password, email, UserRole.SELLER);
+    public Seller(int id, String username, String passwordHash, String email) {
+        super(id, username, passwordHash, email, UserRole.SELLER);
     }
 
     @Override

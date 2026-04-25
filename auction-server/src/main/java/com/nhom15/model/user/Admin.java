@@ -4,8 +4,8 @@ import com.nhom15.model.item.Item;
 import java.util.List;
 
 public class Admin extends User {
-    public Admin (int id, String username,String password,String email) {
-        super(id, username, password, email, UserRole.ADMIN);
+    public Admin (int id, String username,String passwordHash,String email) {
+        super(id, username, passwordHash, email, UserRole.ADMIN);
     }
     @Override
     public void printInfo(){

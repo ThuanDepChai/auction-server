@@ -6,8 +6,8 @@ import com.nhom15.model.auction.Observer;
 
 public class Bidder extends User {
     // Constructor
-    public Bidder(int id, String username, String password, String email) {
-        super(id, username, password, email, UserRole.BIDDER);
+    public Bidder(int id, String username, String passwordHash, String email) {
+        super(id, username, passwordHash, email, UserRole.BIDDER);
     }
 
     @Override
