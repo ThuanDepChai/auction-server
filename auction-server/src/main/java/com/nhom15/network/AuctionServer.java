@@ -3,6 +3,7 @@ package com.nhom15.network;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.nhom15.dao.UserDAO;
+import com.nhom15.service.UserService;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -40,8 +41,8 @@ public class AuctionServer {
                 String action = request.get("action").getAsString();
                 JsonObject response = new JsonObject();
 
-                // KHỞI TẠO UserDAO
-                UserDAO userDAO = new UserDAO();
+                // KHỞI TẠO UserService
+                UserService userService = new UserService();
 
                 if ("REGISTER".equals(action)) {
                     JsonObject data = request.getAsJsonObject("data");
@@ -51,7 +52,7 @@ public class AuctionServer {
 
                     // GỌI UserDAO ĐỂ LƯU ĐĂNG KÝ
                     // Lưu ý: Thứ tự tham số truyền vào khớp với hàm registerUser(username, password, email) của bạn
-                    if (userDAO.registerUser(username, password, email)) {
+                    if (userService.register(username, password, email)) {
                         response.addProperty("status", "SUCCESS");
                         response.addProperty("message", "Tạo tài khoản thành công!");
                     } else {
@@ -66,7 +67,7 @@ public class AuctionServer {
                     String password = data.get("password").getAsString();
 
                     // GỌI UserDAO ĐỂ KIỂM TRA ĐĂNG NHẬP
-                    if (userDAO.loginUser(username, password)) {
+                    if (userService.login(username, password)) {
                         response.addProperty("status", "SUCCESS");
                         response.addProperty("message", "Đăng nhập thành công!");
                     } else {

@@ -1,5 +1,9 @@
 package com.nhom15.dao;
 
+import com.nhom15.model.user.Admin;
+import com.nhom15.model.user.Bidder;
+import com.nhom15.model.user.Seller;
+import com.nhom15.model.user.User;
 import com.nhom15.util.DBConnection; // lấy Connection
 import java.sql.*;
 
@@ -8,7 +12,7 @@ public class UserDAO {
     public boolean registerUser(String username, String password, String email) {
         try (Connection conn = DBConnection.getConnection()) {
             // 1. Kiểm tra username
-            String checkUserSql = "SELECT id FROM users WHERE username = ?";
+            String checkUserSql = "SELECT user_id FROM user WHERE username = ?";
             try(PreparedStatement ps = conn.prepareStatement(checkUserSql)) {
                 ps.setString(1, username);
                 ResultSet rs = ps.executeQuery();
@@ -19,7 +23,7 @@ public class UserDAO {
             }
             
             // 2. Kiểm tra email
-            String checkEmailSql = "SELECT id FROM users WHERE email = ?";
+            String checkEmailSql = "SELECT user_id FROM user WHERE email = ?";
             try (PreparedStatement ps = conn.prepareStatement(checkEmailSql)) {
                 ps.setString(1, email);
                 ResultSet rs = ps.executeQuery();
@@ -30,7 +34,7 @@ public class UserDAO {
             }
             
             // 3. Nếu chưa tồn tại thì tạo user mới
-            String sql = "INSERT INTO users (username, password, email) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO user (username, password, email) VALUES (?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, username);
                 ps.setString(2, password);
@@ -43,20 +47,48 @@ public class UserDAO {
             return false;
         }
     }
-
-    // Hàm đăng nhập
-    public boolean loginUser(String username, String password) {
-       
-        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, username);
-            stmt.setString(2, password); // so sánh hash mật khẩu sau
-            ResultSet rs = stmt.executeQuery();
-            return rs.next(); // nếu có kết quả thì đăng nhập thành công
+    // Lấy thông tin User từ username
+    public User findByUsername(String username) {
+        try (Connection conn = DBConnection.getConnection()) {
+            String sql = "SELECT * FROM user WHERE username = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, username);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    String role = rs.getString("role");
+                    User user;
+                    switch (role.toUpperCase()) {
+                        case "ADMIN":
+                            user = new Admin(
+                                    rs.getInt("user_id"),
+                                    rs.getString("username"),
+                                    rs.getString("password"), // đây là hash từ DB
+                                    rs.getString("email")
+                            );
+                            break;
+                        case "SELLER":
+                            user = new Seller(
+                                    rs.getInt("user_id"),
+                                    rs.getString("username"),
+                                    rs.getString("password"),
+                                    rs.getString("email")
+                            );
+                            break;
+                        default:
+                            user = new Bidder(
+                                    rs.getInt("user_id"),
+                                    rs.getString("username"),
+                                    rs.getString("password"),
+                                    rs.getString("email")
+                            );
+                            break;
+                    }
+                    return user;
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
         }
+        return null;
     }
 }
