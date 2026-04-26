@@ -55,7 +55,13 @@ public class RegisterController {
             return;
         }
 
-        // 2. Kiểm tra mật khẩu có khớp nhau không
+        // 2. Kiểm tra định dạng email
+        if (!isValidEmail(email)) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi email", "Email không đúng định dạng!");
+            return;
+        }
+
+        // 3. Kiểm tra mật khẩu có khớp nhau không
         if (!password.equals(confirmPassword)) {
             showAlert(Alert.AlertType.ERROR, "Lỗi mật khẩu", "Mật khẩu xác nhận không khớp!");
             return;
@@ -103,11 +109,6 @@ public class RegisterController {
         }
         // TODO: Xử lý lưu vào Database hoặc gửi API lên Server ở đây
 
-        // Giả lập đăng ký thành công
-        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đăng ký tài khoản thành công! Vui lòng đăng nhập.");
-
-        // Chuyển thẳng về màn hình Đăng nhập
-        goToLoginScreen(btnRegister);
     }
 
     @FXML
@@ -137,5 +138,10 @@ public class RegisterController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+    // Hàm kiểm tra định dạng email
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$";
+        return email.matches(emailRegex);
     }
 }
