@@ -67,35 +67,47 @@ public class RegisterController {
             showAlert(Alert.AlertType.ERROR, "Lỗi mật khẩu", "Mật khẩu xác nhận không khớp!");
             return;
         }
-        // 1. Đóng gói đối tượng User
+
+        // TẠO CẢM GIÁC MƯỢT: Khóa nút bấm lại và đổi chữ để người dùng biết app đang làm việc
+        btnRegister.setDisable(true);
+        btnRegister.setText("Đang xử lý...");
+
+        // Đóng gói đối tượng User
         UserDTO newUser = new UserDTO(username, email, password);
         Gson gson = new Gson();
 
-        // 2. Tạo chuỗi JSON theo chuẩn giao thức đã quy ước
+        // Tạo chuỗi JSON theo chuẩn giao thức đã quy ước
         JsonObject requestJson = new JsonObject();
         requestJson.addProperty("action", "REGISTER");
         requestJson.add("data", gson.toJsonTree(newUser));
 
-        // 3. GỌI SOCKET CLIENT ĐỂ GỬI ĐI (Không dùng localhost nữa!)
-        JsonObject responseJson = SocketClient.sendRequest(requestJson);
+        // THUÊ NHÂN VIÊN CHẠY NGẦM GỬI MẠNG ĐỂ KHÔNG BỊ ĐƠ GIAO DIỆN
+        new Thread(() -> {
+            // Lệnh gửi mạng này tốn thời gian nên để luồng ngầm chạy
+            JsonObject responseJson = SocketClient.sendRequest(requestJson);
 
-        // 4. Xử lý phản hồi từ Server
-        if (responseJson != null) {
-            String status = responseJson.get("status").getAsString();
-            String message = responseJson.get("message").getAsString();
+            // CẦM KẾT QUẢ VỀ BÁO LẠI CHO NHÂN VIÊN GIAO DIỆN (Bắt buộc)
+            javafx.application.Platform.runLater(() -> {
+                // Nhả nút ra, trả lại trạng thái ban đầu
+                btnRegister.setDisable(false);
+                btnRegister.setText("Đăng ký");
 
-            if ("SUCCESS".equals(status)) {
-                showAlert(Alert.AlertType.INFORMATION, "Thành công", message);
-                goToLoginScreen(btnRegister);
-            } else {
-                showAlert(Alert.AlertType.ERROR, "Lỗi đăng ký", message);
-            }
-        } else {
-            showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server! Vui lòng kiểm tra lại xem Server đã bật chưa.");
-        }
+                // Xử lý phản hồi từ Server
+                if (responseJson != null) {
+                    String status = responseJson.get("status").getAsString();
+                    String message = responseJson.get("message").getAsString();
 
-        // TODO: Xử lý lưu vào Database hoặc gửi API lên Server ở đây
-
+                    if ("SUCCESS".equals(status)) {
+                        showAlert(Alert.AlertType.INFORMATION, "Thành công", message);
+                        goToLoginScreen(btnRegister);
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Lỗi đăng ký", message);
+                    }
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server! Vui lòng kiểm tra lại xem Server đã bật chưa.");
+                }
+            });
+        }).start(); // Kích hoạt luồng ngầm chạy
     }
 
     @FXML
