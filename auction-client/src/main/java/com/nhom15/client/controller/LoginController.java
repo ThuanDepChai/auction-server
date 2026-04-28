@@ -49,75 +49,59 @@ public class LoginController {
         String username = txtUsername.getText();
         String password = txtPassword.getText();
 
-        // Kiểm tra rỗng
         if (username.trim().isEmpty() || password.trim().isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu!");
+            showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng nhập đầy đủ!");
             return;
         }
 
-        // MỞ SOCKET GỌI LÊN SERVER (CỔNG 8888)
-        try (Socket socket = new Socket("localhost", 8888);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        // 1. TẠO CẢM GIÁC MƯỢT BẰNG CÁCH KHÓA NÚT TẠM THỜI
+        btnLogin.setDisable(true);
+        btnLogin.setText("Đang đăng nhập...");
 
-            // 1. Đóng gói dữ liệu thành JSON theo đúng format Server đang chờ
-            JsonObject data = new JsonObject();
-            data.addProperty("username", username);
-            data.addProperty("password", password);
+        JsonObject data = new JsonObject();
+        data.addProperty("username", username);
+        data.addProperty("password", password);
 
-            JsonObject request = new JsonObject();
-            request.addProperty("action", "LOGIN"); // Báo cho Server biết đây là lệnh ĐĂNG NHẬP
-            request.add("data", data);
+        JsonObject requestJson = new JsonObject();
+        requestJson.addProperty("action", "LOGIN");
+        requestJson.add("data", data);
 
-            // 2. Phóng chuỗi JSON lên Server
-            out.println(request.toString());
+        // 2. THUÊ NHÂN VIÊN CHẠY NGẦM ĐI GỬI MẠNG (Tạo Thread mới)
+        new Thread(() -> {
+            // Việc này tốn 1-2 giây, nhưng không sao vì đang chạy ngầm
+            JsonObject responseJson = com.nhom15.client.network.SocketClient.sendRequest(requestJson);
 
-            // 3. Chờ Server phản hồi về
-            String responseStr = in.readLine();
-            if (responseStr != null) {
-                JsonObject response = JsonParser.parseString(responseStr).getAsJsonObject();
-                String status = response.get("status").getAsString();
-                String message = response.get("message").getAsString();
+            // 3. CẦM KẾT QUẢ VỀ BÁO LẠI CHO NHÂN VIÊN GIAO DIỆN (Bắt buộc dùng Platform.runLater)
+            javafx.application.Platform.runLater(() -> {
+                // Nhả nút ra, trả lại chữ ban đầu
+                btnLogin.setDisable(false);
+                btnLogin.setText("Đăng nhập");
 
-                if ("SUCCESS".equals(status)) {
-                    // 1. Hiển thị thông báo đăng nhập thành công
-                    showAlert(Alert.AlertType.INFORMATION, "Thành công", message);
+                if (responseJson != null) {
+                    String status = responseJson.get("status").getAsString();
+                    String message = responseJson.get("message").getAsString();
 
-                    // 2. CHUYỂN SANG MÀN HÌNH TRANG CHỦ (HOME)
-                    try {
-                        // Tải file giao diện Trang chủ (Nhớ sửa lại tên file .fxml cho đúng với dự án của bạn)
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/Home.fxml"));
-                        Parent root = loader.load();
-
-                        // Lấy cái cửa sổ (Stage) hiện tại đang chứa nút Đăng nhập
-                        Stage stage = (Stage) txtUsername.getScene().getWindow();
-
-                        // Gắn giao diện mới vào cửa sổ
-                        stage.setScene(new Scene(root));
-                        stage.setTitle("Trang chủ - Hệ thống Đấu giá Nhóm 15");
-                        stage.centerOnScreen(); // Căn giữa màn hình cho đẹp
-
-                        /* * LƯU Ý NÂNG CAO (Có thể làm sau):
-                         * Nếu bạn muốn truyền chữ "username" sang trang chủ để hiện dòng "Xin chào, admin!"
-                         * thì bạn sẽ lấy HomeController ra và set dữ liệu ở đây.
-                         */
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        showAlert(Alert.AlertType.ERROR, "Lỗi giao diện", "Không thể tải được màn hình Trang chủ!");
+                    if ("SUCCESS".equals(status)) {
+                        showAlert(Alert.AlertType.INFORMATION, "Thành công", message);
+                        try {
+                            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/Home.fxml"));
+                            Parent root = loader.load();
+                            Stage stage = (Stage) txtUsername.getScene().getWindow();
+                            stage.setScene(new Scene(root));
+                            stage.setTitle("Trang chủ");
+                            stage.centerOnScreen();
+                        } catch (Exception e) {
+                            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải Trang chủ!");
+                        }
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Thất bại", message);
                     }
                 } else {
-                    // Sai tài khoản/mật khẩu
-                    showAlert(Alert.AlertType.ERROR, "Thất bại", message);
+                    showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Server không phản hồi!");
                 }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Server không phản hồi. Hãy chắc chắn Server đang chạy!");
-        }
+            });
+        }).start(); // Bắt đầu cho nhân viên chạy ngầm đi làm việc
     }
-
     // Xử lý sự kiện khi nhấn nút "TẠO TÀI KHOẢN MỚI"
     @FXML
     private void handleRegister(ActionEvent event) {

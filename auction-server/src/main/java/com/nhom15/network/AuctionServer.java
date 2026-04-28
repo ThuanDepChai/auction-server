@@ -15,8 +15,10 @@ import java.net.Socket;
 public class AuctionServer {
 
     public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(8888)) {
-            System.out.println("✅ Server đang chạy và lắng nghe tại cổng 8888...");
+        try {java.net.InetAddress serverIP = java.net.InetAddress.getByName("26.159.224.110");
+        ServerSocket serverSocket = new ServerSocket(8888, 50, serverIP);
+
+        System.out.println("✅ Server đang chạy trên IP " + serverIP.getHostAddress() + " ở cổng 8888...");
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -26,6 +28,7 @@ public class AuctionServer {
                 new Thread(() -> handleClient(clientSocket)).start();
             }
         } catch (IOException e) {
+            System.err.println("❌ Lỗi khi khởi động Server: " + e.getMessage());
             e.printStackTrace();
         }
     }
