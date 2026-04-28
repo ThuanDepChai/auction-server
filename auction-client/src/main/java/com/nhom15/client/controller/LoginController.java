@@ -3,6 +3,7 @@ package com.nhom15.client.controller;
 import com.google.gson.JsonObject;
 import com.nhom15.client.network.SocketClient;
 import com.nhom15.client.util.FormValidator;
+import javafx.animation.AnimationTimer;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -13,18 +14,26 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class LoginController {
 
+    @FXML private Pane bgAnimationPane; // Nền trang trí
+
     @FXML private TextField txtUsername;
-    @FXML private TextField txtEmail; // Đã thêm lại Email
+    @FXML private TextField txtEmail;
     @FXML private PasswordField txtPassword;
 
     @FXML private Label lblUsernameError;
-    @FXML private Label lblEmailError; // Thêm Label lỗi cho Email
+    @FXML private Label lblEmailError;
     @FXML private Label lblPasswordError;
 
     @FXML private Button btnLogin;
@@ -32,49 +41,66 @@ public class LoginController {
 
     @FXML
     public void initialize() {
-        // 1. Phép thuật "co giãn" khoảng cách
+        // Ràng buộc Label lỗi
         lblUsernameError.managedProperty().bind(lblUsernameError.visibleProperty());
         lblEmailError.managedProperty().bind(lblEmailError.visibleProperty());
         lblPasswordError.managedProperty().bind(lblPasswordError.visibleProperty());
 
-        // 2. Gắn bộ kiểm tra Regex
+        // Kiểm tra Regex
         FormValidator.bindRegex(txtUsername, lblUsernameError, "^.+$", "Vui lòng nhập tên đăng nhập!");
-        // Email thì check chuẩn định dạng
-        FormValidator.bindRegex(txtEmail, lblEmailError, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", "Email không hợp lệ (vd: abc@gmail.com)");
+        FormValidator.bindRegex(txtEmail, lblEmailError, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", "Email không hợp lệ!");
         FormValidator.bindRegex(txtPassword, lblPasswordError, "^.+$", "Vui lòng nhập mật khẩu!");
+
+        try {
+            Pane sharedBg = com.nhom15.client.util.BackgroundEngine.getSharedPane();
+
+            // Kiểm tra và gỡ khỏi cha cũ một cách an toàn
+            if (sharedBg.getParent() != null && sharedBg.getParent() instanceof Pane) {
+                ((Pane) sharedBg.getParent()).getChildren().remove(sharedBg);
+            }
+
+            // Thêm vào lớp dưới cùng của bgAnimationPane
+            if (bgAnimationPane != null) {
+                bgAnimationPane.getChildren().add(0, sharedBg);
+
+                // Ràng buộc kích thước để phủ kín màn hình
+                sharedBg.prefWidthProperty().bind(bgAnimationPane.widthProperty());
+                sharedBg.prefHeightProperty().bind(bgAnimationPane.heightProperty());
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi load nền đồng bộ: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
+
 
     @FXML
     private void handleLogin(ActionEvent event) {
         String username = txtUsername.getText();
-        String email = txtEmail.getText(); // Lấy dữ liệu Email
+        String email = txtEmail.getText();
         String password = txtPassword.getText();
 
-        // Kiểm tra xem có trường nào bị trống hoặc đang bị lỗi đỏ không
         if (username.trim().isEmpty() || email.trim().isEmpty() || password.trim().isEmpty() ||
                 lblUsernameError.isVisible() || lblEmailError.isVisible() || lblPasswordError.isVisible()) {
 
-            // Ép hiện lỗi nếu họ chưa gõ gì mà đã bấm nút
             if (username.trim().isEmpty()) lblUsernameError.setVisible(true);
             if (email.trim().isEmpty()) lblEmailError.setVisible(true);
             if (password.trim().isEmpty()) lblPasswordError.setVisible(true);
             return;
         }
 
-        // Khóa nút tạo cảm giác mượt
         btnLogin.setDisable(true);
         btnLogin.setText("Đang đăng nhập...");
 
         JsonObject data = new JsonObject();
         data.addProperty("username", username);
-        data.addProperty("email", email); // Gửi thêm Email lên Server
+        data.addProperty("email", email);
         data.addProperty("password", password);
 
         JsonObject requestJson = new JsonObject();
         requestJson.addProperty("action", "LOGIN");
         requestJson.add("data", data);
 
-        // Chạy ngầm đi gửi mạng
         new Thread(() -> {
             JsonObject responseJson = SocketClient.sendRequest(requestJson);
 

@@ -44,44 +44,65 @@ public class AuctionServer {
                 String action = request.get("action").getAsString();
                 JsonObject response = new JsonObject();
 
-                // KHỞI TẠO UserService
                 UserService userService = new UserService();
 
-                if ("REGISTER".equals(action)) {
-                    JsonObject data = request.getAsJsonObject("data");
-                    String username = data.get("username").getAsString();
-                    String email = data.get("email").getAsString();
-                    String password = data.get("password").getAsString();
+                switch (action) {
+                    // 1. KIỂM TRA NHANH USERNAME (Dành cho việc check khi đang gõ)
+                    case "CHECK_USERNAME":
+                        JsonObject checkData = request.getAsJsonObject("data");
+                        String userToCheck = checkData.get("username").getAsString();
 
-                    // GỌI UserDAO ĐỂ LƯU ĐĂNG KÝ
-                    // Lưu ý: Thứ tự tham số truyền vào khớp với hàm registerUser(username, password, email) của bạn
-                    if (userService.register(username, password, email)) {
-                        response.addProperty("status", "SUCCESS");
-                        response.addProperty("message", "Tạo tài khoản thành công!");
-                    } else {
-                        response.addProperty("status", "FAIL");
-                        response.addProperty("message", "Tên đăng nhập đã tồn tại hoặc lỗi DB!");
-                    }
+                        if (userService.isExists(userToCheck)) {
+                            response.addProperty("status", "EXISTS");
+                            response.addProperty("message", "Tên đăng nhập đã tồn tại!");
+                        } else {
+                            response.addProperty("status", "AVAILABLE");
+                            response.addProperty("message", "Tên này có thể sử dụng.");
+                        }
+                        break;
+
+                    // 2. ĐĂNG KÝ MỚI
+                    case "REGISTER":
+                        JsonObject regData = request.getAsJsonObject("data");
+                        String regUser = regData.get("username").getAsString();
+                        String regEmail = regData.get("email").getAsString();
+                        String regPass = regData.get("password").getAsString();
+
+                        if (userService.register(regUser, regPass, regEmail)) {
+                            response.addProperty("status", "SUCCESS");
+                            response.addProperty("message", "Tạo tài khoản thành công!");
+                        } else {
+                            response.addProperty("status", "FAIL");
+                            response.addProperty("message", "Đăng ký thất bại (Tên đã tồn tại hoặc lỗi hệ thống)!");
+                        }
+                        break;
+
+                    // 3. ĐĂNG NHẬP
+                    case "LOGIN":
+                        JsonObject loginData = request.getAsJsonObject("data");
+                        String loginUser = loginData.get("username").getAsString();
+                        String loginPass = loginData.get("password").getAsString();
+
+                        if (userService.login(loginUser, loginPass)) {
+                            response.addProperty("status", "SUCCESS");
+                            response.addProperty("message", "Đăng nhập thành công!");
+                        } else {
+                            response.addProperty("status", "FAIL");
+                            response.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
+                        }
+                        break;
+
+                    default:
+                        response.addProperty("status", "ERROR");
+                        response.addProperty("message", "Hành động không xác định!");
+                        break;
                 }
-                // XỬ LÝ ĐĂNG NHẬP
-                else if ("LOGIN".equals(action)) {
-                    JsonObject data = request.getAsJsonObject("data");
-                    String username = data.get("username").getAsString();
-                    String password = data.get("password").getAsString();
 
-                    // GỌI UserDAO ĐỂ KIỂM TRA ĐĂNG NHẬP
-                    if (userService.login(username, password)) {
-                        response.addProperty("status", "SUCCESS");
-                        response.addProperty("message", "Đăng nhập thành công!");
-                    } else {
-                        response.addProperty("status", "FAIL");
-                        response.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
-                    }
-                }
-
+                // Gửi phản hồi duy nhất về Client
                 out.println(response.toString());
             }
         } catch (Exception e) {
+            System.err.println("❌ Lỗi khi xử lý request: " + e.getMessage());
             e.printStackTrace();
         } finally {
             try { clientSocket.close(); } catch (IOException e) { e.printStackTrace(); }
