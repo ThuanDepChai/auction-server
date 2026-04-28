@@ -3,6 +3,7 @@ package com.nhom15.network;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.nhom15.dao.UserDAO;
+import com.nhom15.model.user.User;
 import com.nhom15.service.UserService;
 
 import java.io.BufferedReader;
@@ -83,18 +84,21 @@ public class AuctionServer {
                         String loginUser = loginData.get("username").getAsString();
                         String loginPass = loginData.get("password").getAsString();
 
-                        if (userService.login(loginUser, loginPass)) {
-                            response.addProperty("status", "SUCCESS");
+                        User loggedInUser = userService.getUserForLogin(loginUser, loginPass);
+
+                        if (loggedInUser != null) {
+                            response.addProperty("status",  "SUCCESS");
                             response.addProperty("message", "Đăng nhập thành công!");
+                            response.addProperty("userId",      loggedInUser.getId());
+                            response.addProperty("username",    loggedInUser.getUsername());
+                            response.addProperty("email",       loggedInUser.getEmail());
+                            response.addProperty("role", loggedInUser.getRole().name());
+                            response.addProperty("balance",     0.0);   // thêm cột balance vào DB sau
+                            response.addProperty("avatarPath",  "");    // thêm cột avatar vào DB sau
                         } else {
-                            response.addProperty("status", "FAIL");
+                            response.addProperty("status",  "FAIL");
                             response.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
                         }
-                        break;
-
-                    default:
-                        response.addProperty("status", "ERROR");
-                        response.addProperty("message", "Hành động không xác định!");
                         break;
                 }
 

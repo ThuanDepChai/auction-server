@@ -35,7 +35,13 @@ public class UserService {
         // Lưu ý: Đảm bảo trong model User, hàm getPasswordHash() trả về đúng chuỗi đã hash
         return PasswordUtil.verifyPassword(inputPassword, user.getPasswordHash());
     }
-
+    /** Trả về User object đầy đủ để server gửi về client */
+    public User getUserForLogin(String username, String inputPassword) {
+        User user = userDAO.findByUsername(username);
+        if (user == null) return null;
+        if (!PasswordUtil.verifyPassword(inputPassword, user.getPasswordHash())) return null;
+        return user;
+    }
     // Đăng xuất
     public void logout(User user) {
         if (user != null) {
