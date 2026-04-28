@@ -6,19 +6,18 @@
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.DropShadow?>
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
-<?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="1080.0" prefWidth="1920.0" style="-fx-background-color: #FFFFFF;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.LoginController">
+<StackPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.LoginController">
     <children>
-        <Pane fx:id="bgAnimationPane" StackPane.alignment="CENTER" />
 
-        <VBox alignment="CENTER" maxWidth="450.0" spacing="20.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #F0F0F0; -fx-border-width: 1;" StackPane.alignment="CENTER">
+        <Pane fx:id="bgAnimationPane" prefHeight="200.0" prefWidth="200.0" />
+
+        <VBox alignment="CENTER" maxHeight="560.0" maxWidth="450.0" spacing="20.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 40, 0, 0, 15);" StackPane.alignment="CENTER">
             <children>
                 <Label style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;" text="✧ Gemini">
                     <font>
@@ -41,17 +40,11 @@
                 <VBox spacing="3.0">
                     <children>
                         <TextField fx:id="txtUsername" maxWidth="Infinity" prefHeight="50.0" promptText="Tên đăng nhập" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                            <font>
-                                <Font size="14.0" />
-                            </font>
+                            <font><Font size="14.0" /></font>
                         </TextField>
                         <Label fx:id="lblUsernameError" managed="false" text="Vui lòng nhập tên đăng nhập!" textFill="#d96570" visible="false">
-                            <font>
-                                <Font name="System Italic" size="12.0" />
-                            </font>
-                            <padding>
-                                <Insets left="15.0" />
-                            </padding>
+                            <font><Font name="System Italic" size="12.0" /></font>
+                            <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                 </VBox>
@@ -59,17 +52,11 @@
                 <VBox spacing="3.0">
                     <children>
                         <TextField fx:id="txtEmail" maxWidth="Infinity" prefHeight="50.0" promptText="Email" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                            <font>
-                                <Font size="14.0" />
-                            </font>
+                            <font><Font size="14.0" /></font>
                         </TextField>
                         <Label fx:id="lblEmailError" managed="false" text="Email không hợp lệ!" textFill="#d96570" visible="false">
-                            <font>
-                                <Font name="System Italic" size="12.0" />
-                            </font>
-                            <padding>
-                                <Insets left="15.0" />
-                            </padding>
+                            <font><Font name="System Italic" size="12.0" /></font>
+                            <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                 </VBox>
@@ -77,17 +64,11 @@
                 <VBox spacing="3.0">
                     <children>
                         <PasswordField fx:id="txtPassword" maxWidth="Infinity" prefHeight="50.0" promptText="Mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                            <font>
-                                <Font size="14.0" />
-                            </font>
+                            <font><Font size="14.0" /></font>
                         </PasswordField>
                         <Label fx:id="lblPasswordError" managed="false" text="Vui lòng nhập mật khẩu!" textFill="#d96570" visible="false">
-                            <font>
-                                <Font name="System Italic" size="12.0" />
-                            </font>
-                            <padding>
-                                <Insets left="15.0" />
-                            </padding>
+                            <font><Font name="System Italic" size="12.0" /></font>
+                            <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                     <VBox.margin>
@@ -101,9 +82,7 @@
                     </font>
                     <effect>
                         <DropShadow height="10.0" offsetY="3.0" radius="4.5" width="10.0">
-                            <color>
-                                <Color blue="0.8" green="0.4" opacity="0.4" red="0.6" />
-                            </color>
+                            <color><Color blue="0.8" green="0.4" opacity="0.4" red="0.6" /></color>
                         </DropShadow>
                     </effect>
                 </Button>
@@ -117,13 +96,6 @@
             <padding>
                 <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
             </padding>
-            <effect>
-                <DropShadow blurType="GAUSSIAN" height="50.0" radius="24.5" width="50.0">
-                    <color>
-                        <Color opacity="0.1" />
-                    </color>
-                </DropShadow>
-            </effect>
         </VBox>
     </children>
 </StackPane>
