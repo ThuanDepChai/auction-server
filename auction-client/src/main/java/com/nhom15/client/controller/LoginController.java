@@ -3,6 +3,7 @@ package com.nhom15.client.controller;
 import com.google.gson.JsonObject;
 import com.nhom15.client.network.SocketClient;
 import com.nhom15.client.util.FormValidator;
+import com.nhom15.client.util.SessionManager;
 import javafx.animation.AnimationTimer;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -113,6 +114,16 @@ public class LoginController {
                     String message = responseJson.get("message").getAsString();
 
                     if ("SUCCESS".equals(status)) {
+                        // Lưu thông tin vào SessionManager
+                        int    uid     = responseJson.has("userId")     ? responseJson.get("userId").getAsInt()        : 0;
+                        String uname   = responseJson.has("username")   ? responseJson.get("username").getAsString()   : username;
+                        String uemail  = responseJson.has("email")      ? responseJson.get("email").getAsString()      : email;
+                        String urole   = responseJson.has("role")       ? responseJson.get("role").getAsString()       : "BIDDER";
+                        String uavatar = responseJson.has("avatarPath") ? responseJson.get("avatarPath").getAsString() : "";
+                        double ubal    = responseJson.has("balance")    ? responseJson.get("balance").getAsDouble()    : 0.0;
+
+                        SessionManager.login(uid, uname, uemail, urole, uavatar, ubal);
+
                         try {
                             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/Home.fxml"));
                             Parent root = loader.load();
@@ -123,8 +134,6 @@ public class LoginController {
                         } catch (Exception e) {
                             showAlert(Alert.AlertType.ERROR, "Lỗi giao diện", "Không thể tải Trang chủ!");
                         }
-                    } else {
-                        showAlert(Alert.AlertType.ERROR, "Đăng nhập thất bại", message);
                     }
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server!");
