@@ -12,12 +12,11 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.RegisterController">
+<StackPane prefHeight="720.0" prefWidth="1100.0" style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.RegisterController">
     <children>
-
         <Pane fx:id="bgAnimationPane" />
 
-        <VBox alignment="CENTER" maxHeight="650.0" maxWidth="450.0" spacing="12.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 40, 0, 0, 15);" StackPane.alignment="CENTER">
+        <VBox alignment="CENTER" maxHeight="660.0" maxWidth="450.0" spacing="12.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 40, 0, 0, 15);" StackPane.alignment="CENTER">
             <children>
 
                 <Label style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;" text="✧ Đăng Ký">
@@ -36,7 +35,7 @@
                         <TextField fx:id="txtUsername" prefHeight="45.0" promptText="Tên đăng nhập" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </TextField>
-                        <Label fx:id="lblUsernameError" managed="false" text="Lỗi tên đăng nhập" textFill="#d96570" visible="false">
+                        <Label fx:id="lblUsernameError" managed="false" text="Tên đăng nhập đã tồn tại!" textFill="#d96570" visible="false">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
@@ -48,7 +47,7 @@
                         <TextField fx:id="txtEmail" prefHeight="45.0" promptText="Địa chỉ Email" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </TextField>
-                        <Label fx:id="lblEmailError" managed="false" text="Lỗi email" textFill="#d96570" visible="false">
+                        <Label fx:id="lblEmailError" managed="false" text="Email không hợp lệ!" textFill="#d96570" visible="false">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
@@ -60,7 +59,7 @@
                         <PasswordField fx:id="txtPassword" prefHeight="45.0" promptText="Mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </PasswordField>
-                        <Label fx:id="lblPasswordError" managed="false" text="Lỗi mật khẩu" textFill="#d96570" visible="false" wrapText="true">
+                        <Label fx:id="lblPasswordError" managed="false" text="Mật khẩu quá yếu!" textFill="#d96570" visible="false" wrapText="true">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
@@ -72,7 +71,7 @@
                         <PasswordField fx:id="txtConfirmPassword" prefHeight="45.0" promptText="Xác nhận lại mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </PasswordField>
-                        <Label fx:id="lblConfirmError" managed="false" text="Lỗi xác nhận" textFill="#d96570" visible="false">
+                        <Label fx:id="lblConfirmError" managed="false" text="Mật khẩu không khớp!" textFill="#d96570" visible="false">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
