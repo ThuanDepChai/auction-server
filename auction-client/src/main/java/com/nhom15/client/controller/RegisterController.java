@@ -77,7 +77,6 @@ public class RegisterController {
         requestJson.add("data", gson.toJsonTree(newUser));
 
         // 3. GỌI SOCKET CLIENT ĐỂ GỬI ĐI (Không dùng localhost nữa!)
-        // Phải import com.nhom15.network.SocketClient; ở đầu file nhé
         JsonObject responseJson = SocketClient.sendRequest(requestJson);
 
         // 4. Xử lý phản hồi từ Server
