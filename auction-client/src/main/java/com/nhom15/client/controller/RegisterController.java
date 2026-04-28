@@ -2,9 +2,9 @@ package com.nhom15.client.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.nhom15.client.model.UserDTO;
 import com.nhom15.client.network.SocketClient;
+import com.nhom15.client.util.FormValidator; // Nhớ import Class kiểm tra lúc nãy
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -12,35 +12,44 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label; // Thêm Label
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
 
 public class RegisterController {
 
-    @FXML
-    private TextField txtUsername;
+    @FXML private TextField txtUsername;
+    @FXML private TextField txtEmail;
+    @FXML private PasswordField txtPassword;
+    @FXML private PasswordField txtConfirmPassword;
+
+    // THÊM 3 LABEL BÁO LỖI VÀO ĐÂY
+    @FXML private Label lblEmailError;
+    @FXML private Label lblPasswordError;
+    @FXML private Label lblConfirmError;
+
+    @FXML private Button btnRegister;
+    @FXML private Button btnBackToLogin;
 
     @FXML
-    private TextField txtEmail;
+    public void initialize() {
+        // 1. Phép thuật "co giãn" khoảng cách khi báo lỗi
+        lblEmailError.managedProperty().bind(lblEmailError.visibleProperty());
+        lblPasswordError.managedProperty().bind(lblPasswordError.visibleProperty());
+        lblConfirmError.managedProperty().bind(lblConfirmError.visibleProperty());
 
-    @FXML
-    private PasswordField txtPassword;
+        // 2. Gắn bộ kiểm tra Regex (tự động hiện lỗi sau 1.2s)
+        String emailRegex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
+        FormValidator.bindRegex(txtEmail, lblEmailError, emailRegex, "Email không hợp lệ (vd: abc@gmail.com)");
 
-    @FXML
-    private PasswordField txtConfirmPassword;
+        String passRegex = "^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[!@#$%^&*]).{8,}$";
+        FormValidator.bindRegex(txtPassword, lblPasswordError, passRegex, "Mật khẩu ≥8 ký tự, gồm số, chữ và ký tự đặc biệt!");
 
-    @FXML
-    private Button btnRegister;
-
-    @FXML
-    private Button btnBackToLogin;
+        FormValidator.bindMatch(txtPassword, txtConfirmPassword, lblConfirmError, "Mật khẩu xác nhận không khớp!");
+    }
 
     @FXML
     private void handleRegister(ActionEvent event) {
@@ -49,22 +58,16 @@ public class RegisterController {
         String password = txtPassword.getText();
         String confirmPassword = txtConfirmPassword.getText();
 
-        // 1. Kiểm tra không được để trống
+        // 1. Kiểm tra không được để trống (Cái này phải check trước tiên)
         if (username.trim().isEmpty() || email.trim().isEmpty() ||
                 password.trim().isEmpty() || confirmPassword.trim().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Thiếu thông tin", "Vui lòng điền đầy đủ tất cả các trường!");
             return;
         }
 
-        // 2. Kiểm tra định dạng email
-        if (!isValidEmail(email)) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi email", "Email không đúng định dạng!");
-            return;
-        }
-
-        // 3. Kiểm tra mật khẩu có khớp nhau không
-        if (!password.equals(confirmPassword)) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi mật khẩu", "Mật khẩu xác nhận không khớp!");
+        // 2. Kiểm tra xem có Label đỏ nào đang hiện không? Nếu CÓ thì KHÔNG CHO GỬI LÊN SERVER
+        if (lblEmailError.isVisible() || lblPasswordError.isVisible() || lblConfirmError.isVisible()) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Vui lòng sửa các lỗi đỏ trên màn hình trước khi đăng ký!");
             return;
         }
 
@@ -90,7 +93,7 @@ public class RegisterController {
             javafx.application.Platform.runLater(() -> {
                 // Nhả nút ra, trả lại trạng thái ban đầu
                 btnRegister.setDisable(false);
-                btnRegister.setText("Đăng ký");
+                btnRegister.setText("XÁC NHẬN ĐĂNG KÝ");
 
                 // Xử lý phản hồi từ Server
                 if (responseJson != null) {
@@ -137,10 +140,5 @@ public class RegisterController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-    // Hàm kiểm tra định dạng email
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$";
-        return email.matches(emailRegex);
     }
 }

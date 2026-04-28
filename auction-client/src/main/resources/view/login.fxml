@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.PasswordField?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.effect.DropShadow?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.paint.Color?>
-<?import javafx.scene.text.Font?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane prefHeight="600.0" prefWidth="500.0" style="-fx-background-color: #FFFFFF;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.LoginController">
+<AnchorPane prefHeight="650.0" prefWidth="500.0" style="-fx-background-color: #FFFFFF;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.LoginController">
     <children>
-        <VBox alignment="CENTER" layoutX="50.0" layoutY="50.0" prefHeight="500.0" prefWidth="400.0" spacing="20.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #F0F0F0; -fx-border-width: 1;">
+        <VBox alignment="CENTER" layoutX="50.0" layoutY="35.0" prefHeight="580.0" prefWidth="400.0" spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #F0F0F0; -fx-border-width: 1;">
             <children>
 
                 <Label style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;" text="✧ Gemini">
@@ -25,50 +21,74 @@
                     </VBox.margin>
                 </Label>
 
-                <Label text="Chào mừng bạn quay trở lại!" textFill="#888888">
+                <Label text="Xin chào bạn đến với hệ thống đấu giá Gemini" textFill="#888888">
                     <font>
                         <Font size="14.0" />
                     </font>
                     <VBox.margin>
-                        <Insets bottom="15.0" />
+                        <Insets bottom="5.0" />
                     </VBox.margin>
                 </Label>
 
-                <TextField fx:id="txtUsername" prefHeight="50.0" promptText="Tên đăng nhập" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                    <font>
-                        <Font size="14.0" />
-                    </font>
-                </TextField>
+                <VBox spacing="3.0">
+                    <children>
+                        <TextField fx:id="txtUsername" prefHeight="45.0" promptText="Tên đăng nhập" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                            <font>
+                                <Font size="14.0" />
+                            </font>
+                        </TextField>
+                        <Label fx:id="lblUsernameError" managed="false" text="Vui lòng nhập tên đăng nhập!" textFill="#d96570" visible="false">
+                            <font><Font name="System Italic" size="12.0" /></font>
+                            <padding><Insets left="15.0" /></padding>
+                        </Label>
+                    </children>
+                </VBox>
 
-                <TextField fx:id="txtEmail" prefHeight="50.0" promptText="Email" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                    <font>
-                        <Font size="14.0" />
-                    </font>
-                </TextField>
+                <VBox spacing="3.0">
+                    <children>
+                        <TextField fx:id="txtEmail" prefHeight="45.0" promptText="Email" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                            <font>
+                                <Font size="14.0" />
+                            </font>
+                        </TextField>
+                        <Label fx:id="lblEmailError" managed="false" text="Email không hợp lệ!" textFill="#d96570" visible="false">
+                            <font><Font name="System Italic" size="12.0" /></font>
+                            <padding><Insets left="15.0" /></padding>
+                        </Label>
+                    </children>
+                </VBox>
 
-                <PasswordField fx:id="txtPassword" prefHeight="50.0" promptText="Mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                    <font>
-                        <Font size="14.0" />
-                    </font>
+                <VBox spacing="3.0">
+                    <children>
+                        <PasswordField fx:id="txtPassword" prefHeight="45.0" promptText="Mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                            <font>
+                                <Font size="14.0" />
+                            </font>
+                        </PasswordField>
+                        <Label fx:id="lblPasswordError" managed="false" text="Vui lòng nhập mật khẩu!" textFill="#d96570" visible="false">
+                            <font><Font name="System Italic" size="12.0" /></font>
+                            <padding><Insets left="15.0" /></padding>
+                        </Label>
+                    </children>
                     <VBox.margin>
-                        <Insets bottom="15.0" />
+                        <Insets bottom="10.0" />
                     </VBox.margin>
-                </PasswordField>
+                </VBox>
 
-                <Button fx:id="btnLogin" mnemonicParsing="false" onAction="#handleLogin" prefHeight="50.0" prefWidth="360.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-background-radius: 25; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="ĐĂNG NHẬP">
+                <Button fx:id="btnLogin" mnemonicParsing="false" onAction="#handleLogin" prefHeight="45.0" prefWidth="360.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-background-radius: 25; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="ĐĂNG NHẬP">
                     <font>
                         <Font size="15.0" />
                     </font>
                     <effect>
                         <DropShadow height="10.0" offsetY="3.0" radius="4.5" width="10.0">
                             <color>
-                                <Color blue="0.8" green="0.4" opacity="0.4" red="0.6" />
+                                <Color red="0.6" green="0.4" blue="0.8" opacity="0.4" />
                             </color>
                         </DropShadow>
                     </effect>
                 </Button>
 
-                <Button fx:id="btnRegister" mnemonicParsing="false" onAction="#handleRegister" prefHeight="50.0" prefWidth="360.0" style="-fx-background-color: #FFFFFF; -fx-border-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-border-radius: 25; -fx-background-radius: 25; -fx-text-fill: #9B72CB; -fx-font-weight: bold; -fx-cursor: hand;" text="TẠO TÀI KHOẢN MỚI">
+                <Button fx:id="btnRegister" mnemonicParsing="false" onAction="#handleRegister" prefHeight="45.0" prefWidth="360.0" style="-fx-background-color: #FFFFFF; -fx-border-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-border-radius: 25; -fx-background-radius: 25; -fx-text-fill: #9B72CB; -fx-font-weight: bold; -fx-cursor: hand;" text="TẠO TÀI KHOẢN MỚI">
                     <font>
                         <Font size="15.0" />
                     </font>
@@ -76,7 +96,7 @@
 
             </children>
             <padding>
-                <Insets bottom="40.0" left="30.0" right="30.0" top="40.0" />
+                <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
             </padding>
             <effect>
                 <DropShadow blurType="GAUSSIAN" height="50.0" radius="24.5" width="50.0">
