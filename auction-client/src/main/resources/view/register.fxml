@@ -12,17 +12,22 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="720.0" prefWidth="1100.0" style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.RegisterController">
+<StackPane prefHeight="720.0" prefWidth="1100.0" style="-fx-background-color: #F4F7FC;"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.nhom15.client.controller.RegisterController">
     <children>
         <Pane fx:id="bgAnimationPane" />
 
-        <VBox alignment="CENTER" maxHeight="660.0" maxWidth="450.0" spacing="12.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 40, 0, 0, 15);" StackPane.alignment="CENTER">
+        <VBox alignment="CENTER" maxHeight="680.0" maxWidth="450.0" spacing="12.0"
+              style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 40, 0, 0, 15);"
+              StackPane.alignment="CENTER">
             <children>
 
-                <Label style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;" text="✧ Đăng Ký">
-                    <font>
-                        <Font size="36.0" />
-                    </font>
+                <!-- Tiêu đề -->
+                <Label style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;"
+                       text="✧ Đăng Ký">
+                    <font><Font size="36.0" /></font>
                 </Label>
 
                 <Label text="Tạo tài khoản mới để tham gia đấu giá" textFill="#888888">
@@ -30,55 +35,76 @@
                     <VBox.margin><Insets bottom="5.0" /></VBox.margin>
                 </Label>
 
+                <!-- Username -->
                 <VBox spacing="3.0">
                     <children>
-                        <TextField fx:id="txtUsername" prefHeight="45.0" promptText="Tên đăng nhập" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                        <TextField fx:id="txtUsername" prefHeight="45.0"
+                                   promptText="Tên đăng nhập"
+                                   style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </TextField>
-                        <Label fx:id="lblUsernameError" managed="false" text="Tên đăng nhập đã tồn tại!" textFill="#d96570" visible="false">
+                        <Label fx:id="lblUsernameError" managed="false" visible="false"
+                               text="Tên đăng nhập đã tồn tại!" textFill="#d96570" wrapText="true">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                 </VBox>
 
+                <!-- Email -->
                 <VBox spacing="3.0">
                     <children>
-                        <TextField fx:id="txtEmail" prefHeight="45.0" promptText="Địa chỉ Email" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                        <TextField fx:id="txtEmail" prefHeight="45.0"
+                                   promptText="Địa chỉ Email"
+                                   style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </TextField>
-                        <Label fx:id="lblEmailError" managed="false" text="Email không hợp lệ!" textFill="#d96570" visible="false">
+                        <Label fx:id="lblEmailError" managed="false" visible="false"
+                               text="Email không hợp lệ!" textFill="#d96570" wrapText="true">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                 </VBox>
 
+                <!-- Password -->
                 <VBox spacing="3.0">
                     <children>
-                        <PasswordField fx:id="txtPassword" prefHeight="45.0" promptText="Mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                        <PasswordField fx:id="txtPassword" prefHeight="45.0"
+                                       promptText="Mật khẩu (ít nhất 6 ký tự, có chữ và số)"
+                                       style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </PasswordField>
-                        <Label fx:id="lblPasswordError" managed="false" text="Mật khẩu quá yếu!" textFill="#d96570" visible="false" wrapText="true">
+                        <Label fx:id="lblPasswordError" managed="false" visible="false"
+                               text="Mật khẩu phải từ 6 ký tự, bao gồm cả chữ lẫn số!"
+                               textFill="#d96570" wrapText="true">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                 </VBox>
 
+                <!-- Confirm Password -->
                 <VBox spacing="3.0">
                     <children>
-                        <PasswordField fx:id="txtConfirmPassword" prefHeight="45.0" promptText="Xác nhận lại mật khẩu" style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
+                        <PasswordField fx:id="txtConfirmPassword" prefHeight="45.0"
+                                       promptText="Xác nhận lại mật khẩu"
+                                       style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
                             <font><Font size="14.0" /></font>
                         </PasswordField>
-                        <Label fx:id="lblConfirmError" managed="false" text="Mật khẩu không khớp!" textFill="#d96570" visible="false">
+                        <Label fx:id="lblConfirmError" managed="false" visible="false"
+                               text="Mật khẩu không khớp!" textFill="#d96570" wrapText="true">
                             <font><Font name="System Italic" size="12.0" /></font>
                             <padding><Insets left="15.0" /></padding>
                         </Label>
                     </children>
                 </VBox>
 
-                <Button fx:id="btnRegister" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleRegister" prefHeight="50.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-background-radius: 25; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="XÁC NHẬN ĐĂNG KÝ">
+                <!-- Nút đăng ký -->
+                <Button fx:id="btnRegister" maxWidth="Infinity" mnemonicParsing="false"
+                        onAction="#handleRegister" prefHeight="50.0"
+                        style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-background-radius: 25; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;"
+                        text="XÁC NHẬN ĐĂNG KÝ">
                     <font><Font size="15.0" /></font>
                     <effect>
                         <DropShadow height="10.0" offsetY="3.0" radius="4.5" width="10.0">
@@ -88,7 +114,11 @@
                     <VBox.margin><Insets top="10.0" /></VBox.margin>
                 </Button>
 
-                <Button fx:id="btnBackToLogin" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleBackToLogin" prefHeight="45.0" style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-font-weight: bold; -fx-cursor: hand;" text="← Quay lại trang đăng nhập">
+                <!-- Nút quay lại -->
+                <Button fx:id="btnBackToLogin" maxWidth="Infinity" mnemonicParsing="false"
+                        onAction="#handleBackToLogin" prefHeight="45.0"
+                        style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-font-weight: bold; -fx-cursor: hand;"
+                        text="← Quay lại trang đăng nhập">
                     <font><Font size="14.0" /></font>
                 </Button>
 
