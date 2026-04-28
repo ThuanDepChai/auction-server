@@ -10,7 +10,7 @@ import java.net.Socket;
 
 public class SocketClient {
 
-    private static final String SERVER_IP = "100.107.11.12";
+    private static final String SERVER_IP = "26.15.123.45";
 
     // Cổng này phải khớp với cổng đang chạy ở AuctionServer
     private static final int SERVER_PORT = 8888;
