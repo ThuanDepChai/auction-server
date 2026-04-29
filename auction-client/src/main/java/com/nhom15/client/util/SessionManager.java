@@ -12,7 +12,9 @@ public class SessionManager {
     private static String role; // "BUYER" | "SELLER" | "ADMIN"
     private static String avatarPath;
     private static double balance;
-
+    private static String fullName;
+    private static String phone;
+    private static String joinDate;
     // ── Đăng nhập ────────────────────────────────────────────────────────────
 
     /** Gọi sau khi server xác nhận đăng nhập thành công */
@@ -24,6 +26,10 @@ public class SessionManager {
         SessionManager.role       = role;
         SessionManager.avatarPath = avatarPath;
         SessionManager.balance    = balance;
+        // fullName, phone, joinDate sẽ được load riêng từ server
+        SessionManager.fullName   = "";
+        SessionManager.phone      = "";
+        SessionManager.joinDate   = "";
     }
 
     /** Gọi khi người dùng đăng xuất */
@@ -34,6 +40,7 @@ public class SessionManager {
         role       = null;
         avatarPath = null;
         balance    = 0;
+        fullName = null; phone = null; joinDate = null;
     }
 
     /** Kiểm tra đã đăng nhập chưa */
@@ -49,7 +56,9 @@ public class SessionManager {
     public static String getRole()       { return role; }
     public static String getAvatarPath() { return avatarPath; }
     public static double getBalance()    { return balance; }
-
+    public static String getFullName()   { return fullName; }
+    public static String getPhone()      { return phone; }
+    public static String getJoinDate()   { return joinDate; }
     // ── Tiện ích ─────────────────────────────────────────────────────────────
 
     public static boolean isSeller() { return "SELLER".equals(role); }
@@ -70,4 +79,18 @@ public class SessionManager {
     public static void updateRole(String newRole) {
         role = newRole;
     }
+
+    public static void updateProfile(String newFullName, String newEmail, String newPhone) {
+        fullName = newFullName;
+        email    = newEmail;
+        phone    = newPhone;
+    }
+
+    /** Gọi sau khi load profile từ server */
+    public static void setProfileDetail(String fullName, String phone, String joinDate) {
+        SessionManager.fullName  = fullName;
+        SessionManager.phone     = phone;
+        SessionManager.joinDate  = joinDate;
+    }
+
 }
