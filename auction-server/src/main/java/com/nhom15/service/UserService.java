@@ -1,5 +1,6 @@
 package com.nhom15.service;
 
+import com.google.gson.JsonObject;
 import com.nhom15.dao.UserDAO;
 import com.nhom15.model.user.*;
 import com.nhom15.util.PasswordUtil;
@@ -47,5 +48,9 @@ public class UserService {
         if (user != null) {
             System.out.println("User " + user.getUsername() + " đã đăng xuất.");
         }
+    }
+    // Lấy thông tin
+    public JsonObject getProfile(int userId) {
+        return userDAO.getProfile(userId);
     }
 }

@@ -1,5 +1,6 @@
 package com.nhom15.dao;
 
+import com.google.gson.JsonObject;
 import com.nhom15.model.user.Admin;
 import com.nhom15.model.user.Bidder;
 import com.nhom15.model.user.Seller;
@@ -99,6 +100,35 @@ public class UserDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return null;
+    }
+
+    /**
+     * LẤY  THÔNG TIN CÁ NHÂN
+     */
+    public JsonObject getProfile(int userId) {
+        String sql = "SELECT username, email, full_name, phone, role, balance, created_at FROM user WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    JsonObject obj = new JsonObject();
+                    obj.addProperty("username",  rs.getString("username"));
+                    obj.addProperty("email",     rs.getString("email"));
+                    obj.addProperty("fullName",  rs.getString("full_name")  != null ? rs.getString("full_name")  : "");
+                    obj.addProperty("phone",     rs.getString("phone")      != null ? rs.getString("phone")      : "");
+                    obj.addProperty("role",      rs.getString("role")       != null ? rs.getString("role")       : "BIDDER");
+                    obj.addProperty("balance",   rs.getDouble("balance"));
+                    // Format ngày tham gia
+                    Timestamp ts = rs.getTimestamp("created_at");
+                    String joinDate = ts != null ?
+                            new java.text.SimpleDateFormat("dd/MM/yyyy").format(ts) : "---";
+                    obj.addProperty("joinDate", joinDate);
+                    return obj;
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
         return null;
     }
 }

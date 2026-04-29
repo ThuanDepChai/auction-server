@@ -100,6 +100,19 @@ public class AuctionServer {
                             response.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
                         }
                         break;
+                    case "GET_PROFILE": {
+                        JsonObject d = request.getAsJsonObject("data");
+                        int uid = d.get("userId").getAsInt();
+                        JsonObject profile = userService.getProfile(uid);
+                        if (profile != null) {
+                            response.addProperty("status", "SUCCESS");
+                            response.add("profile", profile);
+                        } else {
+                            response.addProperty("status", "FAIL");
+                            response.addProperty("message", "Không tìm thấy người dùng!");
+                        }
+                        break;
+                    }
                 }
 
                 // Gửi phản hồi duy nhất về Client
