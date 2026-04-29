@@ -302,8 +302,7 @@
                                                                         <ComboBox fx:id="cmbItemCategory"
                                                                                   maxWidth="Infinity" prefHeight="42.0"
                                                                                   promptText="Chọn danh mục..."
-                                                                                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 8;">
-                                                                            <font><Font size="13.0" /></font>
+                                                                                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-font-size: 13px;">
                                                                         </ComboBox>
                                                                         <Label fx:id="lblItemCategoryError" managed="false" visible="false"
                                                                                textFill="#D96570">
@@ -430,8 +429,7 @@
                                                         <ComboBox fx:id="cmbAuctionItem" maxWidth="Infinity"
                                                                   prefHeight="42.0"
                                                                   promptText="Chọn sản phẩm để đấu giá..."
-                                                                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 8;">
-                                                            <font><Font size="13.0" /></font>
+                                                                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-font-size: 13px;">
                                                         </ComboBox>
                                                         <Label fx:id="lblAuctionItemError" managed="false" visible="false"
                                                                textFill="#D96570">
@@ -486,8 +484,7 @@
                                                                 </Label>
                                                                 <DatePicker fx:id="dateAuctionEnd" maxWidth="Infinity"
                                                                             prefHeight="42.0"
-                                                                            style="-fx-background-color: #F4F7FC; -fx-background-radius: 8;">
-                                                                    <font><Font size="13.0" /></font>
+                                                                            style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-font-size: 13px;">
                                                                 </DatePicker>
                                                             </children>
                                                         </VBox>
