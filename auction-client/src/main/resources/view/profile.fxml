@@ -6,6 +6,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.shape.Circle?>
 
+<?import javafx.scene.image.ImageView?>
 <BorderPane prefHeight="800.0" prefWidth="1200.0"
             style="-fx-background-color: #F7F7F7;"
             xmlns="http://javafx.com/javafx/21"
@@ -55,13 +56,14 @@
                                     <children>
 
                                         <!-- Avatar circle -->
-                                        <StackPane prefHeight="100.0" prefWidth="100.0"
-                                                   style="-fx-background-color: linear-gradient(to bottom right, #4285F4, #9B72CB); -fx-background-radius: 50;">
-                                            <children>
-                                                <Label fx:id="lblAvatarInitial" text="U"
-                                                       style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 40px;" />
-                                            </children>
-                                        </StackPane>
+                                        <ImageView fx:id="imgAvatar" fitHeight="100.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true">
+                                            <clip>
+                                                <Circle centerX="50.0" centerY="50.0" radius="50.0" />
+                                            </clip>
+                                            <image>
+                                                <javafx.scene.image.Image url="@../images/default_avatar.png" />
+                                            </image>
+                                        </ImageView>
 
                                         <Button mnemonicParsing="false" onAction="#handleChangeAvatar"
                                                 style="-fx-background-color: #F4F7FC; -fx-background-radius: 20; -fx-cursor: hand; -fx-text-fill: #4285F4; -fx-font-weight: bold;"

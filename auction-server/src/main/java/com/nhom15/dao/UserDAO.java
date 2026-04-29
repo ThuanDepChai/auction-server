@@ -104,7 +104,7 @@ public class UserDAO {
     }
 
     /**
-     * LẤY  THÔNG TIN CÁ NHÂN
+     * 5.LẤY  THÔNG TIN CÁ NHÂN
      */
     public JsonObject getProfile(int userId) {
         String sql = "SELECT username, email, full_name, phone, role, balance, created_at FROM user WHERE user_id = ?";
@@ -130,5 +130,122 @@ public class UserDAO {
             }
         } catch (SQLException e) { e.printStackTrace(); }
         return null;
+    }
+    // 6.Cập nhật AVATAR
+    public boolean updateAvatar(int userId, String avatarPath) {
+        String sql = "UPDATE user SET avatar = ? WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, avatarPath);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    //7.THAY ĐỔI PASSWORD
+    /**
+     * Tìm User theo ID (Dùng cho việc lấy mật khẩu cũ ra kiểm tra)
+     */
+    public User findById(int userId) {
+        String sql = "SELECT * FROM `user` WHERE user_id = ?";
+        try (java.sql.Connection conn = com.nhom15.util.DBConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String user = rs.getString("username");
+                    String pass = rs.getString("password");
+                    String mail = rs.getString("email");
+                    String role = rs.getString("role");
+
+                    if (role == null) role = "BIDDER";
+
+                    switch (role.toUpperCase()) {
+                        case "ADMIN":  return new Admin(userId, user, pass, mail);
+                        case "SELLER": return new Seller(userId, user, pass, mail);
+                        default:       return new Bidder(userId, user, pass, mail);
+                    }
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Cập nhật mật khẩu mới (đã được băm) vào Database
+     */
+    public boolean updatePassword(int userId, String newHashedPassword) {
+        String sql = "UPDATE `user` SET password = ? WHERE user_id = ?";
+        try (java.sql.Connection conn = com.nhom15.util.DBConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, newHashedPassword);
+            ps.setInt(2, userId);
+
+            return ps.executeUpdate() > 0;
+        } catch (java.sql.SQLException e) {
+            System.err.println("Lỗi cập nhật mật khẩu: " + e.getMessage());
+            return false;
+        }
+    }
+    /**
+     * 8. CẬP NHẬT THÔNG TIN CÁ NHÂN
+     */
+    public boolean updateProfile(int userId, String fullName, String email, String phone) {
+        String sql = "UPDATE `user` SET full_name = ?, email = ?, phone = ? WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, fullName);
+            ps.setString(2, email);
+            ps.setString(3, phone);
+            ps.setInt(4, userId);
+
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi cập nhật profile: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 9. NÂNG CẤP LÊN SELLER
+     */
+    public boolean upgradeToSeller(int userId) {
+        String sql = "UPDATE `user` SET role = 'SELLER' WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Lỗi nâng cấp Seller: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 10. LẤY ĐƯỜNG DẪN ẢNH ĐẠI DIỆN
+     */
+    public String getAvatarPath(int userId) {
+        String sql = "SELECT avatar FROM `user` WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("avatar");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Lỗi lấy avatar: " + e.getMessage());
+        }
+        return "";
     }
 }

@@ -219,7 +219,31 @@ public class ProfileController {
         }).start();
     }
 
+
     // ── Đổi ảnh đại diện ────────────────────────────────────────────────────
+    @FXML private javafx.scene.image.ImageView imgAvatar;
+
+    /** Hiện ảnh thật, ẩn chữ cái đầu */
+    private void setAvatarImage(javafx.scene.image.Image image) {
+        imgAvatar.setImage(image);
+        imgAvatar.setVisible(true);
+        lblAvatarInitial.setVisible(false);
+    }
+
+    /** Gọi trong loadProfileData() nếu có avatarPath */
+    private void loadAvatar(String avatarPath) {
+        if (avatarPath == null || avatarPath.isEmpty()) return;
+        try {
+            java.io.File file = new java.io.File(avatarPath);
+            if (file.exists()) {
+                javafx.scene.image.Image image =
+                        new javafx.scene.image.Image(file.toURI().toString());
+                setAvatarImage(image);
+            }
+        } catch (Exception e) {
+            System.err.println("Không load được avatar: " + e.getMessage());
+        }
+    }
 
     @FXML
     private void handleChangeAvatar(ActionEvent event) {
@@ -231,11 +255,83 @@ public class ProfileController {
         Stage stage = (Stage) txtUsername.getScene().getWindow();
         File file = fileChooser.showOpenDialog(stage);
 
-        if (file != null) {
-            String path = file.getAbsolutePath();
-            SessionManager.updateAvatar(path);
-            // Hiện chữ cái đầu vẫn giữ, sau này render ảnh thật nếu cần
-            showStatus(lblInfoStatus, "✓ Đã cập nhật ảnh đại diện!", true);
+        if (file == null) return;
+
+        // Kiểm tra dung lượng tối đa 2MB
+        if (file.length() > 2 * 1024 * 1024) {
+            showAlert("Ảnh không được vượt quá 2MB!");
+            return;
+        }
+
+        // Mở cửa sổ cắt ảnh
+        openCropAvatarWindow(file);
+    }
+
+    private void openCropAvatarWindow(File file) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/CropAvatarView.fxml"));
+            Parent root = loader.load();
+
+            CropAvatarController cropController = loader.getController();
+
+            // Khởi tạo ảnh và định nghĩa việc sẽ làm sau khi người dùng bấm "Cắt & Lưu"
+            cropController.initImage(file, base64Image -> {
+                // Gọi hàm gửi ảnh lên server
+                uploadAvatarToServer(base64Image, file.getName());
+            });
+
+            Stage stage = new Stage();
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.initStyle(javafx.stage.StageStyle.UNDECORATED);
+            stage.setScene(new Scene(root));
+            stage.showAndWait();
+
+        } catch (IOException e) {
+            System.err.println("Lỗi khi mở cửa sổ cắt ảnh: " + e.getMessage());
+            showStatus(lblInfoStatus, "Lỗi khi mở giao diện cắt", false);
+        }
+    }
+
+    private void uploadAvatarToServer(String base64Image, String fileName) {
+        try {
+            showStatus(lblInfoStatus, "Đang tải ảnh lên...", true);
+            String extension = fileName.toLowerCase().endsWith(".png") ? "png" : "jpg";
+
+            // Hiện preview ngay lập tức từ chuỗi Base64 đã cắt
+            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Image);
+            java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(imageBytes);
+            javafx.scene.image.Image previewImage = new javafx.scene.image.Image(bis);
+            setAvatarImage(previewImage);
+
+            // Gửi lên server
+            JsonObject data = new JsonObject();
+            data.addProperty("userId", SessionManager.getUserId());
+            data.addProperty("imageBase64", base64Image);
+            data.addProperty("extension", extension);
+
+            JsonObject request = new JsonObject();
+            request.addProperty("action", "UPDATE_AVATAR");
+            request.add("data", data);
+
+            new Thread(() -> {
+                JsonObject response = SocketClient.sendRequest(request);
+                javafx.application.Platform.runLater(() -> {
+                    if (response == null) {
+                        showStatus(lblInfoStatus, "Lỗi kết nối!", false);
+                        return;
+                    }
+                    if ("SUCCESS".equals(response.get("status").getAsString())) {
+                        String savedPath = response.get("avatarPath").getAsString();
+                        SessionManager.updateAvatar(savedPath);
+                        showStatus(lblInfoStatus, "✓ Cập nhật ảnh thành công!", true);
+                    } else {
+                        showStatus(lblInfoStatus, "Lỗi: " + response.get("message").getAsString(), false);
+                    }
+                });
+            }).start();
+
+        } catch (Exception e) {
+            showStatus(lblInfoStatus, "Không thể xử lý ảnh!", false);
         }
     }
 

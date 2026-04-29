@@ -53,4 +53,41 @@ public class UserService {
     public JsonObject getProfile(int userId) {
         return userDAO.getProfile(userId);
     }
+    // Đổi Avatar
+    public boolean updateAvatar(int userId, String avatarPath) {
+        return userDAO.updateAvatar(userId, avatarPath);
+    }
+    // Đổi Password
+    public boolean changePassword(int userId, String oldPassword, String newPassword) {
+        // 1. Lấy thông tin user hiện tại từ Database thông qua ID
+        User user = userDAO.findById(userId);
+        if (user == null) {
+            return false; // Không tìm thấy người dùng
+        }
+
+        // 2. Kiểm tra mật khẩu cũ có đúng không
+        if (!PasswordUtil.verifyPassword(oldPassword, user.getPasswordHash())) {
+            return false; // Sai mật khẩu cũ
+        }
+
+        // 3. Nếu đúng, tiến hành hash mật khẩu mới
+        String newHashedPassword = PasswordUtil.hashPassword(newPassword);
+
+        // 4. Gọi DAO để cập nhật mật khẩu mới vào Database
+        return userDAO.updatePassword(userId, newHashedPassword);
+    }
+    // Cập nhật thông tin cá nhân
+    public boolean updateProfile(int userId, String fullName, String email, String phone) {
+        return userDAO.updateProfile(userId, fullName, email, phone);
+    }
+
+    // Nâng cấp tài khoản lên Seller
+    public boolean upgradeToSeller(int userId) {
+        return userDAO.upgradeToSeller(userId);
+    }
+
+    // Lấy đường dẫn ảnh đại diện
+    public String getAvatarPath(int userId) {
+        return userDAO.getAvatarPath(userId);
+    }
 }
