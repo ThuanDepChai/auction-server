@@ -1,9 +1,12 @@
 package com.nhom15.network;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.nhom15.dao.UserDAO;
 import com.nhom15.model.user.User;
+import com.nhom15.service.AuctionService;
+import com.nhom15.service.ItemService;
 import com.nhom15.service.UserService;
 
 import java.io.BufferedReader;
@@ -201,6 +204,159 @@ public class AuctionServer {
                             response.addProperty("status",  "FAIL");
                             response.addProperty("message", "Lỗi đọc ảnh: " + e.getMessage());
                         }
+                        break;
+                    }
+                    // ── ITEM ─────────────────────────────────────────────────────────────────
+
+                    // 10. ĐĂNG SẢN PHẨM MỚI
+                    case "CREATE_ITEM": {
+                        JsonObject d       = request.getAsJsonObject("data");
+                        int    sellerId    = d.get("sellerId").getAsInt();
+                        String name        = d.get("name").getAsString();
+                        String description = d.get("description").getAsString();
+                        String category    = d.get("category").getAsString();
+                        double startPrice  = d.get("startPrice").getAsDouble();
+                        String imgBase64   = d.has("imageBase64") ? d.get("imageBase64").getAsString() : "";
+                        String extension   = d.has("extension")   ? d.get("extension").getAsString()   : "jpg";
+
+                        ItemService itemService = new ItemService();
+                        response = itemService.createItem(sellerId, name, description, category, startPrice, imgBase64, extension);
+                        break;
+                    }
+
+                    // 11. LẤY SẢN PHẨM NỔI BẬT
+                    case "GET_FEATURED_PRODUCTS": {
+                        ItemService itemService = new ItemService();
+                        JsonArray items = itemService.getFeaturedItems();
+                        response.addProperty("status", "SUCCESS");
+                        response.add("items", items);
+                        break;
+                    }
+
+                    // 12. TÌM KIẾM SẢN PHẨM
+                    case "SEARCH_PRODUCTS": {
+                        JsonObject d    = request.getAsJsonObject("data");
+                        String keyword  = d.has("keyword")  ? d.get("keyword").getAsString()  : "";
+                        String category = d.has("category") ? d.get("category").getAsString() : "";
+
+                        ItemService itemService = new ItemService();
+                        JsonArray items = itemService.searchItems(keyword, category);
+                        response.addProperty("status", "SUCCESS");
+                        response.add("items", items);
+                        break;
+                    }
+
+                    // 13. LẤY SẢN PHẨM CỦA SELLER
+                    case "GET_MY_ITEMS": {
+                        JsonObject d = request.getAsJsonObject("data");
+                        int sellerId = d.get("sellerId").getAsInt();
+
+                        ItemService itemService = new ItemService();
+                        JsonArray items = itemService.getItemsBySeller(sellerId);
+                        response.addProperty("status", "SUCCESS");
+                        response.add("items", items);
+                        break;
+                    }
+
+                    // 14. XÓA SẢN PHẨM
+                    case "DELETE_ITEM": {
+                        JsonObject d = request.getAsJsonObject("data");
+                        int itemId   = d.get("itemId").getAsInt();
+
+                        ItemService itemService = new ItemService();
+                        boolean ok = itemService.deleteItem(itemId);
+                        response.addProperty("status",  ok ? "SUCCESS" : "FAIL");
+                        response.addProperty("message", ok ? "Xóa thành công!" : "Xóa thất bại!");
+                        break;
+                    }
+
+                    // ── AUCTION ───────────────────────────────────────────────────────────────
+
+                    // 15. TẠO PHIÊN ĐẤU GIÁ
+                    case "CREATE_AUCTION": {
+                        JsonObject d      = request.getAsJsonObject("data");
+                        int    itemId     = d.get("itemId").getAsInt();
+                        int    sellerId   = d.get("sellerId").getAsInt();
+                        double startPrice = d.get("startPrice").getAsDouble();
+                        double minStep    = d.get("minStep").getAsDouble();
+                        String endTime    = d.get("endTime").getAsString();
+
+                        AuctionService auctionService = new AuctionService();
+                        response = auctionService.createAuction(itemId, sellerId, startPrice, minStep, endTime);
+                        break;
+                    }
+
+                    // 16. LẤY PHIÊN ĐẤU GIÁ ĐANG ACTIVE
+                    case "GET_ACTIVE_AUCTIONS": {
+                        AuctionService auctionService = new AuctionService();
+                        JsonArray auctions = auctionService.getActiveAuctions();
+                        response.addProperty("status", "SUCCESS");
+                        response.add("auctions", auctions);
+                        break;
+                    }
+
+                    // 17. CHI TIẾT PHIÊN ĐẤU GIÁ
+                    case "GET_AUCTION_DETAIL": {
+                        JsonObject d  = request.getAsJsonObject("data");
+                        int auctionId = d.get("auctionId").getAsInt();
+
+                        AuctionService auctionService = new AuctionService();
+                        JsonObject auction = auctionService.getAuctionDetail(auctionId);
+                        if (auction != null) {
+                            response.addProperty("status", "SUCCESS");
+                            response.add("auction", auction);
+                        } else {
+                            response.addProperty("status",  "FAIL");
+                            response.addProperty("message", "Không tìm thấy phiên đấu giá!");
+                        }
+                        break;
+                    }
+
+                    // 18. ĐẶT GIÁ
+                    case "PLACE_BID": {
+                        JsonObject d  = request.getAsJsonObject("data");
+                        int auctionId = d.get("auctionId").getAsInt();
+                        int bidderId  = d.get("bidderId").getAsInt();
+                        double amount = d.get("amount").getAsDouble();
+
+                        AuctionService auctionService = new AuctionService();
+                        response = auctionService.placeBid(auctionId, bidderId, amount);
+                        break;
+                    }
+
+                    // 19. LỊCH SỬ ĐẶT GIÁ
+                    case "GET_BID_HISTORY": {
+                        JsonObject d  = request.getAsJsonObject("data");
+                        int auctionId = d.get("auctionId").getAsInt();
+
+                        AuctionService auctionService = new AuctionService();
+                        JsonArray history = auctionService.getBidHistory(auctionId);
+                        response.addProperty("status", "SUCCESS");
+                        response.add("history", history);
+                        break;
+                    }
+
+                    // 20. LẤY AUCTION CỦA SELLER
+                    case "GET_MY_AUCTIONS": {
+                        JsonObject d = request.getAsJsonObject("data");
+                        int sellerId = d.get("sellerId").getAsInt();
+
+                        AuctionService auctionService = new AuctionService();
+                        JsonArray auctions = auctionService.getAuctionsBySeller(sellerId);
+                        response.addProperty("status", "SUCCESS");
+                        response.add("auctions", auctions);
+                        break;
+                    }
+
+                    // 21. KẾT THÚC PHIÊN ĐẤU GIÁ
+                    case "END_AUCTION": {
+                        JsonObject d  = request.getAsJsonObject("data");
+                        int auctionId = d.get("auctionId").getAsInt();
+
+                        AuctionService auctionService = new AuctionService();
+                        boolean ok = auctionService.endAuction(auctionId);
+                        response.addProperty("status",  ok ? "SUCCESS" : "FAIL");
+                        response.addProperty("message", ok ? "Kết thúc phiên thành công!" : "Thất bại!");
                         break;
                     }
 

@@ -43,3 +43,30 @@
     -fx-padding: 10 30;
     -fx-cursor: hand;
 }
+/* Hiệu ứng cho các nút danh mục */
+.button {
+    -fx-transition: all 0.2s;
+}
+
+.button:hover {
+    -fx-opacity: 0.8;
+    -fx-cursor: hand;
+}
+
+/* Hiệu ứng riêng cho nút "Đăng bán" */
+#btnSell:hover {
+    -fx-effect: dropshadow(gaussian, rgba(217, 101, 112, 0.5), 10, 0, 0, 4);
+}
+
+/* Bo góc cho Dropdown menu */
+.user-menu-dropdown {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #EEEEEE;
+    -fx-border-radius: 10;
+}
+
+/* Các nút bên trong Menu khi hover */
+.user-menu-dropdown .button:hover {
+    -fx-background-color: #F5F5F5;
+}

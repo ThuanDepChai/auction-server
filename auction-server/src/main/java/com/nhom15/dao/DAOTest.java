@@ -16,7 +16,7 @@ public class DAOTest {
 
         // 3. Test AuctionDAO
         AuctionDAO auctionDAO = new AuctionDAO();
-        System.out.println("Danh sách Auction: " + auctionDAO.getActiveAuctions());
+        System.out.println("Danh sách Auction: " + auctionDAO.getActiveAuctions(10));
 
         System.out.println("--- KẾT THÚC TEST ---");
     }

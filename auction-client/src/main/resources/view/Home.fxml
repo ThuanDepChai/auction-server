@@ -16,7 +16,9 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
+<?import javafx.scene.image.ImageView?>
 <BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F7F7F7;"
+            stylesheets="@../css/styles.css"
             xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.nhom15.client.controller.HomeController">
@@ -75,81 +77,89 @@
                                 <Separator orientation="VERTICAL" prefHeight="30.0" />
 
                                 <!-- Avatar + tên — click mở dropdown -->
-                                <Button fx:id="btnUserMenu" mnemonicParsing="false"
-                                        onAction="#handleUserMenu"
-                                        style="-fx-background-color: transparent; -fx-cursor: hand;">
-                                    <graphic>
-                                        <HBox alignment="CENTER" spacing="8.0">
-                                            <children>
-                                                <!-- Avatar circle -->
-                                                <StackPane prefHeight="36.0" prefWidth="36.0"
-                                                           style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 50;">
+                                <AnchorPane>
+                                    <children>
+                                        <Button fx:id="btnUserMenu" mnemonicParsing="false"
+                                                onAction="#handleUserMenu"
+                                                style="-fx-background-color: transparent; -fx-cursor: hand;">
+                                            <graphic>
+                                                <HBox alignment="CENTER" spacing="8.0">
                                                     <children>
-                                                        <Label fx:id="lblAvatarInitial" text="U"
-                                                               style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" />
-                                                    </children>
-                                                </StackPane>
-                                                <VBox alignment="CENTER_LEFT" spacing="1.0">
-                                                    <children>
-                                                        <Label text="Xin chào," textFill="#999999">
+                                                        <StackPane fx:id="avatarPane" prefHeight="36.0" prefWidth="36.0"
+                                                                   style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 50;">
+                                                            <children>
+                                                                <ImageView fx:id="imgAvatar" fitHeight="36.0" fitWidth="36.0"
+                                                                           preserveRatio="true" visible="false">
+                                                                    <clip>
+                                                                        <javafx.scene.shape.Circle centerX="18.0" centerY="18.0" radius="18.0" />
+                                                                    </clip>
+                                                                </ImageView>
+                                                                <Label fx:id="lblAvatarInitial" text="U"
+                                                                       style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" />
+                                                            </children>
+                                                        </StackPane>
+                                                        <VBox alignment="CENTER_LEFT" spacing="1.0">
+                                                            <children>
+                                                                <Label text="Xin chào," textFill="#999999">
+                                                                    <font><Font size="11.0" /></font>
+                                                                </Label>
+                                                                <Label fx:id="lblUsername" text="Người dùng"
+                                                                       style="-fx-font-weight: bold;" textFill="#333333">
+                                                                    <font><Font size="13.0" /></font>
+                                                                </Label>
+                                                            </children>
+                                                        </VBox>
+                                                        <Label text="▾" textFill="#888888">
                                                             <font><Font size="11.0" /></font>
                                                         </Label>
-                                                        <Label fx:id="lblUsername" text="Người dùng"
-                                                               style="-fx-font-weight: bold;" textFill="#333333">
-                                                            <font><Font size="13.0" /></font>
-                                                        </Label>
                                                     </children>
-                                                </VBox>
-                                                <Label text="▾" textFill="#888888">
-                                                    <font><Font size="11.0" /></font>
-                                                </Label>
+                                                </HBox>
+                                            </graphic>
+                                        </Button>
+
+                                        <VBox fx:id="userDropdown" visible="false" managed="false"
+                                              layoutX="-30.0" layoutY="45.0" prefWidth="200.0"
+                                              spacing="2.0"
+                                              style="-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 15, 0, 0, 5); -fx-border-color: #EEEEEE; -fx-border-radius: 10; -fx-border-width: 1;">
+                                            <padding><Insets bottom="8.0" left="5.0" right="5.0" top="8.0" /></padding>
+                                            <children>
+                                                <Button fx:id="btnProfile" maxWidth="Infinity" mnemonicParsing="false"
+                                                        onAction="#handleProfile"
+                                                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
+                                                        text="👤  Trang cá nhân">
+                                                    <font><Font size="13.0" /></font>
+                                                </Button>
+                                                <Button fx:id="btnMyOrders" maxWidth="Infinity" mnemonicParsing="false"
+                                                        onAction="#handleMyOrders"
+                                                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
+                                                        text="📦  Đơn hàng của tôi">
+                                                    <font><Font size="13.0" /></font>
+                                                </Button>
+                                                <Button fx:id="btnSellerDashboard" maxWidth="Infinity" mnemonicParsing="false"
+                                                        onAction="#handleSellerDashboard"
+                                                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
+                                                        text="🏪  Quản lý bán hàng">
+                                                    <font><Font size="13.0" /></font>
+                                                </Button>
+                                                <Button fx:id="btnWallet" maxWidth="Infinity" mnemonicParsing="false"
+                                                        onAction="#handleWallet"
+                                                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
+                                                        text="💰  Ví của tôi">
+                                                    <font><Font size="13.0" /></font>
+                                                </Button>
+                                                <Separator>
+                                                    <VBox.margin><Insets bottom="3.0" top="3.0" /></VBox.margin>
+                                                </Separator>
+                                                <Button fx:id="btnLogout" maxWidth="Infinity" mnemonicParsing="false"
+                                                        onAction="#handleLogout"
+                                                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15; -fx-text-fill: #D96570;"
+                                                        text="🚪  Đăng xuất">
+                                                    <font><Font size="13.0" /></font>
+                                                </Button>
                                             </children>
-                                        </HBox>
-                                    </graphic>
-                                </Button>
-
-                                <!-- Dropdown menu (ẩn mặc định) -->
-                                <VBox fx:id="userDropdown" visible="false" managed="false"
-                                      spacing="2.0"
-                                      style="-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 15, 0, 0, 5); -fx-border-color: #EEEEEE; -fx-border-radius: 10; -fx-border-width: 1;">
-                                    <padding><Insets bottom="8.0" left="5.0" right="5.0" top="8.0" /></padding>
-                                    <children>
-                                        <Button fx:id="btnProfile" maxWidth="Infinity" mnemonicParsing="false"
-                                                onAction="#handleProfile"
-                                                style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
-                                                text="👤  Trang cá nhân">
-                                            <font><Font size="13.0" /></font>
-                                        </Button>
-                                        <Button fx:id="btnMyOrders" maxWidth="Infinity" mnemonicParsing="false"
-                                                onAction="#handleMyOrders"
-                                                style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
-                                                text="📦  Đơn hàng của tôi">
-                                            <font><Font size="13.0" /></font>
-                                        </Button>
-                                        <Button fx:id="btnSellerDashboard" maxWidth="Infinity" mnemonicParsing="false"
-                                                onAction="#handleSellerDashboard"
-                                                style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
-                                                text="🏪  Quản lý bán hàng">
-                                            <font><Font size="13.0" /></font>
-                                        </Button>
-                                        <Button fx:id="btnWallet" maxWidth="Infinity" mnemonicParsing="false"
-                                                onAction="#handleWallet"
-                                                style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;"
-                                                text="💰  Ví của tôi">
-                                            <font><Font size="13.0" /></font>
-                                        </Button>
-                                        <Separator>
-                                            <VBox.margin><Insets bottom="3.0" top="3.0" /></VBox.margin>
-                                        </Separator>
-                                        <Button fx:id="btnLogout" maxWidth="Infinity" mnemonicParsing="false"
-                                                onAction="#handleLogout"
-                                                style="-fx-background-color: transparent; -fx-cursor: hand; -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15; -fx-text-fill: #D96570;"
-                                                text="🚪  Đăng xuất">
-                                            <font><Font size="13.0" /></font>
-                                        </Button>
+                                        </VBox>
                                     </children>
-                                </VBox>
-
+                                </AnchorPane>
                             </children>
                         </HBox>
                     </children>
