@@ -1,31 +1,30 @@
 package com.nhom15.client.controller;
 
-import com.google.gson.JsonObject;
-import com.nhom15.client.network.SocketClient;
+import com.nhom15.client.command.CheckUsernameCommand;
+import com.nhom15.client.command.RegisterCommand;
+import com.nhom15.client.command.ServerCommand;
 import com.nhom15.client.util.FormValidator;
+import com.nhom15.client.util.ViewManager;
 import javafx.animation.PauseTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
-import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import java.io.IOException;
-
+/**
+ * RegisterController — SRP: chỉ xử lý UI đăng ký.
+ *
+ * Không tự build JsonObject, không tự FXMLLoader, không tự lấy Stage.
+ * Dùng: CheckUsernameCommand + RegisterCommand (gửi server),
+ *        ViewManager (điều hướng), FormValidator (validate realtime).
+ */
 public class RegisterController {
 
-    @FXML private Pane bgAnimationPane;
+    @FXML private Pane          bgAnimationPane;
 
-    @FXML private TextField txtUsername;
-    @FXML private TextField txtEmail;
+    @FXML private TextField     txtUsername;
+    @FXML private TextField     txtEmail;
     @FXML private PasswordField txtPassword;
     @FXML private PasswordField txtConfirmPassword;
 
@@ -35,18 +34,19 @@ public class RegisterController {
     @FXML private Label lblConfirmError;
 
     @FXML private Button btnRegister;
-    @FXML private Button btnBackToLogin;
 
+    // ── Trạng thái nội bộ ────────────────────────────────────────────────────
     private PauseTransition usernameCheckDelay;
-    private boolean isUsernameAvailable = true;
+    private boolean         isUsernameAvailable = true;
+
+    // ── Khởi tạo ────────────────────────────────────────────────────────────
 
     @FXML
     public void initialize() {
-        lblUsernameError.managedProperty().bind(lblUsernameError.visibleProperty());
-        lblEmailError.managedProperty().bind(lblEmailError.visibleProperty());
-        lblPasswordError.managedProperty().bind(lblPasswordError.visibleProperty());
-        lblConfirmError.managedProperty().bind(lblConfirmError.visibleProperty());
+        bindManagedToVisible(lblUsernameError, lblEmailError,
+                lblPasswordError, lblConfirmError);
 
+        // Validate realtime bằng FormValidator (giống LoginController)
         FormValidator.bindRegex(txtEmail, lblEmailError,
                 "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
                 "Email không hợp lệ!");
@@ -54,160 +54,168 @@ public class RegisterController {
                 "^(?=.*[A-Za-z])(?=.*\\d).{6,}$",
                 "Mật khẩu phải từ 6 ký tự, bao gồm cả chữ lẫn số!");
 
-        // Debounce 600ms sau khi ngừng gõ → gửi CHECK_USERNAME
+        setupUsernameDebounce();
+        loadBackground();
+    }
+
+    /** Debounce 600ms sau khi ngừng gõ → gửi CheckUsernameCommand. */
+    private void setupUsernameDebounce() {
         usernameCheckDelay = new PauseTransition(Duration.millis(600));
-        usernameCheckDelay.setOnFinished(e -> checkUsernameAvailability());
+        usernameCheckDelay.setOnFinished(e -> checkUsernameAsync());
 
         txtUsername.textProperty().addListener((obs, oldVal, newVal) -> {
             lblUsernameError.setVisible(false);
             isUsernameAvailable = true;
             usernameCheckDelay.stop();
-
             if (!newVal.trim().isEmpty()) {
                 usernameCheckDelay.playFromStart();
             }
         });
+    }
 
-        // Load background
+    // ── Xử lý sự kiện ───────────────────────────────────────────────────────
+
+    @FXML
+    private void handleRegister(ActionEvent event) {
+        if (!validateAll()) return;
+
+        setLoading(true);
+
+        new RegisterCommand(
+                txtUsername.getText().trim(),
+                txtEmail.getText().trim(),
+                txtPassword.getText()
+        ).executeAsync(
+                response -> onRegisterResponse(response),
+                ()       -> {
+                    setLoading(false);
+                    showAlert(Alert.AlertType.ERROR,
+                            "Lỗi kết nối", "Không thể kết nối đến Server!");
+                }
+        );
+    }
+
+    @FXML
+    private void handleBackToLogin(ActionEvent event) {
+        ViewManager.navigateTo(ViewManager.Views.LOGIN);
+    }
+
+    // ── Callbacks ────────────────────────────────────────────────────────────
+
+    private void checkUsernameAsync() {
+        String username = txtUsername.getText().trim();
+        if (username.isEmpty()) return;
+
+        new CheckUsernameCommand(username).executeAsync(
+                response -> {
+                    // Bỏ qua nếu người dùng đã gõ tiếp trong lúc chờ
+                    if (!txtUsername.getText().trim().equals(username)) return;
+
+                    if (CheckUsernameCommand.isAvailable(response)) {
+                        isUsernameAvailable = true;
+                        lblUsernameError.setVisible(false);
+                    } else {
+                        isUsernameAvailable = false;
+                        lblUsernameError.setText("Tên đăng nhập đã tồn tại!");
+                        lblUsernameError.setVisible(true);
+                    }
+                },
+                () -> { /* Lỗi kết nối khi check — im lặng, không chặn UX */ }
+        );
+    }
+
+    private void onRegisterResponse(com.google.gson.JsonObject response) {
+        setLoading(false);
+        if (ServerCommand.isSuccess(response)) {
+            showAlert(Alert.AlertType.INFORMATION,
+                    "Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
+            ViewManager.navigateTo(ViewManager.Views.LOGIN);
+        } else {
+            // Server báo username đã tồn tại (race condition sau check debounce)
+            isUsernameAvailable = false;
+            lblUsernameError.setText("Tên đăng nhập đã tồn tại!");
+            lblUsernameError.setVisible(true);
+        }
+    }
+
+    // ── Validate ─────────────────────────────────────────────────────────────
+
+    /**
+     * Kiểm tra toàn bộ form trước khi submit.
+     * Trả về false nếu bất kỳ điều kiện nào không thoả.
+     */
+    private boolean validateAll() {
+        boolean ok = true;
+
+        if (txtUsername.getText().trim().isEmpty()) {
+            lblUsernameError.setText("Vui lòng nhập tên đăng nhập!");
+            lblUsernameError.setVisible(true);
+            ok = false;
+        }
+        if (txtEmail.getText().trim().isEmpty()) {
+            lblEmailError.setText("Vui lòng nhập email!");
+            lblEmailError.setVisible(true);
+            ok = false;
+        }
+        if (txtPassword.getText().isEmpty()) {
+            lblPasswordError.setText("Vui lòng nhập mật khẩu!");
+            lblPasswordError.setVisible(true);
+            ok = false;
+        }
+        if (txtConfirmPassword.getText().isEmpty()) {
+            lblConfirmError.setText("Vui lòng xác nhận mật khẩu!");
+            lblConfirmError.setVisible(true);
+            ok = false;
+        }
+
+        // Dừng sớm nếu có trường trống
+        if (!ok) return false;
+
+        // Kiểm tra các lỗi realtime từ FormValidator còn hiển thị không
+        if (lblEmailError.isVisible() || lblPasswordError.isVisible()) return false;
+
+        // Username chưa available (debounce chưa xong hoặc đã tồn tại)
+        if (!isUsernameAvailable) return false;
+
+        // Confirm password
+        if (!txtPassword.getText().equals(txtConfirmPassword.getText())) {
+            lblConfirmError.setText("Mật khẩu không khớp!");
+            lblConfirmError.setVisible(true);
+            return false;
+        }
+
+        return true;
+    }
+
+    // ── Tiện ích UI ──────────────────────────────────────────────────────────
+
+    private void setLoading(boolean loading) {
+        btnRegister.setDisable(loading);
+        btnRegister.setText(loading ? "Đang xử lý..." : "XÁC NHẬN ĐĂNG KÝ");
+    }
+
+    private void loadBackground() {
         try {
             Pane sharedBg = com.nhom15.client.util.BackgroundEngine.getSharedPane();
-            if (sharedBg.getParent() instanceof Pane) {
-                ((Pane) sharedBg.getParent()).getChildren().remove(sharedBg);
-            }
+            if (sharedBg.getParent() instanceof Pane p) p.getChildren().remove(sharedBg);
             if (bgAnimationPane != null) {
                 bgAnimationPane.getChildren().add(0, sharedBg);
                 sharedBg.prefWidthProperty().bind(bgAnimationPane.widthProperty());
                 sharedBg.prefHeightProperty().bind(bgAnimationPane.heightProperty());
             }
         } catch (Exception e) {
-            System.err.println("Lỗi khi load nền: " + e.getMessage());
+            System.err.println("[RegisterController] loadBackground: " + e.getMessage());
         }
-    }
-
-    private void checkUsernameAvailability() {
-        String username = txtUsername.getText().trim();
-        if (username.isEmpty()) return;
-
-        JsonObject data = new JsonObject();
-        data.addProperty("username", username);
-
-        JsonObject request = new JsonObject();
-        request.addProperty("action", "CHECK_USERNAME");
-        request.add("data", data);
-
-        new Thread(() -> {
-            JsonObject response = SocketClient.sendRequest(request);
-
-            javafx.application.Platform.runLater(() -> {
-                if (!txtUsername.getText().trim().equals(username)) return;
-                if (response == null) return;
-
-                String status = response.get("status").getAsString();
-                if ("EXISTS".equals(status)) {
-                    isUsernameAvailable = false;
-                    lblUsernameError.setText("Tên đăng nhập đã tồn tại!");
-                    lblUsernameError.setVisible(true);
-                } else {
-                    isUsernameAvailable = true;
-                    lblUsernameError.setVisible(false);
-                }
-            });
-        }).start();
-    }
-
-    @FXML
-    private void handleRegister(ActionEvent event) {
-        String username = txtUsername.getText().trim();
-        String email    = txtEmail.getText().trim();
-        String password = txtPassword.getText();
-        String confirm  = txtConfirmPassword.getText();
-
-        lblConfirmError.setVisible(false);
-        boolean hasError = false;
-
-        if (username.isEmpty()) {
-            lblUsernameError.setText("Vui lòng nhập tên đăng nhập!");
-            lblUsernameError.setVisible(true);
-            hasError = true;
-        }
-        if (email.isEmpty()) {
-            lblEmailError.setText("Vui lòng nhập email!");
-            lblEmailError.setVisible(true);
-            hasError = true;
-        }
-        if (password.isEmpty()) {
-            lblPasswordError.setText("Vui lòng nhập mật khẩu!");
-            lblPasswordError.setVisible(true);
-            hasError = true;
-        }
-        if (confirm.isEmpty()) {
-            lblConfirmError.setText("Vui lòng xác nhận mật khẩu!");
-            lblConfirmError.setVisible(true);
-            hasError = true;
-        }
-
-        if (hasError || !isUsernameAvailable
-                || lblEmailError.isVisible()
-                || lblPasswordError.isVisible()) {
-            return;
-        }
-
-        if (!password.equals(confirm)) {
-            lblConfirmError.setText("Mật khẩu không khớp!");
-            lblConfirmError.setVisible(true);
-            return;
-        }
-
-        btnRegister.setDisable(true);
-        btnRegister.setText("Đang xử lý...");
-
-        JsonObject data = new JsonObject();
-        data.addProperty("username", username);
-        data.addProperty("email", email);
-        data.addProperty("password", password);
-
-        JsonObject requestJson = new JsonObject();
-        requestJson.addProperty("action", "REGISTER");
-        requestJson.add("data", data);
-
-        new Thread(() -> {
-            JsonObject responseJson = SocketClient.sendRequest(requestJson);
-
-            javafx.application.Platform.runLater(() -> {
-                btnRegister.setDisable(false);
-                btnRegister.setText("XÁC NHẬN ĐĂNG KÝ");
-
-                if (responseJson == null) {
-                    showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server!");
-                    return;
-                }
-
-                String status  = responseJson.get("status").getAsString();
-                String message = responseJson.get("message").getAsString();
-
-                if ("SUCCESS".equals(status)) {
-                    showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đăng ký thành công! Vui lòng đăng nhập.");
-                    handleBackToLogin(null);
-                } else {
-                    isUsernameAvailable = false;
-                    lblUsernameError.setText("Tên đăng nhập đã tồn tại!");
-                    lblUsernameError.setVisible(true);
-                }
-            });
-        }).start();
-    }
-
-    @FXML
-    private void handleBackToLogin(ActionEvent event) {
-        // Sử dụng ViewManager để trở về Login, giữ nguyên 100% kích thước cửa sổ hiện tại
-        com.nhom15.client.util.ViewManager.navigateTo(com.nhom15.client.util.ViewManager.Views.LOGIN);
     }
 
     private void showAlert(Alert.AlertType type, String title, String msg) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
+        Alert a = new Alert(type);
+        a.setTitle(title); a.setHeaderText(null); a.setContentText(msg);
+        a.showAndWait();
+    }
+
+    /** Binding managedProperty vào visibleProperty cho nhiều label cùng lúc. */
+    private void bindManagedToVisible(Label... labels) {
+        for (Label lbl : labels) lbl.managedProperty().bind(lbl.visibleProperty());
     }
 }

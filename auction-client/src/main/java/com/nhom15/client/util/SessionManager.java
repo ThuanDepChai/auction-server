@@ -1,96 +1,86 @@
 package com.nhom15.client.util;
 
+import com.nhom15.client.model.UserDTO;
+
 /**
- * Lưu thông tin người dùng hiện tại trong suốt phiên làm việc.
- * Dùng static để truy cập từ bất kỳ đâu mà không cần truyền tham số.
+ * SessionManager — lưu trạng thái người dùng đang đăng nhập.
+ * Dùng UserDTO làm container thay vì static fields rời rạc.
  */
-public class SessionManager {
+public final class SessionManager {
 
-    private static String username;
-    private static String email;
-    private static int userId;
-    private static String role; // "BUYER" | "SELLER" | "ADMIN"
-    private static String avatarPath;
-    private static double balance;
-    private static String fullName;
-    private static String phone;
-    private static String joinDate;
-    // ── Đăng nhập ────────────────────────────────────────────────────────────
+    private static UserDTO currentUser;
 
-    /** Gọi sau khi server xác nhận đăng nhập thành công */
-    public static void login(int userId, String username, String email,
-                             String role, String avatarPath, double balance) {
-        SessionManager.userId     = userId;
-        SessionManager.username   = username;
-        SessionManager.email      = email;
-        SessionManager.role       = role;
-        SessionManager.avatarPath = avatarPath;
-        SessionManager.balance    = balance;
-        // fullName, phone, joinDate sẽ được load riêng từ server
-        SessionManager.fullName   = "";
-        SessionManager.phone      = "";
-        SessionManager.joinDate   = "";
+    // Chặn khởi tạo đối tượng từ bên ngoài
+    private SessionManager() {}
+
+    // ── Login / Logout ───────────────────────────────────────────────────────
+
+    /**
+     * CHUẨN CLEAN CODE: Nhận thẳng 1 đối tượng DTO đã được Parse từ GSON.
+     * Không nhận các tham số rời rạc nữa.
+     */
+    public static void login(UserDTO user) {
+        currentUser = user;
     }
 
-    /** Gọi khi người dùng đăng xuất */
     public static void logout() {
-        userId     = 0;
-        username   = null;
-        email      = null;
-        role       = null;
-        avatarPath = null;
-        balance    = 0;
-        fullName = null; phone = null; joinDate = null;
+        currentUser = null;
     }
 
-    /** Kiểm tra đã đăng nhập chưa */
     public static boolean isLoggedIn() {
-        return username != null && !username.isEmpty();
+        return currentUser != null;
     }
 
-    // ── Getter ───────────────────────────────────────────────────────────────
+    // ── Phân quyền (Các hàm này bắt buộc phải có cho HomeController) ─────────
 
-    public static int    getUserId()     { return userId; }
-    public static String getUsername()   { return username; }
-    public static String getEmail()      { return email; }
-    public static String getRole()       { return role; }
-    public static String getAvatarPath() { return avatarPath; }
-    public static double getBalance()    { return balance; }
-    public static String getFullName()   { return fullName; }
-    public static String getPhone()      { return phone; }
-    public static String getJoinDate()   { return joinDate; }
-    // ── Tiện ích ─────────────────────────────────────────────────────────────
+    public static boolean isBidder() { return currentUser != null && "BIDDER".equals(currentUser.getRole()); }
+    public static boolean isSeller() { return currentUser != null && "SELLER".equals(currentUser.getRole()); }
+    public static boolean isAdmin()  { return currentUser != null && "ADMIN".equals(currentUser.getRole()); }
 
-    public static boolean isSeller() { return "SELLER".equals(role); }
-    public static boolean isBuyer()  { return "BIDDER".equals(role); }
-    public static boolean isAdmin()  { return "ADMIN".equals(role); }
+    // ── Getters (delegate sang UserDTO) ─────────────────────────────────────
 
-    /** Cập nhật số dư sau khi nạp tiền / đặt cọc */
-    public static void updateBalance(double newBalance) {
-        balance = newBalance;
-    }
+    public static int    getUserId()     { return currentUser != null ? currentUser.getUserId()    : 0; }
+    public static String getUsername()   { return currentUser != null ? currentUser.getUsername()  : null; }
+    public static String getEmail()      { return currentUser != null ? currentUser.getEmail()     : null; }
+    public static String getRole()       { return currentUser != null ? currentUser.getRole()      : null; }
+    public static String getAvatarPath() { return currentUser != null ? currentUser.getAvatarPath(): null; }
+    public static double getBalance()    { return currentUser != null ? currentUser.getBalance()   : 0.0; }
+    public static String getFullName()   { return currentUser != null ? currentUser.getFullName()  : null; }
+    public static String getPhone()      { return currentUser != null ? currentUser.getPhone()     : null; }
+    public static String getJoinDate()   { return currentUser != null ? currentUser.getCreatedAt() : null; }
 
-    /** Cập nhật avatar sau khi người dùng đổi ảnh */
-    public static void updateAvatar(String newPath) {
-        avatarPath = newPath;
-    }
+    // ── Updaters ─────────────────────────────────────────────────────────────
 
-    /** Cập nhật role nếu người dùng được nâng cấp lên Seller */
-    public static void updateRole(String newRole) {
-        role = newRole;
-    }
-
-    public static void updateProfile(String newFullName, String newEmail, String newPhone) {
-        fullName = newFullName;
-        email    = newEmail;
-        phone    = newPhone;
-    }
-
-    /** Gọi sau khi load profile từ server */
     public static void setProfileDetail(String fullName, String phone, String joinDate) {
-        SessionManager.fullName  = fullName;
-        SessionManager.phone     = phone;
-        SessionManager.joinDate  = joinDate;
+        if (currentUser == null) return;
+        currentUser.setFullName(fullName);
+        currentUser.setPhone(phone);
+        currentUser.setCreatedAt(joinDate);
     }
 
+    public static void updateProfile(String fullName, String email, String phone) {
+        if (currentUser == null) return;
+        currentUser.setFullName(fullName);
+        currentUser.setEmail(email);
+        currentUser.setPhone(phone);
+    }
+
+    public static void updateBalance(double balance) {
+        if (currentUser != null) currentUser.setBalance(balance);
+    }
+
+    public static void updateAvatar(String path) {
+        if (currentUser != null) currentUser.setAvatarPath(path);
+    }
+
+    public static void updateRole(String role) {
+        if (currentUser != null) currentUser.setRole(role);
+    }
+
+    /** * Trả về nguyên đối tượng DTO hiện tại.
+     * (Nếu thực sự muốn bảo vệ dữ liệu tuyệt đối, có thể cân nhắc Implement giao diện Cloneable cho UserDTO)
+     */
+    public static UserDTO getCurrentUser() {
+        return currentUser;
+    }
 }

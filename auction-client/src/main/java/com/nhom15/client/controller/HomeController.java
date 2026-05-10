@@ -43,6 +43,7 @@ public class HomeController {
     }
 
     private void setupUserInfo() {
+        // Nếu chưa đăng nhập, hiển thị giao diện Khách
         if (!SessionManager.isLoggedIn()) {
             lblUsername.setText("Khách");
             lblAvatarInitial.setText("K");
@@ -51,22 +52,31 @@ public class HomeController {
             return;
         }
 
+        // Lấy thông tin từ SessionManager (đã được bọc an toàn chống Null)
         String username = SessionManager.getUsername();
-        lblUsername.setText(username == null || username.isEmpty() ? "Người dùng" : username);
-        lblAvatarInitial.setText(String.valueOf(lblUsername.getText().charAt(0)).toUpperCase());
+        lblUsername.setText((username == null || username.trim().isEmpty()) ? "Người dùng" : username);
+
+        // Lấy chữ cái đầu tiên làm Avatar mặc định
+        String initial = lblUsername.getText().substring(0, 1).toUpperCase();
+        lblAvatarInitial.setText(initial);
 
         // Hiển thị nút Seller Dashboard dựa trên quyền
         boolean isSellerMode = SessionManager.isSeller() || SessionManager.isAdmin();
         btnSellerDashboard.setVisible(isSellerMode);
         btnSellerDashboard.setManaged(isSellerMode);
 
+        // Tải ảnh đại diện từ Server
         HomeCommand.fetchUserAvatar(SessionManager.getUserId(), base64 -> {
             CardFactory.setAvatar(base64, imgAvatar, lblAvatarInitial);
         });
     }
+
     private void setupCategories() {
         if (cmbCategory != null) {
-            cmbCategory.getItems().setAll("Tất cả danh mục", "Điện tử", "Thời trang", "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao");
+            cmbCategory.getItems().setAll(
+                    "Tất cả danh mục", "Điện tử", "Thời trang",
+                    "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao"
+            );
             cmbCategory.setValue("Tất cả danh mục");
         }
     }
@@ -84,15 +94,13 @@ public class HomeController {
         });
     }
 
-    // ── Load Dữ Liệu (Thông qua HomeService) ────────────────────────────────
+    // ── Load Dữ Liệu ────────────────────────────────────────────────────────
     private void loadData() {
-        // Tải sản phẩm nổi bật
         HomeCommand.fetchFeaturedProducts(
                 items -> populateFlowPane(flowProducts, items, true),
                 () -> flowProducts.getChildren().setAll(CardFactory.buildEmptyLabel("Chưa có sản phẩm nổi bật"))
         );
 
-        // Tải đấu giá
         HomeCommand.fetchActiveAuctions(
                 auctions -> populateFlowPane(flowAuctions, auctions, false),
                 () -> flowAuctions.getChildren().setAll(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào"))
@@ -102,9 +110,12 @@ public class HomeController {
     private void populateFlowPane(FlowPane pane, JsonArray dataArray, boolean isProduct) {
         if (pane == null) return;
         pane.getChildren().clear();
-        if (!isProduct) countdownTimers.forEach(Timeline::stop); // Xóa timer cũ nếu là đấu giá
 
-        if (dataArray == null || dataArray.size() == 0) {
+        if (!isProduct) {
+            countdownTimers.forEach(Timeline::stop);
+        }
+
+        if (dataArray == null || dataArray.isEmpty()) {
             pane.getChildren().add(CardFactory.buildEmptyLabel("Không có dữ liệu"));
             return;
         }
@@ -118,7 +129,7 @@ public class HomeController {
         }
     }
 
-    // ── Xử lý User & Navigation ─────────────────────────────────────────────
+    // ── Xử lý Navigation & Nút bấm ──────────────────────────────────────────
     @FXML
     private void handleUserMenu(ActionEvent event) {
         if (userDropdown != null) {
@@ -131,13 +142,16 @@ public class HomeController {
     @FXML private void handleProfile(ActionEvent event) { ViewManager.navigateTo(ViewManager.Views.PROFILE); }
     @FXML private void handleMyOrders(ActionEvent event) { ViewManager.navigateTo(ViewManager.Views.MY_ORDERS); }
     @FXML private void handleCart(ActionEvent event) { ViewManager.navigateTo(ViewManager.Views.CART); }
-    @FXML private void handleLogout(ActionEvent event) {
+
+    @FXML
+    private void handleLogout(ActionEvent event) {
         countdownTimers.forEach(Timeline::stop);
         SessionManager.logout();
         ViewManager.navigateTo(ViewManager.Views.LOGIN);
     }
 
-    @FXML private void handleSellerDashboard(ActionEvent event) {
+    @FXML
+    private void handleSellerDashboard(ActionEvent event) {
         if (!SessionManager.isSeller() && !SessionManager.isAdmin()) {
             showAlert("Bạn cần đăng ký tài khoản Seller để sử dụng chức năng này!");
             return;
@@ -148,7 +162,8 @@ public class HomeController {
     @FXML
     private void handleSearch(ActionEvent event) {
         String keyword = txtSearch != null ? txtSearch.getText().trim() : "";
-        String category = cmbCategory != null && !cmbCategory.getValue().equals("Tất cả danh mục") ? cmbCategory.getValue() : "";
+        String category = (cmbCategory != null && !"Tất cả danh mục".equals(cmbCategory.getValue()))
+                ? cmbCategory.getValue() : "";
 
         HomeCommand.searchProducts(keyword, category,
                 items -> populateFlowPane(flowProducts, items, true),
@@ -167,7 +182,7 @@ public class HomeController {
         if (userDropdown != null) userDropdown.setVisible(false);
         try {
             double balance = SessionManager.getBalance();
-            showAlert("Số dư ví: " + String.format("%,d", (long) balance) + "đ");
+            showAlert(String.format("Số dư ví: %,d đ", (long) balance));
         } catch (Exception e) {
             showAlert("Không thể lấy số dư ví. Vui lòng thử lại.");
         }
@@ -176,8 +191,7 @@ public class HomeController {
     @FXML
     private void handleSell(ActionEvent event) {
         if (!SessionManager.isSeller() && !SessionManager.isAdmin()) {
-            showAlert("Bạn cần đăng ký tài khoản Seller để đăng bán!\n"
-                    + "Vào Trang cá nhân → Đăng ký bán hàng.");
+            showAlert("Bạn cần đăng ký tài khoản Seller để đăng bán!\nVào Trang cá nhân → Đăng ký bán hàng.");
             return;
         }
         ViewManager.navigateTo(ViewManager.Views.SELLER_DASHBOARD);
@@ -187,7 +201,7 @@ public class HomeController {
     private void handleCategory(ActionEvent event) {
         Button src = (Button) event.getSource();
         String raw = src.getText().trim();
-        // Lược bỏ emoji/icon ở đầu chuỗi (logic cũ của bạn)
+
         int i = 0;
         while (i < raw.length()) {
             int cp = raw.codePointAt(i);
@@ -198,13 +212,13 @@ public class HomeController {
 
         if (cmbCategory != null) cmbCategory.setValue(category);
 
-        // Gọi lại HomeCommand để tìm kiếm
         HomeCommand.searchProducts("", category,
                 items -> populateFlowPane(flowProducts, items, true),
                 () -> flowProducts.getChildren().setAll(CardFactory.buildEmptyLabel("Không tìm thấy sản phẩm"))
         );
     }
-    // ── Callbacks (truyền cho CardFactory) ──────────────────────────────────
+
+    // ── Callbacks (Điều hướng chi tiết) ─────────────────────────────────────
     private void handleGoToProductDetail(int productId) {
         countdownTimers.forEach(Timeline::stop);
         ViewManager.navigateTo("/view/product_detail.fxml", "Chi tiết sản phẩm", c -> {
@@ -221,10 +235,11 @@ public class HomeController {
 
     private void showAlert(String msg) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, msg);
-        alert.setHeaderText(null); alert.showAndWait();
+        alert.setHeaderText(null);
+        alert.showAndWait();
     }
 
-    // (Stub Interfaces - Giữ nguyên để tránh lỗi đỏ code)
-    interface ProductDetailController { void setProductId(int productId); }
-    interface BiddingRoomController { void setAuctionId(int auctionId); }
+    // (Stub Interfaces)
+    public interface ProductDetailController { void setProductId(int productId); }
+    public interface BiddingRoomController { void setAuctionId(int auctionId); }
 }

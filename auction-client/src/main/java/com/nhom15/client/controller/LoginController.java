@@ -1,8 +1,10 @@
 package com.nhom15.client.controller;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.nhom15.client.command.LoginCommand;
 import com.nhom15.client.command.ServerCommand;
+import com.nhom15.client.model.UserDTO;
 import com.nhom15.client.util.FormValidator;
 import com.nhom15.client.util.SessionManager;
 import com.nhom15.client.util.ViewManager;
@@ -42,8 +44,6 @@ public class LoginController {
     private void loadBackground() {
         try {
             Pane sharedBg = com.nhom15.client.util.BackgroundEngine.getSharedPane();
-
-            // Dùng cú pháp tương thích mọi phiên bản Java để add Background
             if (sharedBg.getParent() != null && sharedBg.getParent() instanceof Pane) {
                 ((Pane) sharedBg.getParent()).getChildren().remove(sharedBg);
             }
@@ -75,9 +75,8 @@ public class LoginController {
 
         setLoading(true);
 
-        // Gửi Command ở luồng nền, nhưng đẩy kết quả về luồng UI bằng Platform.runLater
         new LoginCommand(username, email, password).executeAsync(
-                response -> Platform.runLater(() -> onLoginResponse(response, username, email)),
+                response -> Platform.runLater(() -> onLoginResponse(response)),
                 ()       -> Platform.runLater(() -> {
                     setLoading(false);
                     showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server!");
@@ -85,20 +84,24 @@ public class LoginController {
         );
     }
 
-    private void onLoginResponse(JsonObject response, String username, String email) {
+    private void onLoginResponse(JsonObject response) {
         setLoading(false);
 
         if (ServerCommand.isSuccess(response)) {
-            SessionManager.login(
-                    response.has("userId")     ? response.get("userId").getAsInt()        : 0,
-                    response.has("username")   ? response.get("username").getAsString()   : username,
-                    response.has("email")      ? response.get("email").getAsString()      : email,
-                    response.has("role")       ? response.get("role").getAsString()       : "BIDDER",
-                    response.has("avatarPath") ? response.get("avatarPath").getAsString() : "",
-                    response.has("balance")    ? response.get("balance").getAsDouble()    : 0.0
-            );
-            // Sử dụng ViewManager để chuyển sang Home
-            ViewManager.navigateTo(ViewManager.Views.HOME);
+            try {
+                // SỨC MẠNH CỦA CLEAN CODE Ở ĐÂY:
+                // Biến đổi JsonObject "user" từ Server gửi về thẳng thành UserDTO
+                Gson gson = new Gson();
+                UserDTO user = gson.fromJson(response.getAsJsonObject("user"), UserDTO.class);
+
+                // Ném vào SessionManager (Đã được cập nhật)
+                SessionManager.login(user);
+
+                ViewManager.navigateTo(ViewManager.Views.HOME);
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Không thể đọc dữ liệu từ máy chủ!");
+                System.err.println("[LoginController] Lỗi Parse JSON: " + e.getMessage());
+            }
         } else {
             String message = response.has("message") ? response.get("message").getAsString() : "Sai tài khoản hoặc mật khẩu!";
             showAlert(Alert.AlertType.ERROR, "Đăng nhập thất bại", message);
@@ -107,7 +110,6 @@ public class LoginController {
 
     @FXML
     private void handleRegister(ActionEvent event) {
-        // Sử dụng ViewManager để chuyển sang Register
         ViewManager.navigateTo(ViewManager.Views.REGISTER);
     }
 
