@@ -1,44 +1,52 @@
 package com.nhom15.client.util;
 
-import javafx.animation.PauseTransition;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.util.Duration;
 
-public class FormValidator {
+/**
+ * FormValidator — validate realtime khi người dùng rời khỏi field.
+ * Controller chỉ gọi bindRegex() trong initialize(), không tự viết listener.
+ */
+public final class FormValidator {
 
-    // Hàm 1: Kiểm tra định dạng bằng Regex (Dùng cho Email, Password...)
-    public static void bindRegex(TextField textField, Label errorLabel, String regex, String errorMsg) {
-        PauseTransition pause = new PauseTransition(Duration.seconds(1.2));
-        errorLabel.setVisible(false); // Ban đầu ẩn nhãn lỗi
-        errorLabel.setText(errorMsg);
+    private FormValidator() {}
 
-        textField.textProperty().addListener((obs, oldVal, newVal) -> {
-            errorLabel.setVisible(false); // Người dùng đang gõ -> Tạm cất lỗi đi
-            pause.setOnFinished(e -> {
-                // Đợi 1.2s, nếu ô có chữ VÀ chữ đó không khớp định dạng -> Báo lỗi
-                if (!newVal.trim().isEmpty() && !newVal.matches(regex)) {
-                    errorLabel.setVisible(true);
-                }
-            });
-            pause.playFromStart();
+    /**
+     * Gắn listener vào TextField: khi mất focus, kiểm tra regex.
+     * Nếu không khớp → hiện label lỗi với message cho trước.
+     * Nếu khớp → ẩn label lỗi.
+     *
+     * @param field   TextField cần validate
+     * @param errLabel Label hiển thị lỗi (cần bind managed = visible trước)
+     * @param regex   Regex hợp lệ
+     * @param message Thông báo lỗi khi không khớp
+     */
+    public static void bindRegex(TextField field, Label errLabel,
+                                 String regex, String message) {
+        field.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (!isFocused) {
+                String val = field.getText().trim();
+                boolean valid = !val.isEmpty() && val.matches(regex);
+                errLabel.setText(valid ? "" : message);
+                errLabel.setVisible(!val.isEmpty() && !valid);
+            }
         });
     }
 
-    // Hàm 2: Kiểm tra 2 ô có giống nhau không (Dùng cho Xác nhận mật khẩu)
-    public static void bindMatch(TextField txtSource, TextField txtTarget, Label errorLabel, String errorMsg) {
-        PauseTransition pause = new PauseTransition(Duration.seconds(1.0));
-        errorLabel.setVisible(false);
-        errorLabel.setText(errorMsg);
-
-        txtTarget.textProperty().addListener((obs, oldVal, newVal) -> {
-            errorLabel.setVisible(false);
-            pause.setOnFinished(e -> {
-                if (!newVal.isEmpty() && !newVal.equals(txtSource.getText())) {
-                    errorLabel.setVisible(true);
-                }
-            });
-            pause.playFromStart();
-        });
+    /**
+     * Validate thủ công không cần focus event.
+     * Trả về true nếu hợp lệ.
+     */
+    public static boolean validate(TextField field, Label errLabel,
+                                   String regex, String message) {
+        String val = field.getText().trim();
+        boolean valid = !val.isEmpty() && val.matches(regex);
+        if (!valid) {
+            errLabel.setText(message);
+            errLabel.setVisible(true);
+        } else {
+            errLabel.setVisible(false);
+        }
+        return valid;
     }
 }

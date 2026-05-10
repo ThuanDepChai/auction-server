@@ -1,167 +1,126 @@
 package com.nhom15.client.controller;
 
 import com.google.gson.JsonObject;
-import com.nhom15.client.network.SocketClient;
+import com.nhom15.client.command.LoginCommand;
+import com.nhom15.client.command.ServerCommand;
 import com.nhom15.client.util.FormValidator;
 import com.nhom15.client.util.SessionManager;
-import javafx.animation.AnimationTimer;
+import com.nhom15.client.util.ViewManager;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.stage.Stage;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 public class LoginController {
 
-    @FXML private Pane bgAnimationPane; // Nền trang trí
-
-    @FXML private TextField txtUsername;
-    @FXML private TextField txtEmail;
+    @FXML private Pane          bgAnimationPane;
+    @FXML private TextField     txtUsername;
+    @FXML private TextField     txtEmail;
     @FXML private PasswordField txtPassword;
 
-    @FXML private Label lblUsernameError;
-    @FXML private Label lblEmailError;
-    @FXML private Label lblPasswordError;
+    @FXML private Label         lblUsernameError;
+    @FXML private Label         lblEmailError;
+    @FXML private Label         lblPasswordError;
 
-    @FXML private Button btnLogin;
-    @FXML private Button btnRegister;
+    @FXML private Button        btnLogin;
+    @FXML private Button        btnRegister;
 
     @FXML
     public void initialize() {
-        // Ràng buộc Label lỗi
         lblUsernameError.managedProperty().bind(lblUsernameError.visibleProperty());
         lblEmailError.managedProperty().bind(lblEmailError.visibleProperty());
         lblPasswordError.managedProperty().bind(lblPasswordError.visibleProperty());
 
-        // Kiểm tra Regex
         FormValidator.bindRegex(txtUsername, lblUsernameError, "^.+$", "Vui lòng nhập tên đăng nhập!");
         FormValidator.bindRegex(txtEmail, lblEmailError, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", "Email không hợp lệ!");
         FormValidator.bindRegex(txtPassword, lblPasswordError, "^.+$", "Vui lòng nhập mật khẩu!");
 
+        loadBackground();
+    }
+
+    private void loadBackground() {
         try {
             Pane sharedBg = com.nhom15.client.util.BackgroundEngine.getSharedPane();
 
-            // Kiểm tra và gỡ khỏi cha cũ một cách an toàn
+            // Dùng cú pháp tương thích mọi phiên bản Java để add Background
             if (sharedBg.getParent() != null && sharedBg.getParent() instanceof Pane) {
                 ((Pane) sharedBg.getParent()).getChildren().remove(sharedBg);
             }
 
-            // Thêm vào lớp dưới cùng của bgAnimationPane
             if (bgAnimationPane != null) {
                 bgAnimationPane.getChildren().add(0, sharedBg);
-
-                // Ràng buộc kích thước để phủ kín màn hình
                 sharedBg.prefWidthProperty().bind(bgAnimationPane.widthProperty());
                 sharedBg.prefHeightProperty().bind(bgAnimationPane.heightProperty());
             }
         } catch (Exception e) {
-            System.err.println("Lỗi khi load nền đồng bộ: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("[LoginController] Lỗi load nền: " + e.getMessage());
         }
     }
 
-
     @FXML
     private void handleLogin(ActionEvent event) {
-        String username = txtUsername.getText();
-        String email = txtEmail.getText();
+        String username = txtUsername.getText().trim();
+        String email    = txtEmail.getText().trim();
         String password = txtPassword.getText();
 
-        if (username.trim().isEmpty() || email.trim().isEmpty() || password.trim().isEmpty() ||
-                lblUsernameError.isVisible() || lblEmailError.isVisible() || lblPasswordError.isVisible()) {
+        boolean hasError = false;
+        if (username.isEmpty()) { lblUsernameError.setVisible(true); hasError = true; }
+        if (email.isEmpty())    { lblEmailError.setVisible(true);    hasError = true; }
+        if (password.isEmpty()) { lblPasswordError.setVisible(true); hasError = true; }
 
-            if (username.trim().isEmpty()) lblUsernameError.setVisible(true);
-            if (email.trim().isEmpty()) lblEmailError.setVisible(true);
-            if (password.trim().isEmpty()) lblPasswordError.setVisible(true);
+        if (hasError || lblUsernameError.isVisible() || lblEmailError.isVisible() || lblPasswordError.isVisible()) {
             return;
         }
 
-        btnLogin.setDisable(true);
-        btnLogin.setText("Đang đăng nhập...");
+        setLoading(true);
 
-        JsonObject data = new JsonObject();
-        data.addProperty("username", username);
-        data.addProperty("email", email);
-        data.addProperty("password", password);
-
-        JsonObject requestJson = new JsonObject();
-        requestJson.addProperty("action", "LOGIN");
-        requestJson.add("data", data);
-
-        new Thread(() -> {
-            JsonObject responseJson = SocketClient.sendRequest(requestJson);
-
-            javafx.application.Platform.runLater(() -> {
-                btnLogin.setDisable(false);
-                btnLogin.setText("ĐĂNG NHẬP");
-
-                if (responseJson != null) {
-                    String status = responseJson.get("status").getAsString();
-                    String message = responseJson.get("message").getAsString();
-
-                    if ("SUCCESS".equals(status)) {
-                        // Lưu thông tin vào SessionManager
-                        int    uid     = responseJson.has("userId")     ? responseJson.get("userId").getAsInt()        : 0;
-                        String uname   = responseJson.has("username")   ? responseJson.get("username").getAsString()   : username;
-                        String uemail  = responseJson.has("email")      ? responseJson.get("email").getAsString()      : email;
-                        String urole   = responseJson.has("role")       ? responseJson.get("role").getAsString()       : "BIDDER";
-                        String uavatar = responseJson.has("avatarPath") ? responseJson.get("avatarPath").getAsString() : "";
-                        double ubal    = responseJson.has("balance")    ? responseJson.get("balance").getAsDouble()    : 0.0;
-
-                        SessionManager.login(uid, uname, uemail, urole, uavatar, ubal);
-
-                        try {
-                            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/Home.fxml"));
-                            Parent root = loader.load();
-                            Stage stage = (Stage) txtUsername.getScene().getWindow();
-                            stage.setScene(new Scene(root));
-                            stage.setTitle("Trang chủ");
-                            stage.centerOnScreen();
-                        } catch (Exception e) {
-                            showAlert(Alert.AlertType.ERROR, "Lỗi giao diện", "Không thể tải Trang chủ!");
-                        }
-                    }
-                } else {
+        // Gửi Command ở luồng nền, nhưng đẩy kết quả về luồng UI bằng Platform.runLater
+        new LoginCommand(username, email, password).executeAsync(
+                response -> Platform.runLater(() -> onLoginResponse(response, username, email)),
+                ()       -> Platform.runLater(() -> {
+                    setLoading(false);
                     showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server!");
-                }
-            });
-        }).start();
+                })
+        );
+    }
+
+    private void onLoginResponse(JsonObject response, String username, String email) {
+        setLoading(false);
+
+        if (ServerCommand.isSuccess(response)) {
+            SessionManager.login(
+                    response.has("userId")     ? response.get("userId").getAsInt()        : 0,
+                    response.has("username")   ? response.get("username").getAsString()   : username,
+                    response.has("email")      ? response.get("email").getAsString()      : email,
+                    response.has("role")       ? response.get("role").getAsString()       : "BIDDER",
+                    response.has("avatarPath") ? response.get("avatarPath").getAsString() : "",
+                    response.has("balance")    ? response.get("balance").getAsDouble()    : 0.0
+            );
+            // Sử dụng ViewManager để chuyển sang Home
+            ViewManager.navigateTo(ViewManager.Views.HOME);
+        } else {
+            String message = response.has("message") ? response.get("message").getAsString() : "Sai tài khoản hoặc mật khẩu!";
+            showAlert(Alert.AlertType.ERROR, "Đăng nhập thất bại", message);
+        }
     }
 
     @FXML
     private void handleRegister(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/register.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) btnRegister.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Đăng ký tài khoản");
-            stage.centerOnScreen();
-        } catch (IOException e) {
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng ký!");
-        }
+        // Sử dụng ViewManager để chuyển sang Register
+        ViewManager.navigateTo(ViewManager.Views.REGISTER);
     }
 
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    private void setLoading(boolean loading) {
+        btnLogin.setDisable(loading);
+        btnLogin.setText(loading ? "Đang đăng nhập..." : "ĐĂNG NHẬP");
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String msg) {
+        Alert a = new Alert(type);
+        a.setTitle(title);
+        a.setHeaderText(null);
+        a.setContentText(msg);
+        a.showAndWait();
     }
 }
