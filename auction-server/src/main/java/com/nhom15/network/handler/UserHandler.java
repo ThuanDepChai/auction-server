@@ -74,8 +74,10 @@ public class UserHandler {
       response.addProperty("username",   user.getUsername());
       response.addProperty("email",      user.getEmail());
       response.addProperty("role",       user.getRole().name());
-      response.addProperty("balance",    0.0);
-      response.addProperty("avatarPath", "");
+      response.addProperty("balance",    user.getBalance());
+      response.addProperty("avatarPath", user.getAvatarPath());
+      response.addProperty("fullName",   user.getFullName());
+      response.addProperty("phone",      user.getPhone());
     } else {
       response.addProperty("status",  "FAIL");
       response.addProperty("message", "Sai tài khoản hoặc mật khẩu!");

@@ -83,18 +83,34 @@ public class UserDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int id = rs.getInt("user_id");
-                    String user = rs.getString("username");
+                    String userStr = rs.getString("username");
                     String pass = rs.getString("password");
                     String mail = rs.getString("email");
                     String role = rs.getString("role");
 
-                    if (role == null) role = "BIDDER"; // Mặc định nếu null
+                    // --- BỔ SUNG CÁC DÒNG NÀY ---
+                    String fullName = rs.getString("full_name");
+                    String phone = rs.getString("phone");
+                    double balance = rs.getDouble("balance");
+                    String avatar = rs.getString("avatar");
+                    // ----------------------------
 
-                    switch (role.toUpperCase()) {
-                        case "ADMIN":  return new Admin(id, user, pass, mail);
-                        case "SELLER": return new Seller(id, user, pass, mail);
-                        default:       return new Bidder(id, user, pass, mail);
+                    if (role == null) role = "BIDDER";
+
+                    User userObj;
+                    switch (role.trim().toUpperCase()) {
+                        case "ADMIN":  userObj = new Admin(id, userStr, pass, mail); break;
+                        case "SELLER": userObj = new Seller(id, userStr, pass, mail); break;
+                        default:       userObj = new Bidder(id, userStr, pass, mail); break;
                     }
+
+                    // Gán các thông tin bổ sung vào đối tượng user
+                    userObj.setFullName(fullName != null ? fullName : "");
+                    userObj.setPhone(phone != null ? phone : "");
+                    userObj.setBalance(balance);
+                    userObj.setAvatarPath(avatar != null ? avatar : "");
+
+                    return userObj;
                 }
             }
         } catch (SQLException e) {
@@ -111,6 +127,7 @@ public class UserDAO {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
+            System.out.println("DEBUG SERVER: Đang tìm profile cho userId = " + userId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     JsonObject obj = new JsonObject();
