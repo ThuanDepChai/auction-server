@@ -199,16 +199,8 @@ public class RegisterController {
 
     @FXML
     private void handleBackToLogin(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) btnBackToLogin.getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Đăng nhập");
-            stage.centerOnScreen();
-        } catch (IOException e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể mở màn hình đăng nhập!");
-        }
+        // Sử dụng ViewManager để trở về Login, giữ nguyên 100% kích thước cửa sổ hiện tại
+        com.nhom15.client.util.ViewManager.navigateTo(com.nhom15.client.util.ViewManager.Views.LOGIN);
     }
 
     private void showAlert(Alert.AlertType type, String title, String msg) {

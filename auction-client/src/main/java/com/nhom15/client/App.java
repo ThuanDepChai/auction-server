@@ -1,36 +1,20 @@
 package com.nhom15.client;
 
+import com.nhom15.client.util.ViewManager; // Đừng quên import class này
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
-
-import java.io.IOException;
-
-import static javafx.application.Application.launch;
 
 public class App extends Application {
 
-    // Bên trong file App.java (phần start)
     @Override
     public void start(Stage primaryStage) {
-        try {
-            // Đổi đường dẫn thành login.fxml
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/login.fxml"));
-            Parent root = loader.load();
+        ViewManager.init(primaryStage);
+        ViewManager.navigateTo(ViewManager.Views.LOGIN);
 
-            // Không cần set cứng kích thước 1200x700 nữa để form đăng nhập gọn gàng
-            Scene scene = new Scene(root);
+        // Nếu muốn app luôn mở to toàn màn hình ngay từ đầu:
+        primaryStage.setMaximized(true);
 
-            primaryStage.setTitle("Đăng nhập - Hệ thống Đấu giá");
-            primaryStage.setScene(scene);
-            primaryStage.centerOnScreen();
-            primaryStage.show();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        primaryStage.show();
     }
 
     public static void main(String[] args) {
