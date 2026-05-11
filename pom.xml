@@ -145,7 +145,7 @@
                     <configuration>
                         <!-- Dùng file cấu hình tùy chỉnh của nhóm -->
                         <!-- (Google Style nhưng đã tắt Javadoc bắt buộc) -->
-                        <configLocation>checkstyle.xml</configLocation>
+                        <configLocation>google_checks.xml</configLocation>
                         <consoleOutput>true</consoleOutput>
                         <failsOnError>true</failsOnError>
                         <violationSeverity>error</violationSeverity>
