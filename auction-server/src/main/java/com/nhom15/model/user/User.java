@@ -10,8 +10,11 @@ public abstract class User extends Entity implements Observer {
     protected String passwordHash;
     protected String email;
     protected UserRole role;
+    protected String fullName = "";
+    protected String phone = "";
+    protected double balance = 0.0;
+    protected String avatarPath = "";
 
-    // Constructor
     public User(int id, String username, String passwordHash, String email, UserRole role) {
         this.id = id;
         this.username = username;
@@ -19,8 +22,21 @@ public abstract class User extends Entity implements Observer {
         this.email = email;
         this.role = role;
     }
+
     public User(){}
 
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public double getBalance() { return balance; }
+    public void setBalance(double balance) { this.balance = balance; }
+
+    public String getAvatarPath() { return avatarPath; }
+
+    public void setAvatarPath(String avatarPath) { this.avatarPath = avatarPath; }
     // Getter & Setter
     public int getId() {
         return id;

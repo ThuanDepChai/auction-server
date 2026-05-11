@@ -46,14 +46,18 @@
                                     <children>
 
                                         <!-- Avatar circle -->
-                                        <ImageView fx:id="imgAvatar" fitHeight="130.0" fitWidth="97.0" pickOnBounds="true" preserveRatio="true">
-                                            <clip>
-                                                <Circle centerX="50.0" centerY="50.0" radius="50.0" />
-                                            </clip>
-                                            <image>
-                                                <javafx.scene.image.Image url="@../images/default_avatar.png" />
-                                            </image>
-                                        </ImageView>
+                                        <StackPane alignment="CENTER" prefHeight="100.0" prefWidth="100.0">
+                                            <children>
+                                                <Circle fill="#9B72CB" radius="50.0" />
+                                                <Label fx:id="lblAvatarInitial" text="U"
+                                                       style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 36px;" />
+                                                <ImageView fx:id="imgAvatar" fitHeight="100.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true" visible="false">
+                                                    <clip>
+                                                        <Circle centerX="50.0" centerY="50.0" radius="50.0" />
+                                                    </clip>
+                                                </ImageView>
+                                            </children>
+                                        </StackPane>
 
                                         <Button mnemonicParsing="false" onAction="#handleChangeAvatar" style="-fx-background-color: #F4F7FC; -fx-background-radius: 20; -fx-cursor: hand; -fx-text-fill: #4285F4; -fx-font-weight: bold;" text="📷  Đổi ảnh đại diện">
                                             <font><Font size="12.0" /></font>
