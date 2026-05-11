@@ -3,6 +3,11 @@ package com.nhom15.client.command;
 import com.nhom15.client.controller.CropAvatarController;
 import com.nhom15.client.util.SessionManager;
 import com.nhom15.client.util.ViewManager;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.function.Consumer;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -12,18 +17,11 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.util.Base64;
-import java.util.function.Consumer;
-
 /**
  * AvatarCommand — stateless, không giữ bất kỳ UI reference nào.
- *
- * Trả data về controller qua callback:
- *  - onPreview(base64)  → controller tự set ImageView
- *  - onStatus(message)  → controller tự hiển thị status label
+ * <p>
+ * Trả data về controller qua callback: - onPreview(base64)  → controller tự set ImageView -
+ * onStatus(message)  → controller tự hiển thị status label
  */
 public class AvatarCommand {
 
@@ -39,10 +37,12 @@ public class AvatarCommand {
    * @param onStatus  nhận message kết quả ("✓ ..." hoặc "Lỗi ...")
    */
   public static void pickAndUpload(int userId,
-                                   Consumer<String> onPreview,
-                                   Consumer<String> onStatus) {
+      Consumer<String> onPreview,
+      Consumer<String> onStatus) {
     File file = pickFile();
-    if (file == null) return;
+    if (file == null) {
+      return;
+    }
 
     if (file.length() > MAX_FILE_SIZE) {
       onStatus.accept("Ảnh không được vượt quá 2MB!");
@@ -57,11 +57,13 @@ public class AvatarCommand {
   }
 
   /**
-   * Decode base64 thành Image — controller gọi để hiển thị avatar từ session/server.
-   * Trả null nếu base64 rỗng hoặc lỗi decode.
+   * Decode base64 thành Image — controller gọi để hiển thị avatar từ session/server. Trả null nếu
+   * base64 rỗng hoặc lỗi decode.
    */
   public static Image decodeImage(String base64) {
-    if (base64 == null || base64.isEmpty()) return null;
+    if (base64 == null || base64.isEmpty()) {
+      return null;
+    }
     try {
       byte[] bytes = Base64.getDecoder().decode(base64);
       Image img = new Image(new ByteArrayInputStream(bytes));
@@ -73,11 +75,13 @@ public class AvatarCommand {
   }
 
   /**
-   * Load Image từ đường dẫn local — controller dùng để restore avatar từ SessionManager.
-   * Trả null nếu file không tồn tại.
+   * Load Image từ đường dẫn local — controller dùng để restore avatar từ SessionManager. Trả null
+   * nếu file không tồn tại.
    */
   public static Image loadFromPath(String path) {
-    if (path == null || path.isEmpty()) return null;
+    if (path == null || path.isEmpty()) {
+      return null;
+    }
     try {
       File f = new File(path);
       return f.exists() ? new Image(f.toURI().toString()) : null;
@@ -93,14 +97,14 @@ public class AvatarCommand {
     FileChooser fc = new FileChooser();
     fc.setTitle("Chọn ảnh đại diện");
     fc.getExtensionFilters().add(
-      new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
     return fc.showOpenDialog(ViewManager.getStage());
   }
 
   private static void openCropWindow(File file, Consumer<String> onCropped) {
     try {
       FXMLLoader loader = new FXMLLoader(
-        AvatarCommand.class.getResource("/view/CropAvatarView.fxml"));
+          AvatarCommand.class.getResource("/view/CropAvatarView.fxml"));
       Parent root = loader.load();
       CropAvatarController crop = loader.getController();
       crop.initImage(file, onCropped);
@@ -116,7 +120,7 @@ public class AvatarCommand {
   }
 
   private static void upload(int userId, String base64,
-                             String fileName, Consumer<String> onStatus) {
+      String fileName, Consumer<String> onStatus) {
     String ext = fileName.toLowerCase().endsWith(".png") ? "png" : "jpg";
     ProfileCommand.updateAvatar(userId, base64, ext, response -> {
       if (response != null && "SUCCESS".equals(response.get("status").getAsString())) {
@@ -124,7 +128,7 @@ public class AvatarCommand {
         onStatus.accept("✓ Cập nhật ảnh thành công!");
       } else {
         String msg = (response != null && response.has("message"))
-          ? response.get("message").getAsString() : "Tải ảnh thất bại!";
+            ? response.get("message").getAsString() : "Tải ảnh thất bại!";
         onStatus.accept("Lỗi: " + msg);
       }
     });

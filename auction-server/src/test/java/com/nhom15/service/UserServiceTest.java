@@ -1,9 +1,22 @@
 package com.nhom15.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.nhom15.dao.UserDAO;
 import com.nhom15.model.user.User;
 import com.nhom15.util.PasswordUtil;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -12,9 +25,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit Test cho {@link UserService} – nghiệp vụ đăng nhập / đăng ký.
@@ -38,10 +48,10 @@ class UserServiceTest {
   private UserService userService;
 
   // ── Dữ liệu dùng chung ───────────────────────────────────────────────
-  private static final String USERNAME      = "nguyenvana";
-  private static final String PASSWORD_RAW  = "Abcd@1234";
+  private static final String USERNAME = "nguyenvana";
+  private static final String PASSWORD_RAW = "Abcd@1234";
   private static final String PASSWORD_HASH = "$2a$10$hashedValueExample";
-  private static final String EMAIL         = "vana@email.com";
+  private static final String EMAIL = "vana@email.com";
 
   @BeforeEach
   void setUp() {
@@ -62,12 +72,12 @@ class UserServiceTest {
       // ARRANGE
       when(userDAO.isUsernameExists(USERNAME)).thenReturn(false);
       when(userDAO.registerUser(eq(USERNAME), anyString(), eq(EMAIL)))
-        .thenReturn(true);
+          .thenReturn(true);
 
       // Mock static PasswordUtil.hashPassword()
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.when(() -> PasswordUtil.hashPassword(PASSWORD_RAW))
-          .thenReturn(PASSWORD_HASH);
+            .thenReturn(PASSWORD_HASH);
 
         // ACT
         boolean result = userService.register(USERNAME, PASSWORD_RAW, EMAIL);
@@ -102,11 +112,11 @@ class UserServiceTest {
       // ARRANGE
       when(userDAO.isUsernameExists(USERNAME)).thenReturn(false);
       when(userDAO.registerUser(eq(USERNAME), anyString(), eq(EMAIL)))
-        .thenReturn(false); // DB insert thất bại
+          .thenReturn(false); // DB insert thất bại
 
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.when(() -> PasswordUtil.hashPassword(PASSWORD_RAW))
-          .thenReturn(PASSWORD_HASH);
+            .thenReturn(PASSWORD_HASH);
 
         // ACT
         boolean result = userService.register(USERNAME, PASSWORD_RAW, EMAIL);
@@ -142,7 +152,7 @@ class UserServiceTest {
 
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.when(() -> PasswordUtil.verifyPassword(PASSWORD_RAW, PASSWORD_HASH))
-          .thenReturn(true);
+            .thenReturn(true);
 
         // ACT
         User result = userService.login(USERNAME, PASSWORD_RAW);
@@ -161,7 +171,7 @@ class UserServiceTest {
 
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.when(() -> PasswordUtil.verifyPassword("SaiMatKhau", PASSWORD_HASH))
-          .thenReturn(false); // password không khớp
+            .thenReturn(false); // password không khớp
 
         // ACT
         User result = userService.login(USERNAME, "SaiMatKhau");
@@ -187,8 +197,8 @@ class UserServiceTest {
       // (tránh NullPointerException)
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.verify(
-          () -> PasswordUtil.verifyPassword(anyString(), anyString()),
-          never()
+            () -> PasswordUtil.verifyPassword(anyString(), anyString()),
+            never()
         );
       }
     }
@@ -214,7 +224,7 @@ class UserServiceTest {
     @DisplayName("✅ Đổi mật khẩu thành công khi mật khẩu cũ đúng")
     void changePassword_withCorrectOldPassword_returnsTrue() {
       // ARRANGE
-      String newPassword     = "NewPass@5678";
+      String newPassword = "NewPass@5678";
       String newPasswordHash = "$2a$10$newHashedValue";
 
       when(userDAO.findById(1)).thenReturn(mockUser);
@@ -222,9 +232,9 @@ class UserServiceTest {
 
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.when(() -> PasswordUtil.verifyPassword(PASSWORD_RAW, PASSWORD_HASH))
-          .thenReturn(true);
+            .thenReturn(true);
         mockedUtil.when(() -> PasswordUtil.hashPassword(newPassword))
-          .thenReturn(newPasswordHash);
+            .thenReturn(newPasswordHash);
 
         // ACT
         boolean result = userService.changePassword(1, PASSWORD_RAW, newPassword);
@@ -243,7 +253,7 @@ class UserServiceTest {
 
       try (MockedStatic<PasswordUtil> mockedUtil = mockStatic(PasswordUtil.class)) {
         mockedUtil.when(() -> PasswordUtil.verifyPassword("SaiPass", PASSWORD_HASH))
-          .thenReturn(false);
+            .thenReturn(false);
 
         // ACT
         boolean result = userService.changePassword(1, "SaiPass", "NewPass@5678");

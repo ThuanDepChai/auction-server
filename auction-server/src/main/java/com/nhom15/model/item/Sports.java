@@ -1,36 +1,40 @@
 package com.nhom15.model.item;
 
 public class Sports extends Item {
-    private SportCategory sportType; // Dùng Enum
-    private String condition;
 
-    public Sports(String id, String name, double startingPrice, SportCategory sportType, String condition) {
-        super(id, name, startingPrice);
-        this.sportType = sportType;
-        this.condition = condition;
-    }
+  private SportCategory sportType; // Dùng Enum
+  private String condition;
 
-    // SỬA: Kiểu trả về phải là SportCategory
-    public SportCategory getSportType() {
-        return sportType;
-    }
+  public Sports(String id, String name, double startingPrice, SportCategory sportType,
+      String condition) {
+    super(id, name, startingPrice);
+    this.sportType = sportType;
+    this.condition = condition;
+  }
 
-    // SỬA: Tham số truyền vào cũng phải là SportCategory
-    public void setSportType(SportCategory sportType) {
-        this.sportType = sportType;
-    }
+  // SỬA: Kiểu trả về phải là SportCategory
+  public SportCategory getSportType() {
+    return sportType;
+  }
 
-    public String getCondition() {
-        return condition;
-    }
+  // SỬA: Tham số truyền vào cũng phải là SportCategory
+  public void setSportType(SportCategory sportType) {
+    this.sportType = sportType;
+  }
 
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
+  public String getCondition() {
+    return condition;
+  }
 
-    @Override
-    public void displayItemInfo() {
-        // Dùng sportType.name() để chuyển Enum thành chữ in ra cho đẹp
-        System.out.println("Đồ thể thao: " + getName() + " - Môn: " + sportType.name() + " - Tình trạng: " + condition);
-    }
+  public void setCondition(String condition) {
+    this.condition = condition;
+  }
+
+  @Override
+  public void displayItemInfo() {
+    // Dùng sportType.name() để chuyển Enum thành chữ in ra cho đẹp
+    System.out.println(
+        "Đồ thể thao: " + getName() + " - Môn: " + sportType.name() + " - Tình trạng: "
+            + condition);
+  }
 }

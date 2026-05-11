@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
@@ -13,68 +14,90 @@
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
+<BorderPane prefHeight="550.0" prefWidth="600.0"
+  style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-border-radius: 15;"
+  xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+  fx:controller="com.nhom15.client.controller.CropAvatarController">
+  <top>
+    <VBox spacing="5.0" BorderPane.alignment="CENTER">
+      <children>
+        <Label style="-fx-font-weight: bold;" text="Căn chỉnh ảnh đại diện" textFill="#222222">
+          <font>
+            <Font size="18.0"/>
+          </font>
+        </Label>
+        <Label text="Di chuyển và phóng to ảnh để khớp với khung" textFill="#888888">
+          <font>
+            <Font size="13.0"/>
+          </font>
+        </Label>
+      </children>
+      <padding>
+        <Insets bottom="15.0" left="20.0" right="20.0" top="20.0"/>
+      </padding>
+    </VBox>
+  </top>
+  <center>
+    <StackPane prefHeight="350.0" prefWidth="600.0" style="-fx-background-color: #F7F7F7;"
+      BorderPane.alignment="CENTER">
+      <children>
 
-<?import javafx.scene.control.Separator?>
-<BorderPane prefHeight="550.0" prefWidth="600.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 15; -fx-border-radius: 15;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.CropAvatarController">
-    <top>
-        <VBox spacing="5.0" BorderPane.alignment="CENTER">
-            <children>
-                <Label style="-fx-font-weight: bold;" text="Căn chỉnh ảnh đại diện" textFill="#222222">
-                    <font><Font size="18.0" /></font>
-                </Label>
-                <Label text="Di chuyển và phóng to ảnh để khớp với khung" textFill="#888888">
-                    <font><Font size="13.0" /></font>
-                </Label>
-            </children>
-            <padding><Insets bottom="15.0" left="20.0" right="20.0" top="20.0" /></padding>
-        </VBox>
-    </top>
-    <center>
-        <StackPane prefHeight="350.0" prefWidth="600.0" style="-fx-background-color: #F7F7F7;" BorderPane.alignment="CENTER">
-            <children>
+        <Pane fx:id="paneImageContainer" prefHeight="350.0" prefWidth="350.0"
+          style="-fx-background-color: #E0E0E0;">
+          <children>
+            <ImageView fx:id="imgSource" pickOnBounds="true" preserveRatio="true"/>
+          </children>
+        </Pane>
 
-                <Pane fx:id="paneImageContainer" prefHeight="350.0" prefWidth="350.0" style="-fx-background-color: #E0E0E0;">
-                    <children>
-                        <ImageView fx:id="imgSource" pickOnBounds="true" preserveRatio="true" />
-                    </children>
-                </Pane>
+        <StackPane mouseTransparent="true">
+          <children>
+            <Rectangle fill="#00000033" height="350.0" mouseTransparent="true" stroke="BLACK"
+              strokeType="INSIDE" strokeWidth="0.0" width="600.0"/>
 
-                <StackPane mouseTransparent="true">
-                    <children>
-                        <Rectangle fill="#00000033" height="350.0" mouseTransparent="true" stroke="BLACK" strokeType="INSIDE" strokeWidth="0.0" width="600.0" />
-
-                        <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" mouseTransparent="true" prefHeight="250.0" prefWidth="250.0">
-                            <children>
-                                <Circle centerX="125.0" centerY="125.0" fill="TRANSPARENT" mouseTransparent="true" radius="125.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="3.0" style="-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 0);" />
-                            </children>
-                        </Pane>
-                    </children>
-                </StackPane>
-            </children>
+            <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity"
+              minWidth="-Infinity" mouseTransparent="true" prefHeight="250.0" prefWidth="250.0">
+              <children>
+                <Circle centerX="125.0" centerY="125.0" fill="TRANSPARENT" mouseTransparent="true"
+                  radius="125.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="3.0"
+                  style="-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 0);"/>
+              </children>
+            </Pane>
+          </children>
         </StackPane>
-    </center>
-    <bottom>
-        <VBox spacing="15.0" BorderPane.alignment="CENTER">
-            <padding><Insets bottom="20.0" left="20.0" right="20.0" top="15.0" /></padding>
-            <children>
+      </children>
+    </StackPane>
+  </center>
+  <bottom>
+    <VBox spacing="15.0" BorderPane.alignment="CENTER">
+      <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="15.0"/>
+      </padding>
+      <children>
 
-                <HBox alignment="CENTER" spacing="10.0">
-                    <children>
-                        <Label text="Thu nhỏ" textFill="#666666" />
-                        <Slider fx:id="sliderZoom" max="100.0" min="1.0" prefWidth="200.0" value="1.0" HBox.hgrow="ALWAYS" />
-                        <Label text="Phóng to" textFill="#666666" />
-                    </children>
-                </HBox>
+        <HBox alignment="CENTER" spacing="10.0">
+          <children>
+            <Label text="Thu nhỏ" textFill="#666666"/>
+            <Slider fx:id="sliderZoom" max="100.0" min="1.0" prefWidth="200.0" value="1.0"
+              HBox.hgrow="ALWAYS"/>
+            <Label text="Phóng to" textFill="#666666"/>
+          </children>
+        </HBox>
 
-                <Separator />
+        <Separator/>
 
-                <HBox alignment="CENTER_RIGHT" spacing="10.0">
-                    <children>
-                        <Button mnemonicParsing="false" onAction="#handleCancel" prefHeight="35.0" prefWidth="100.0" style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-font-weight: bold; -fx-cursor: hand;" text="Hủy" />
-                        <Button mnemonicParsing="false" onAction="#handleSave" prefHeight="35.0" prefWidth="120.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 20; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Cắt &amp; Lưu" />
-                    </children>
-                </HBox>
-            </children>
-        </VBox>
-    </bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+          <children>
+            <Button mnemonicParsing="false" onAction="#handleCancel" prefHeight="35.0"
+              prefWidth="100.0"
+              style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-font-weight: bold; -fx-cursor: hand;"
+              text="Hủy"/>
+            <Button mnemonicParsing="false" onAction="#handleSave" prefHeight="35.0"
+              prefWidth="120.0"
+              style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 20; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;"
+              text="Cắt &amp; Lưu"/>
+          </children>
+        </HBox>
+      </children>
+    </VBox>
+  </bottom>
 </BorderPane>
