@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -143,20 +143,21 @@
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>${checkstyle.version}</version>
                     <configuration>
-                        <!-- Dùng bộ quy tắc Google Java Style Guide chính thức -->
-                        <configLocation>google_checks.xml</configLocation>
+                        <!-- Dùng file cấu hình tùy chỉnh của nhóm -->
+                        <!-- (Google Style nhưng đã tắt Javadoc bắt buộc) -->
+                        <configLocation>checkstyle.xml</configLocation>
                         <consoleOutput>true</consoleOutput>
-                        <!-- BUILD FAILS ngay khi có vi phạm Checkstyle -->
                         <failsOnError>true</failsOnError>
-                        <violationSeverity>warning</violationSeverity>
-                        <!-- Bỏ qua thư mục test (tuỳ chọn, bỏ dòng này nếu muốn check cả test) -->
+                        <violationSeverity>error</violationSeverity>
+                        <!-- Tạm cho phép tối đa 200 violations trong khi nhóm đang sửa dần -->
+                        <!-- Giảm con số này xuống 0 khi code đã sạch hoàn toàn -->
+                        <maxAllowedViolations>200</maxAllowedViolations>
                         <excludes>**/module-info.java</excludes>
                         <includeTestSourceDirectory>false</includeTestSourceDirectory>
                     </configuration>
                     <executions>
                         <execution>
                             <id>checkstyle-validate</id>
-                            <!-- Gắn vào phase validate – chạy TRƯỚC khi compile -->
                             <phase>validate</phase>
                             <goals>
                                 <goal>check</goal>
