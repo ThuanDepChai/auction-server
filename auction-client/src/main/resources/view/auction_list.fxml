@@ -1,65 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.geometry.*?>
 
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.nhom15.client.controller.AuctionListController"
-            prefWidth="1100" prefHeight="700"
-            style="-fx-background-color: #F4F7FC;">
+  fx:controller="com.nhom15.client.controller.AuctionListController"
+  prefWidth="1100" prefHeight="700"
+  style="-fx-background-color: #F4F7FC;">
 
-    <!-- TOP BAR -->
-    <top>
-        <HBox alignment="CENTER_LEFT" spacing="12"
-              style="-fx-background-color: white; -fx-padding: 14 24 14 24;
+  <!-- TOP BAR -->
+  <top>
+    <HBox alignment="CENTER_LEFT" spacing="12"
+      style="-fx-background-color: white; -fx-padding: 14 24 14 24;
                      -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.08),8,0,0,2);">
-            <Button text="← Trang chủ" onAction="#handleBack"
-                    style="-fx-background-color: #F0F0F0; -fx-background-radius: 8;
+      <Button text="← Trang chủ" onAction="#handleBack"
+        style="-fx-background-color: #F0F0F0; -fx-background-radius: 8;
                            -fx-padding: 7 16 7 16; -fx-cursor: hand;"/>
-            <Label text="Danh sách đấu giá"
-                   style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <!-- Search -->
-            <TextField fx:id="txtSearch" promptText="🔍  Tìm kiếm..."
-                       prefWidth="220"
-                       style="-fx-background-radius: 20; -fx-padding: 7 14 7 14;
+      <Label text="Danh sách đấu giá"
+        style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
+      <Region HBox.hgrow="ALWAYS"/>
+      <!-- Search -->
+      <TextField fx:id="txtSearch" promptText="🔍  Tìm kiếm..."
+        prefWidth="220"
+        style="-fx-background-radius: 20; -fx-padding: 7 14 7 14;
                               -fx-background-color: #F4F7FC; -fx-border-width: 0;"/>
-            <ComboBox fx:id="cmbCategory" prefWidth="170"
-                      style="-fx-background-radius: 8;"/>
-            <Button text="Tìm" onAction="#handleSearch"
-                    style="-fx-background-color: #4285F4; -fx-text-fill: white;
+      <ComboBox fx:id="cmbCategory" prefWidth="170"
+        style="-fx-background-radius: 8;"/>
+      <Button text="Tìm" onAction="#handleSearch"
+        style="-fx-background-color: #4285F4; -fx-text-fill: white;
                            -fx-background-radius: 8; -fx-padding: 7 18 7 18; -fx-cursor: hand;"/>
-            <Button text="↻" onAction="#handleRefresh"
-                    style="-fx-background-color: #EEF2FF; -fx-text-fill: #4285F4;
+      <Button text="↻" onAction="#handleRefresh"
+        style="-fx-background-color: #EEF2FF; -fx-text-fill: #4285F4;
                            -fx-background-radius: 8; -fx-padding: 7 12 7 12; -fx-cursor: hand;
                            -fx-font-size: 14px;"/>
-        </HBox>
-    </top>
+    </HBox>
+  </top>
 
-    <!-- CENTER -->
-    <center>
-        <VBox spacing="0" style="-fx-padding: 20;">
-            <!-- Filter chips -->
-            <HBox spacing="10" style="-fx-padding: 0 0 14 0;">
-                <Button fx:id="btnFilterAll"    text="Tất cả"       onAction="#handleFilter"
-                        style="-fx-background-color: #4285F4; -fx-text-fill: white;
+  <!-- CENTER -->
+  <center>
+    <VBox spacing="0" style="-fx-padding: 20;">
+      <!-- Filter chips -->
+      <HBox spacing="10" style="-fx-padding: 0 0 14 0;">
+        <Button fx:id="btnFilterAll" text="Tất cả" onAction="#handleFilter"
+          style="-fx-background-color: #4285F4; -fx-text-fill: white;
                                -fx-background-radius: 20; -fx-padding: 5 16 5 16; -fx-cursor: hand;"/>
-                <Button fx:id="btnFilterActive" text="Đang diễn ra" onAction="#handleFilter"
-                        style="-fx-background-color: #EEF2FF; -fx-text-fill: #4285F4;
+        <Button fx:id="btnFilterActive" text="Đang diễn ra" onAction="#handleFilter"
+          style="-fx-background-color: #EEF2FF; -fx-text-fill: #4285F4;
                                -fx-background-radius: 20; -fx-padding: 5 16 5 16; -fx-cursor: hand;"/>
-                <Button fx:id="btnFilterEnded"  text="Đã kết thúc"  onAction="#handleFilter"
-                        style="-fx-background-color: #EEF2FF; -fx-text-fill: #4285F4;
+        <Button fx:id="btnFilterEnded" text="Đã kết thúc" onAction="#handleFilter"
+          style="-fx-background-color: #EEF2FF; -fx-text-fill: #4285F4;
                                -fx-background-radius: 20; -fx-padding: 5 16 5 16; -fx-cursor: hand;"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="lblCount" style="-fx-text-fill: #888; -fx-font-size: 12px;"/>
-            </HBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblCount" style="-fx-text-fill: #888; -fx-font-size: 12px;"/>
+      </HBox>
 
-            <!-- Grid -->
-            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
-                        style="-fx-background-color: transparent; -fx-border-width: 0;">
-                <FlowPane fx:id="flowAuctions" hgap="16" vgap="16"
-                          style="-fx-padding: 4;"/>
-            </ScrollPane>
-        </VBox>
-    </center>
+      <!-- Grid -->
+      <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+        style="-fx-background-color: transparent; -fx-border-width: 0;">
+        <FlowPane fx:id="flowAuctions" hgap="16" vgap="16"
+          style="-fx-padding: 4;"/>
+      </ScrollPane>
+    </VBox>
+  </center>
 </BorderPane>

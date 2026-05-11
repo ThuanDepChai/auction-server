@@ -1,72 +1,73 @@
 /* Container chính nền trắng */
 .main-container {
-    -fx-background-color: #ffffff;
-    -fx-padding: 50;
+  -fx-background-color: #ffffff;
+  -fx-padding: 50;
 }
 
 /* Tiêu đề có màu sắc nổi bật */
 .title-text {
-    -fx-font-size: 24px;
-    -fx-font-weight: bold;
-    -fx-fill: linear-gradient(to right, #ff00cc, #3333ff);
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+  -fx-fill: linear-gradient(to right, #ff00cc, #3333ff);
 }
 
 /* Khung nhập liệu bo góc */
 .rounded-input {
-    -fx-background-radius: 20;
-    -fx-border-radius: 20;
-    -fx-border-color: #cccccc;
-    -fx-padding: 8 15;
-    -fx-background-color: #f9f9f9;
+  -fx-background-radius: 20;
+  -fx-border-radius: 20;
+  -fx-border-color: #cccccc;
+  -fx-padding: 8 15;
+  -fx-background-color: #f9f9f9;
 }
 
 /* Nút bấm hiệu ứng Gradient sắc màu */
 .gradient-button {
-    -fx-background-color: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
-    -fx-text-fill: white;
-    -fx-background-radius: 20;
-    -fx-font-weight: bold;
-    -fx-padding: 10 30;
-    -fx-cursor: hand;
+  -fx-background-color: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+  -fx-text-fill: white;
+  -fx-background-radius: 20;
+  -fx-font-weight: bold;
+  -fx-padding: 10 30;
+  -fx-cursor: hand;
 }
 
 .gradient-button:hover {
-    -fx-opacity: 0.8;
+  -fx-opacity: 0.8;
 }
 
 /* Nút đăng ký bo góc đơn giản */
 .secondary-button {
-    -fx-background-color: transparent;
-    -fx-border-color: #2575fc;
-    -fx-border-radius: 20;
-    -fx-text-fill: #2575fc;
-    -fx-padding: 10 30;
-    -fx-cursor: hand;
+  -fx-background-color: transparent;
+  -fx-border-color: #2575fc;
+  -fx-border-radius: 20;
+  -fx-text-fill: #2575fc;
+  -fx-padding: 10 30;
+  -fx-cursor: hand;
 }
+
 /* Hiệu ứng cho các nút danh mục */
 .button {
-    -fx-transition: all 0.2s;
+  -fx-transition: all 0.2s;
 }
 
 .button:hover {
-    -fx-opacity: 0.8;
-    -fx-cursor: hand;
+  -fx-opacity: 0.8;
+  -fx-cursor: hand;
 }
 
 /* Hiệu ứng riêng cho nút "Đăng bán" */
 #btnSell:hover {
-    -fx-effect: dropshadow(gaussian, rgba(217, 101, 112, 0.5), 10, 0, 0, 4);
+  -fx-effect: dropshadow(gaussian, rgba(217, 101, 112, 0.5), 10, 0, 0, 4);
 }
 
 /* Bo góc cho Dropdown menu */
 .user-menu-dropdown {
-    -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-color: #EEEEEE;
-    -fx-border-radius: 10;
+  -fx-background-color: white;
+  -fx-background-radius: 10;
+  -fx-border-color: #EEEEEE;
+  -fx-border-radius: 10;
 }
 
 /* Các nút bên trong Menu khi hover */
 .user-menu-dropdown .button:hover {
-    -fx-background-color: #F5F5F5;
+  -fx-background-color: #F5F5F5;
 }

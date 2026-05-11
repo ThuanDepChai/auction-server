@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.auction</groupId>
         <artifactId>Nhom15</artifactId>
@@ -11,34 +13,94 @@
 
     <artifactId>auction-client</artifactId>
 
-    <properties>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
-        <gson.version>2.10.1</gson.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <!--
+        LƯU Ý: JUnit 5 + Mockito + Surefire + Checkstyle
+        đã được KẾ THỪA từ parent pom (Nhom15).
+        Ở đây chỉ cần:
+          1. Override Surefire để thêm JVM args cho JavaFX Module System
+          2. Tắt Checkstyle cho module UI (tuỳ chọn)
+          3. Khai báo dependency đặc thù của client
+    -->
+
     <dependencies>
+
+        <!-- JavaFX Controls – Button, TableView, ListView, ... -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>21.0.1</version>
         </dependency>
+
+        <!-- JavaFX FXML – load file .fxml cho giao diện -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>21.0.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-        </dependency>
+        <!-- JavaFX Swing – nhúng Swing component vào JavaFX nếu cần -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
             <version>21.0.1</version>
-            <scope>compile</scope>
         </dependency>
+
+        <!-- Gson – kế thừa phiên bản từ parent dependencyManagement -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
     </dependencies>
+
+    <build>
+        <plugins>
+
+            <!--
+                ── Override Maven Surefire Plugin ────────────────────────
+                JavaFX dùng Java Module System (JPMS).
+                Nếu KHÔNG thêm -add-opens, JUnit 5 sẽ bị lỗi:
+                  InaccessibleObjectException khi Mockito cố reflect vào
+                  các class internal của JavaFX / java.base.
+                Giải pháp: mở các package cần thiết cho JVM khi chạy test.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <!-- Phiên bản kế thừa từ parent pluginManagement -->
+                <configuration>
+                    <argLine>
+                        <!-- Cho phép Mockito reflect vào java.base -->
+                        --add-opens java.base/java.lang=ALL-UNNAMED
+                        --add-opens java.base/java.util=ALL-UNNAMED
+                        --add-opens java.base/java.io=ALL-UNNAMED
+                        <!-- Cho phép JavaFX module hoạt động trong test environment -->
+                        --add-opens javafx.base/com.sun.javafx.binding=ALL-UNNAMED
+                        --add-opens javafx.graphics/com.sun.javafx.application=ALL-UNNAMED
+                    </argLine>
+                </configuration>
+            </plugin>
+
+            <!--
+                ── Tắt Checkstyle cho module auction-client ──────────────
+                Lý do: code FXML controller thường có style khác
+                (event handler ngắn, inject field với @FXML...).
+                Nếu muốn BẬT lại Checkstyle cho client, xoá toàn bộ
+                block <plugin> này đi.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>checkstyle-validate</id>
+                        <!-- phase: none = vô hiệu hoá execution này -->
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
 </project>

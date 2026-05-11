@@ -1,30 +1,88 @@
-name: Java CI with Maven
+name: Java CI with Maven  # Tên hiển thị trên tab Actions của GitHub
 
-# Định nghĩa khi nào con robot GitHub sẽ chạy luồng công việc này
+# =============================================================
+#  TRIGGER – Khi nào workflow này được kích hoạt?
+# =============================================================
 on:
   push:
-    branches: [ "main", "master" ] # Chạy khi có người push code lên nhánh main/master
+    branches: [ "main", "dev" ]          # Push lên main hoặc dev
   pull_request:
-    branches: [ "main", "master" ] # Chạy khi có người tạo Pull Request vào nhánh main
+    branches: [ "main", "dev" ]          # Tạo PR nhắm vào main hoặc dev
 
+# =============================================================
+#  JOBS
+# =============================================================
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest # Chạy trên máy chủ ảo hệ điều hành Ubuntu mới nhất của GitHub
+
+  # -----------------------------------------------------------
+  #  JOB 1: Kiểm tra chuẩn code (Checkstyle)
+  #  Chạy trước – nếu sai style thì dừng luôn, không tốn thời
+  #  gian chờ compile/test.
+  # -----------------------------------------------------------
+  checkstyle:
+    name: "🎨 Checkstyle (Google Java Style)"
+    runs-on: ubuntu-latest
 
     steps:
-      # Bước 1: Tải mã nguồn của nhóm từ GitHub repo xuống máy chủ ảo
-      - name: Checkout mã nguồn
+      - name: "📥 Checkout mã nguồn"
         uses: actions/checkout@v4
 
-      # Bước 2: Cài đặt môi trường Java
-      - name: Cài đặt JDK 25
+      - name: "☕ Cài đặt JDK 25"
         uses: actions/setup-java@v4
         with:
           java-version: '25'
           distribution: 'temurin'
-          cache: maven # Giúp tăng tốc độ chạy cho các lần sau bằng cách lưu cache thư viện
+          cache: maven          # Cache ~/.m2 để lần sau nhanh hơn
 
-      # Bước 3: Chạy lệnh build và test tự động bằng Maven
-      # Lệnh này sẽ biên dịch toàn bộ dự án và chạy các file JUnit test
-      - name: Build và Test dự án với Maven
-        run: mvn clean test
+      - name: "🔍 Chạy Checkstyle – dừng nếu vi phạm Google Style"
+        # mvn checkstyle:check sẽ thoát với exit-code ≠ 0 nếu có lỗi
+        # → GitHub Actions tự động đánh dấu job FAILED
+        run: mvn checkstyle:check --no-transfer-progress
+
+  # -----------------------------------------------------------
+  #  JOB 2: Build & Unit Test
+  #  Phụ thuộc vào job checkstyle – chỉ chạy khi style OK.
+  # -----------------------------------------------------------
+  build-and-test:
+    name: "🔨 Build & Unit Test (JUnit 5)"
+    runs-on: ubuntu-latest
+    needs: checkstyle          # ← Chờ job checkstyle hoàn thành OK
+
+    steps:
+      - name: "📥 Checkout mã nguồn"
+        uses: actions/checkout@v4
+
+      - name: "☕ Cài đặt JDK 25"
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      # mvn clean verify = clean → compile → test → package → verify
+      # Surefire plugin sẽ chạy toàn bộ JUnit 5 test trong phase "test"
+      # Build FAIL tự động nếu có test thất bại
+      - name: "🚀 Build & chạy toàn bộ Unit Test"
+        run: mvn clean verify --no-transfer-progress
+
+      # Tải báo cáo test lên để xem trên giao diện GitHub Actions
+      - name: "📊 Upload báo cáo Surefire (kết quả test)"
+        # Luôn chạy bước này, kể cả khi test fail – để xem log lỗi
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          # Báo cáo XML của Surefire nằm trong từng module
+          path: |
+            auction-server/target/surefire-reports/
+            auction-client/target/surefire-reports/
+          retention-days: 7     # Giữ artifact 7 ngày rồi tự xoá
+
+      # (Tuỳ chọn) Upload file JAR đã build để download thử
+      - name: "📦 Upload artifact JAR (auction-server)"
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auction-server-jar
+          path: auction-server/target/*.jar
+          retention-days: 3
