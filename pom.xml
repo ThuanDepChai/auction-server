@@ -1,24 +1,184 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.auction</groupId>
     <artifactId>Nhom15</artifactId>
     <version>1.0-SNAPSHOT</version>
-
     <packaging>pom</packaging>
+
     <modules>
         <module>auction-server</module>
         <module>auction-client</module>
     </modules>
 
+    <!-- ===================================================== -->
+    <!--  THUỘC TÍNH TOÀN CỤC – dùng chung cho toàn bộ project -->
+    <!-- ===================================================== -->
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
-        <gson.version>2.10.1</gson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Phiên bản thư viện dùng chung -->
+        <gson.version>2.10.1</gson.version>
+        <junit.version>5.11.4</junit.version>
+        <mockito.version>5.14.2</mockito.version>
+
+        <!-- Phiên bản plugin -->
+        <maven-surefire.version>3.5.2</maven-surefire.version>
+        <checkstyle.version>3.6.0</checkstyle.version>
     </properties>
+
+    <!-- ===================================================== -->
+    <!--  DEPENDENCY MANAGEMENT – khai báo phiên bản tập trung  -->
+    <!--  Module con chỉ cần khai báo groupId + artifactId      -->
+    <!-- ===================================================== -->
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- ── JUnit 5 BOM (Bill of Materials) ────────────────── -->
+            <!-- Import BOM để tất cả artifact JUnit 5 dùng cùng phiên bản -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- ── Mockito ─────────────────────────────────────────── -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ── Gson ────────────────────────────────────────────── -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ===================================================== -->
+    <!--  DEPENDENCIES KẾ THỪA – áp dụng cho MỌI module con   -->
+    <!-- ===================================================== -->
+    <dependencies>
+
+        <!-- JUnit 5 API – viết test -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 Engine – chạy test (cần cho Surefire) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 Params – hỗ trợ @ParameterizedTest -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mockito Core – mock/stub object trong unit test -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mockito JUnit 5 extension – tích hợp @ExtendWith(MockitoExtension.class) -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- ===================================================== -->
+    <!--  BUILD – cấu hình plugin áp dụng cho toàn bộ project  -->
+    <!-- ===================================================== -->
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <!-- ── Maven Surefire Plugin – chạy JUnit 5 ───────── -->
+                <!-- Bắt buộc >= 3.x để hỗ trợ JUnit 5 / Jupiter      -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire.version}</version>
+                    <configuration>
+                        <!-- Hiển thị tên test đang chạy trên console -->
+                        <printSummary>true</printSummary>
+                        <!-- Bắt buộc dừng build nếu có test FAIL -->
+                        <failIfNoTests>false</failIfNoTests>
+                    </configuration>
+                </plugin>
+
+                <!-- ── Maven Checkstyle Plugin ──────────────────────── -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${checkstyle.version}</version>
+                    <configuration>
+                        <!-- Dùng bộ quy tắc Google Java Style Guide chính thức -->
+                        <configLocation>google_checks.xml</configLocation>
+                        <consoleOutput>true</consoleOutput>
+                        <!-- BUILD FAILS ngay khi có vi phạm Checkstyle -->
+                        <failsOnError>true</failsOnError>
+                        <violationSeverity>warning</violationSeverity>
+                        <!-- Bỏ qua thư mục test (tuỳ chọn, bỏ dòng này nếu muốn check cả test) -->
+                        <excludes>**/module-info.java</excludes>
+                        <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>checkstyle-validate</id>
+                            <!-- Gắn vào phase validate – chạy TRƯỚC khi compile -->
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+
+        <!-- Kích hoạt plugin cho TẤT CẢ module -->
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
