@@ -6,7 +6,20 @@ import com.nhom15.util.PasswordUtil;
 import com.google.gson.JsonObject;
 
 public class UserService {
-    private final UserDAO userDAO = new UserDAO();
+
+    private final UserDAO userDAO;
+
+    // ── Constructor mặc định – dùng trong production ──────────────────────
+    // Toàn bộ code cũ gọi new UserService() vẫn chạy bình thường
+    public UserService() {
+        this.userDAO = new UserDAO();
+    }
+
+    // ── Constructor injection – dùng trong Unit Test ───────────────────────
+    // Mockito sẽ inject UserDAO mock qua constructor này
+    public UserService(UserDAO userDAO) {
+        this.userDAO = userDAO;
+    }
 
     public boolean isExists(String username) {
         return userDAO.isUsernameExists(username);
@@ -27,7 +40,6 @@ public class UserService {
         return null;
     }
 
-    // Giữ nguyên trả về JsonObject như code cũ của bạn để khớp DAO
     public JsonObject getProfile(int userId) {
         return userDAO.getProfile(userId);
     }
