@@ -8,61 +8,74 @@ import java.util.function.Consumer;
 
 public class ProfileCommand {
 
-    public static void fetchProfile(long userId, Consumer<JsonObject> callback) {
+    public static void fetchProfile(int userId, Consumer<JsonObject> callback) {
         JsonObject data = new JsonObject();
         data.addProperty("userId", userId);
-        executeCommand("GET_PROFILE", data, callback);
+        execute("GET_PROFILE", data, callback);
     }
 
-    public static void updateProfile(long userId, String fullName, String email, String phone, Consumer<JsonObject> callback) {
+    public static void updateProfile(int userId, String fullName,
+                                     String email, String phone,
+                                     Consumer<JsonObject> callback) {
         JsonObject data = new JsonObject();
-        data.addProperty("userId", userId);
+        data.addProperty("userId",   userId);
         data.addProperty("fullName", fullName);
-        data.addProperty("email", email);
-        data.addProperty("phone", phone);
-        executeCommand("UPDATE_PROFILE", data, callback);
+        data.addProperty("email",    email);
+        data.addProperty("phone",    phone);
+        execute("UPDATE_PROFILE", data, callback);
     }
 
-    public static void changePassword(long userId, String oldPassword, String newPassword, Consumer<JsonObject> callback) {
+    public static void changePassword(int userId, String oldPassword,
+                                      String newPassword, Consumer<JsonObject> callback) {
         JsonObject data = new JsonObject();
-        data.addProperty("userId", userId);
+        data.addProperty("userId",      userId);
         data.addProperty("oldPassword", oldPassword);
         data.addProperty("newPassword", newPassword);
-        executeCommand("CHANGE_PASSWORD", data, callback);
+        execute("CHANGE_PASSWORD", data, callback);
     }
 
-    public static void updateAvatar(long userId, String base64Image, String extension, Consumer<JsonObject> callback) {
+    public static void upgradeToSeller(int userId,
+                                       Consumer<Boolean> onSuccess, Runnable onFail) {
+        System.out.println("[ProfileCommand] upgradeToSeller → userId = " + userId);
         JsonObject data = new JsonObject();
         data.addProperty("userId", userId);
-        data.addProperty("imageBase64", base64Image);
-        data.addProperty("extension", extension);
-        executeCommand("UPDATE_AVATAR", data, callback);
-    }
-
-    public static void upgradeToSeller(long userId, Consumer<Boolean> onSuccess, Runnable onFail) {
-        JsonObject data = new JsonObject();
-        data.addProperty("userId", userId);
-        executeCommand("UPGRADE_TO_SELLER", data, response -> {
-            if (response != null && "SUCCESS".equals(response.get("status").getAsString())) {
+        execute("UPGRADE_TO_SELLER", data, response -> {
+            System.out.println("[ProfileCommand] upgradeToSeller response = " + response);
+            if (response != null && "SUCCESS".equals(response.get("status").getAsString()))
                 onSuccess.accept(true);
-            } else {
+            else
                 onFail.run();
-            }
         });
     }
 
-    // --- Lõi thực thi Command mạng ---
-    private static void executeCommand(String action, JsonObject data, Consumer<JsonObject> callback) {
+    /** Lấy avatar từ server dưới dạng base64 */
+    public static void fetchAvatar(int userId, Consumer<JsonObject> callback) {
+        JsonObject data = new JsonObject();
+        data.addProperty("userId", userId);
+        execute("GET_AVATAR", data, callback);
+    }
+
+    /** Avatar dùng base64 binary — build riêng, không chung data pattern */
+    public static void updateAvatar(int userId, String base64Image,
+                                    String extension, Consumer<JsonObject> callback) {
+        JsonObject data = new JsonObject();
+        data.addProperty("userId",      userId);
+        data.addProperty("imageBase64", base64Image);
+        data.addProperty("extension",   extension);
+        execute("UPDATE_AVATAR", data, callback);
+    }
+
+    // ── Core — giống pattern gốc của bạn ─────────────────────────────────────
+    private static void execute(String action, JsonObject data, Consumer<JsonObject> callback) {
         JsonObject request = new JsonObject();
         request.addProperty("action", action);
-        if (data != null && data.size() > 0) request.add("data", data);
-
+        request.add("data", data);
         new Thread(() -> {
             try {
                 JsonObject response = SocketClient.sendRequest(request);
                 Platform.runLater(() -> callback.accept(response));
             } catch (Exception e) {
-                System.err.println("[ProfileCommand] Lỗi gọi API " + action + ": " + e.getMessage());
+                System.err.println("[ProfileCommand] Lỗi " + action + ": " + e.getMessage());
                 Platform.runLater(() -> callback.accept(null));
             }
         }).start();

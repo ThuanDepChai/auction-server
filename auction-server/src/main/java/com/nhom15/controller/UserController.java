@@ -2,74 +2,111 @@ package com.nhom15.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.nhom15.model.user.User;
 import com.nhom15.service.UserService;
-import com.nhom15.model.user.User; // Đảm bảo import đúng đường dẫn model của bạn
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 
 public class UserController {
+    private final UserService userService = new UserService();
+    private final Gson gson = new Gson();
 
-    private UserService userService = new UserService();
-    private Gson gson = new Gson();
-
-    /**
-     * Xử lý luồng Đăng nhập từ Client
-     */
-    public String handleLogin(JsonObject requestData) {
-        JsonObject response = new JsonObject();
-
-        try {
-            // Lấy dữ liệu Client gửi lên
-            String username = requestData.get("username").getAsString();
-            String password = requestData.get("password").getAsString();
-
-            // Gọi anh Đầu bếp (UserService) - ĐÃ SỬA LẠI TÊN HÀM THÀNH 'login'
-            User user = userService.login(username, password);
-
-            // Đóng gói trả về
-            if (user != null) {
-                response.addProperty("status", "SUCCESS");
-                response.addProperty("message", "Đăng nhập thành công!");
-                // GSON tự động bọc Object User thành chuỗi JSON
-                response.add("user", gson.toJsonTree(user));
-            } else {
-                response.addProperty("status", "ERROR");
-                response.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
-            }
-
-        } catch (Exception e) {
-            response.addProperty("status", "ERROR");
-            response.addProperty("message", "Thiếu tham số bắt buộc!");
-            System.err.println("[UserController-Login] Lỗi: " + e.getMessage());
-        }
-
-        return response.toString();
+    public JsonObject handleCheckUsername(JsonObject d) {
+        JsonObject res = new JsonObject();
+        String user = d.get("username").getAsString();
+        boolean exists = userService.isExists(user);
+        res.addProperty("status", exists ? "EXISTS" : "AVAILABLE");
+        res.addProperty("message", exists ? "Tên đã tồn tại!" : "Có thể sử dụng.");
+        return res;
     }
 
-    /**
-     * Xử lý luồng Đăng ký từ Client
-     */
-    public String handleRegister(JsonObject requestData) {
-        JsonObject response = new JsonObject();
+    public JsonObject handleRegister(JsonObject d) {
+        JsonObject res = new JsonObject();
+        boolean ok = userService.register(d.get("username").getAsString(), d.get("password").getAsString(), d.get("email").getAsString());
+        res.addProperty("status", ok ? "SUCCESS" : "FAIL");
+        return res;
+    }
 
+    public JsonObject handleLogin(JsonObject d) {
+        JsonObject res = new JsonObject();
+        // Gọi hàm login (trả về User object)
+        User user = userService.login(d.get("username").getAsString(), d.get("password").getAsString());
+        if (user != null) {
+            res.addProperty("status", "SUCCESS");
+            res.add("user", gson.toJsonTree(user));
+            res.addProperty("userId", user.getId());
+            res.addProperty("role", user.getRole().name());
+        } else {
+            res.addProperty("status", "FAIL");
+            res.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
+        }
+        return res;
+    }
+
+    public JsonObject handleGetProfile(JsonObject d) {
+        JsonObject res = new JsonObject();
+        JsonObject profile = userService.getProfile(d.get("userId").getAsInt());
+        if (profile != null) {
+            res.addProperty("status", "SUCCESS");
+            res.add("profile", profile);
+        } else {
+            res.addProperty("status", "FAIL");
+        }
+        return res;
+    }
+
+    public JsonObject handleUpdateProfile(JsonObject d) {
+        JsonObject res = new JsonObject();
+        boolean ok = userService.updateProfile(d.get("userId").getAsInt(), d.get("fullName").getAsString(), d.get("email").getAsString(), d.get("phone").getAsString());
+        res.addProperty("status", ok ? "SUCCESS" : "FAIL");
+        return res;
+    }
+
+    public JsonObject handleChangePassword(JsonObject d) {
+        JsonObject res = new JsonObject(); // ĐÃ SỬA: Không còn là JsonProperty nữa!
+        boolean ok = userService.changePassword(d.get("userId").getAsInt(), d.get("oldPassword").getAsString(), d.get("newPassword").getAsString());
+        res.addProperty("status", ok ? "SUCCESS" : "FAIL");
+        return res;
+    }
+
+    public JsonObject handleUpgradeToSeller(JsonObject d) {
+        JsonObject res = new JsonObject();
+        boolean ok = userService.upgradeToSeller(d.get("userId").getAsInt());
+        res.addProperty("status", ok ? "SUCCESS" : "FAIL");
+        return res;
+    }
+
+    public JsonObject handleUpdateAvatar(JsonObject d) {
+        JsonObject res = new JsonObject();
         try {
-            String username = requestData.get("username").getAsString();
-            String password = requestData.get("password").getAsString();
-            String email    = requestData.get("email").getAsString();
+            int uid = d.get("userId").getAsInt();
+            byte[] bytes = Base64.getDecoder().decode(d.get("imageBase64").getAsString());
+            String path = "avatars/avatar_" + uid + "." + d.get("extension").getAsString();
+            Files.write(Paths.get(path), bytes);
+            userService.updateAvatar(uid, path);
+            res.addProperty("status", "SUCCESS");
+            res.addProperty("avatarPath", path);
+        } catch (Exception e) {
+            res.addProperty("status", "FAIL");
+        }
+        return res;
+    }
 
-            boolean isSuccess = userService.register(username, password, email);
-
-            if (isSuccess) {
-                response.addProperty("status", "SUCCESS");
-                response.addProperty("message", "Đăng ký thành công!");
+    public JsonObject handleGetAvatar(JsonObject d) {
+        JsonObject res = new JsonObject();
+        try {
+            String path = userService.getAvatarPath(d.get("userId").getAsInt());
+            if (path != null && new File(path).exists()) {
+                res.addProperty("status", "SUCCESS");
+                res.addProperty("imageBase64", Base64.getEncoder().encodeToString(Files.readAllBytes(Paths.get(path))));
             } else {
-                response.addProperty("status", "ERROR");
-                response.addProperty("message", "Tên đăng nhập đã tồn tại!");
+                res.addProperty("status", "NO_AVATAR");
             }
         } catch (Exception e) {
-            response.addProperty("status", "ERROR");
-            response.addProperty("message", "Lỗi định dạng dữ liệu gửi lên!");
-            System.err.println("[UserController-Register] Lỗi: " + e.getMessage());
+            res.addProperty("status", "FAIL");
         }
-
-        return response.toString();
+        return res;
     }
 }

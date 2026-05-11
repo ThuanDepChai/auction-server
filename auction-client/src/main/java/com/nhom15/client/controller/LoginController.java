@@ -94,6 +94,15 @@ public class LoginController {
                 Gson gson = new Gson();
                 UserDTO user = gson.fromJson(response.getAsJsonObject("user"), UserDTO.class);
 
+                // Fix: Server trả về "id" nhưng UserDTO map "user_id" → set thủ công
+                if (user.getUserId() == 0 && response.has("userId")) {
+                    user.setUserId(response.get("userId").getAsInt());
+                }
+                // Fix: Server trả về role ở ngoài response, không trong "user"
+                if ((user.getRole() == null || user.getRole().isEmpty()) && response.has("role")) {
+                    user.setRole(response.get("role").getAsString());
+                }
+
                 // Ném vào SessionManager (Đã được cập nhật)
                 SessionManager.login(user);
 

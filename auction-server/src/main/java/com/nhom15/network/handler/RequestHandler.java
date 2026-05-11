@@ -31,14 +31,20 @@ public class RequestHandler {
                  "UPDATE_AVATAR",
                  "GET_AVATAR"        -> userHandler.handle(request);
 
-            // ── Auction ───────────────────────────────────────────────────
+            // ── Auction & Item ──────────────────────────────────────────────
             case "GET_AUCTIONS",
+                 "GET_ACTIVE_AUCTIONS",
                  "GET_AUCTION_DETAIL",
                  "CREATE_AUCTION",
                  "PLACE_BID",
                  "GET_BID_HISTORY",
                  "END_AUCTION",
-                 "GET_MY_AUCTIONS"   -> auctionHandler.handle(request);
+                 "GET_MY_AUCTIONS",
+                 "CREATE_ITEM",
+                 "GET_FEATURED_PRODUCTS",
+                 "SEARCH_PRODUCTS",
+                 "GET_MY_ITEMS",
+                 "DELETE_ITEM"       -> auctionHandler.handle(request);
 
             default -> error("Action không được hỗ trợ: " + action);
         };

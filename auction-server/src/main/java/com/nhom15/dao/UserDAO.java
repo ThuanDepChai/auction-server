@@ -92,7 +92,7 @@ public class UserDAO {
                     String fullName = rs.getString("full_name");
                     String phone = rs.getString("phone");
                     double balance = rs.getDouble("balance");
-                    String avatar = rs.getString("avatar");
+                    String avatar = rs.getString("avatar_path");
                     // ----------------------------
 
                     if (role == null) role = "BIDDER";
@@ -150,7 +150,7 @@ public class UserDAO {
     }
     // 6.Cập nhật AVATAR
     public boolean updateAvatar(int userId, String avatarPath) {
-        String sql = "UPDATE user SET avatar = ? WHERE user_id = ?";
+        String sql = "UPDATE user SET avatar_path = ? WHERE user_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, avatarPath);
@@ -250,14 +250,14 @@ public class UserDAO {
      * 10. LẤY ĐƯỜNG DẪN ẢNH ĐẠI DIỆN
      */
     public String getAvatarPath(int userId) {
-        String sql = "SELECT avatar FROM `user` WHERE user_id = ?";
+        String sql = "SELECT avatar_path FROM `user` WHERE user_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getString("avatar");
+                    return rs.getString("avatar_path");
                 }
             }
         } catch (SQLException e) {

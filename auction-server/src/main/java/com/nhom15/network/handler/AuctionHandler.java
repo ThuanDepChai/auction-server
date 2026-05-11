@@ -19,13 +19,19 @@ public class AuctionHandler {
     JsonObject d  = request.has("data") ? request.getAsJsonObject("data") : new JsonObject();
 
     return switch (action) {
-      case "GET_AUCTIONS"       -> handleGetAuctions();
+      case "GET_AUCTIONS",
+           "GET_ACTIVE_AUCTIONS"-> handleGetAuctions();
       case "GET_AUCTION_DETAIL" -> handleGetAuctionDetail(d);
       case "CREATE_AUCTION"     -> handleCreateAuction(d);
       case "PLACE_BID"          -> handlePlaceBid(d);
       case "GET_BID_HISTORY"    -> handleGetBidHistory(d);
       case "END_AUCTION"        -> handleEndAuction(d);
       case "GET_MY_AUCTIONS"    -> handleGetMyAuctions(d);
+      case "CREATE_ITEM"        -> handleCreateItem(d);
+      case "GET_MY_ITEMS"       -> handleGetMyItems(d);
+      case "GET_FEATURED_PRODUCTS" -> handleGetFeaturedProducts();
+      case "SEARCH_PRODUCTS"    -> handleSearchProducts(d);
+      case "DELETE_ITEM"        -> handleDeleteItem(d);
       default                   -> error("AuctionHandler không hỗ trợ action: " + action);
     };
   }
@@ -55,36 +61,16 @@ public class AuctionHandler {
   }
 
   /**
-   * Client gửi lên: sellerId, name, description, category,
-   *                 startPrice, minStep, endTime,
-   *                 imageBase64 (optional), extension (optional)
-   *
-   * Luồng: ItemService.createItem() → lưu ảnh + insert item
-   *        AuctionService.createAuction() → insert auction + đổi status item
+   * Client gửi lên: itemId, sellerId, startPrice, minStep, endTime
    */
   private JsonObject handleCreateAuction(JsonObject d) {
     try {
+      int    itemId      = d.get("itemId").getAsInt();
       int    sellerId    = d.get("sellerId").getAsInt();
-      String name        = d.get("name").getAsString();
-      String desc        = d.has("description")  ? d.get("description").getAsString()  : "";
-      String category    = d.has("category")     ? d.get("category").getAsString()     : "";
       double startPrice  = d.get("startPrice").getAsDouble();
       double minStep     = d.get("minStep").getAsDouble();
       String endTime     = d.get("endTime").getAsString();
-      String imageBase64 = d.has("imageBase64")  ? d.get("imageBase64").getAsString()  : "";
-      String extension   = d.has("extension")    ? d.get("extension").getAsString()    : "jpg";
 
-      // Bước 1: tạo item (lưu ảnh + insert DB)
-      JsonObject itemResult = itemService.createItem(
-              sellerId, name, desc, category, startPrice, imageBase64, extension);
-
-      if (!"SUCCESS".equals(itemResult.get("status").getAsString())) {
-        return itemResult; // trả về lỗi từ ItemService luôn
-      }
-
-      int itemId = itemResult.get("itemId").getAsInt();
-
-      // Bước 2: tạo auction
       return auctionService.createAuction(itemId, sellerId, startPrice, minStep, endTime);
 
     } catch (Exception e) {
@@ -124,6 +110,79 @@ public class AuctionHandler {
     res.addProperty("status", "SUCCESS");
     res.add("auctions", auctions);
     return res;
+  }
+
+// ── Item Handlers (Dành cho Seller Dashboard) ─────────────────────────
+
+  private JsonObject handleCreateItem(JsonObject d) {
+      try {
+          int    sellerId    = d.get("sellerId").getAsInt();
+          String name        = d.get("name").getAsString();
+          String desc        = d.has("description")  ? d.get("description").getAsString()  : "";
+          String category    = d.has("category")     ? d.get("category").getAsString()     : "";
+          double startPrice  = d.get("startPrice").getAsDouble();
+          String imageBase64 = d.has("imageBase64")  ? d.get("imageBase64").getAsString()  : "";
+          String extension   = d.has("extension")    ? d.get("extension").getAsString()    : "jpg";
+
+          return itemService.createItem(sellerId, name, desc, category, startPrice, imageBase64, extension);
+      } catch (Exception e) {
+          return error("Lỗi tạo sản phẩm: " + e.getMessage());
+      }
+  }
+
+  private JsonObject handleGetMyItems(JsonObject d) {
+      try {
+          int sellerId = d.get("sellerId").getAsInt();
+          JsonArray items = itemService.getItemsBySeller(sellerId);
+          JsonObject res = new JsonObject();
+          res.addProperty("status", "SUCCESS");
+          res.add("items", items);
+          return res;
+      } catch (Exception e) {
+          return error("Lỗi lấy danh sách sản phẩm: " + e.getMessage());
+      }
+  }
+
+  private JsonObject handleDeleteItem(JsonObject d) {
+      try {
+          int itemId = d.get("itemId").getAsInt();
+          boolean ok = itemService.deleteItem(itemId);
+          JsonObject res = new JsonObject();
+          res.addProperty("status", ok ? "SUCCESS" : "FAIL");
+          res.addProperty("message", ok ? "Xóa sản phẩm thành công!" : "Xóa thất bại!");
+          return res;
+      } catch (Exception e) {
+          return error("Lỗi xóa sản phẩm: " + e.getMessage());
+      }
+  }
+
+// ── Lấy Sản phẩm cho trang chủ ────────────────────────────────────────
+
+  private JsonObject handleGetFeaturedProducts() {
+      try {
+          JsonArray items = itemService.getFeaturedItems();
+          JsonObject res = new JsonObject();
+          res.addProperty("status", "SUCCESS");
+          res.add("items", items);
+          return res;
+      } catch (Exception e) {
+          return error("Lỗi lấy sản phẩm nổi bật: " + e.getMessage());
+      }
+  }
+
+  private JsonObject handleSearchProducts(JsonObject d) {
+      try {
+          String keyword = d.has("keyword") ? d.get("keyword").getAsString() : "";
+          String category = d.has("category") ? d.get("category").getAsString() : "";
+
+          JsonArray items = itemService.searchItems(keyword, category);
+          JsonObject res = new JsonObject();
+          res.addProperty("status", "SUCCESS");
+          res.add("items", items);
+          return res;
+      } catch (Exception e) {
+          return error("Lỗi tìm kiếm sản phẩm: " + e.getMessage());
+      }
   }
 
   // ── Util ─────────────────────────────────────────────────────────────────
