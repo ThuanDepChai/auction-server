@@ -8,6 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class AuctionDAO {
 
@@ -92,7 +94,7 @@ public class AuctionDAO {
    * Đặt giá — cập nhật current_price nếu hợp lệ
    */
   public boolean placeBid(int auctionId, int bidderId, double amount) {
-    String checkSql = "SELECT current_price, min_step, end_time, status FROM auction WHERE auction_id = ?";
+    String checkSql = "SELECT current_price, min_step, end_time, status, seller_id FROM auction WHERE auction_id = ? FOR UPDATE";
     String updateSql = "UPDATE auction SET current_price = ?, winner_id = ? WHERE auction_id = ?";
     String insertBid = "INSERT INTO bid (auction_id, bidder_id, amount) VALUES (?, ?, ?)";
 
@@ -102,6 +104,7 @@ public class AuctionDAO {
         // Kiểm tra điều kiện
         double curPrice, minStep;
         String endTime, status;
+        int sellerId;
         try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
           ps.setInt(1, auctionId);
           try (ResultSet rs = ps.executeQuery()) {
@@ -112,12 +115,17 @@ public class AuctionDAO {
             minStep = rs.getDouble("min_step");
             endTime = rs.getString("end_time");
             status = rs.getString("status");
+            sellerId = rs.getInt("seller_id");
           }
         }
 
-        if (!"ACTIVE".equals(status)) {
-          return false;
-        }
+        if (!"ACTIVE".equals(status)) { return false; }
+        if (bidderId == sellerId) { return false; }
+        LocalDateTime endDateTime = LocalDateTime.parse(
+                endTime,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        );
+        if (LocalDateTime.now().isAfter(endDateTime)) { return false; }
         if (amount < curPrice + minStep) {
           return false;
         }
@@ -319,6 +327,7 @@ public class AuctionDAO {
     obj.addProperty("minStep", rs.getDouble("min_step"));
     obj.addProperty("endTime", rs.getString("end_time"));
     obj.addProperty("status", rs.getString("status"));
+    obj.addProperty("winnerId", rs.getInt("winner_id")); // lấy winnerId từ DB đưa vào JSON
     return obj;
   }
 }
