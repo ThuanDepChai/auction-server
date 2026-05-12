@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -27,6 +27,7 @@
         <gson.version>2.10.1</gson.version>
         <junit.version>5.11.4</junit.version>
         <mockito.version>5.14.2</mockito.version>
+        <hikari.version>5.1.0</hikari.version>
 
         <!-- Phiên bản plugin -->
         <maven-surefire.version>3.5.2</maven-surefire.version>
@@ -69,6 +70,13 @@
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
                 <version>${gson.version}</version>
+            </dependency>
+
+            <!-- ── HikariCP – Connection Pool (chỉ dùng ở server) ── -->
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${hikari.version}</version>
             </dependency>
 
         </dependencies>

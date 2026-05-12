@@ -5,7 +5,7 @@ import com.nhom15.service.UserService;
 
 public class ServerMain {
 
-  static void main(String[] args) {
+  public static void main(String[] args) {
     UserService userService = new UserService();
 
     // Ví dụ test đăng nhập

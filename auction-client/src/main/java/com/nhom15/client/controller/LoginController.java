@@ -49,7 +49,7 @@ public class LoginController {
 
     FormValidator.bindRegex(txtUsername, lblUsernameError, "^.+$", "Vui lòng nhập tên đăng nhập!");
     FormValidator.bindRegex(txtEmail, lblEmailError, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$",
-        "Email không hợp lệ!");
+            "Email không hợp lệ!");
     FormValidator.bindRegex(txtPassword, lblPasswordError, "^.+$", "Vui lòng nhập mật khẩu!");
 
     loadBackground();
@@ -93,18 +93,18 @@ public class LoginController {
     }
 
     if (hasError || lblUsernameError.isVisible() || lblEmailError.isVisible()
-        || lblPasswordError.isVisible()) {
+            || lblPasswordError.isVisible()) {
       return;
     }
 
     setLoading(true);
 
     new LoginCommand(username, email, password).executeAsync(
-        response -> Platform.runLater(() -> onLoginResponse(response)),
-        () -> Platform.runLater(() -> {
-          setLoading(false);
-          showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server!");
-        })
+            response -> Platform.runLater(() -> onLoginResponse(response)),
+            () -> Platform.runLater(() -> {
+              setLoading(false);
+              showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Không thể kết nối đến Server!");
+            })
     );
   }
 
@@ -118,16 +118,6 @@ public class LoginController {
         Gson gson = new Gson();
         UserDTO user = gson.fromJson(response.getAsJsonObject("user"), UserDTO.class);
 
-        // Fix: Server trả về "id" nhưng UserDTO map "user_id" → set thủ công
-        if (user.getUserId() == 0 && response.has("userId")) {
-          user.setUserId(response.get("userId").getAsInt());
-        }
-        // Fix: Server trả về role ở ngoài response, không trong "user"
-        if ((user.getRole() == null || user.getRole().isEmpty()) && response.has("role")) {
-          user.setRole(response.get("role").getAsString());
-        }
-
-        // Ném vào SessionManager (Đã được cập nhật)
         SessionManager.login(user);
 
         ViewManager.navigateTo(ViewManager.Views.HOME);
@@ -137,7 +127,7 @@ public class LoginController {
       }
     } else {
       String message = response.has("message") ? response.get("message").getAsString()
-          : "Sai tài khoản hoặc mật khẩu!";
+              : "Sai tài khoản hoặc mật khẩu!";
       showAlert(Alert.AlertType.ERROR, "Đăng nhập thất bại", message);
     }
   }

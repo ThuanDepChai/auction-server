@@ -1,6 +1,5 @@
 package com.nhom15.controller;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.nhom15.model.user.User;
 import com.nhom15.service.UserService;
@@ -12,7 +11,6 @@ import java.util.Base64;
 public class UserController {
 
   private final UserService userService = new UserService();
-  private final Gson gson = new Gson();
 
   public JsonObject handleCheckUsername(JsonObject d) {
     JsonObject res = new JsonObject();
@@ -26,20 +24,28 @@ public class UserController {
   public JsonObject handleRegister(JsonObject d) {
     JsonObject res = new JsonObject();
     boolean ok = userService.register(d.get("username").getAsString(),
-        d.get("password").getAsString(), d.get("email").getAsString());
+            d.get("password").getAsString(), d.get("email").getAsString());
     res.addProperty("status", ok ? "SUCCESS" : "FAIL");
     return res;
   }
 
   public JsonObject handleLogin(JsonObject d) {
     JsonObject res = new JsonObject();
-    // Gọi hàm login (trả về User object)
     User user = userService.login(d.get("username").getAsString(), d.get("password").getAsString());
     if (user != null) {
+      // Build JSON khớp đúng với @SerializedName trong UserDTO phía client
+      JsonObject userJson = new JsonObject();
+      userJson.addProperty("user_id",     user.getId());
+      userJson.addProperty("username",    user.getUsername());
+      userJson.addProperty("email",       user.getEmail());
+      userJson.addProperty("full_name",   user.getFullName());
+      userJson.addProperty("phone",       user.getPhone());
+      userJson.addProperty("balance",     user.getBalance());
+      userJson.addProperty("avatar_path", user.getAvatarPath());
+      userJson.addProperty("role",        user.getRole().name());
+
       res.addProperty("status", "SUCCESS");
-      res.add("user", gson.toJsonTree(user));
-      res.addProperty("userId", user.getId());
-      res.addProperty("role", user.getRole().name());
+      res.add("user", userJson);
     } else {
       res.addProperty("status", "FAIL");
       res.addProperty("message", "Sai tài khoản hoặc mật khẩu!");
@@ -62,8 +68,8 @@ public class UserController {
   public JsonObject handleUpdateProfile(JsonObject d) {
     JsonObject res = new JsonObject();
     boolean ok = userService.updateProfile(d.get("userId").getAsInt(),
-        d.get("fullName").getAsString(), d.get("email").getAsString(),
-        d.get("phone").getAsString());
+            d.get("fullName").getAsString(), d.get("email").getAsString(),
+            d.get("phone").getAsString());
     res.addProperty("status", ok ? "SUCCESS" : "FAIL");
     return res;
   }
@@ -71,7 +77,7 @@ public class UserController {
   public JsonObject handleChangePassword(JsonObject d) {
     JsonObject res = new JsonObject(); // ĐÃ SỬA: Không còn là JsonProperty nữa!
     boolean ok = userService.changePassword(d.get("userId").getAsInt(),
-        d.get("oldPassword").getAsString(), d.get("newPassword").getAsString());
+            d.get("oldPassword").getAsString(), d.get("newPassword").getAsString());
     res.addProperty("status", ok ? "SUCCESS" : "FAIL");
     return res;
   }
@@ -106,7 +112,7 @@ public class UserController {
       if (path != null && new File(path).exists()) {
         res.addProperty("status", "SUCCESS");
         res.addProperty("imageBase64",
-            Base64.getEncoder().encodeToString(Files.readAllBytes(Paths.get(path))));
+                Base64.getEncoder().encodeToString(Files.readAllBytes(Paths.get(path))));
       } else {
         res.addProperty("status", "NO_AVATAR");
       }
