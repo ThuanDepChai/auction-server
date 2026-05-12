@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.nhom15.client.command.GetAuctionDetailCommand;
 import com.nhom15.client.command.GetBidHistoryCommand;
+import com.nhom15.client.command.GetItemImageCommand;
 import com.nhom15.client.command.PlaceBidCommand;
 import com.nhom15.client.command.ServerCommand;
 import com.nhom15.client.util.SessionManager;
@@ -69,7 +70,7 @@ public class BiddingRoomController {
   private Timeline countdownTimer;
 
   private static final DateTimeFormatter DT_FMT =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   // ── Init ─────────────────────────────────────────────────────────────────
 
@@ -93,21 +94,21 @@ public class BiddingRoomController {
 
   private void loadDetail() {
     new GetAuctionDetailCommand(auctionId).executeAsync(
-        res -> {
-            if (ServerCommand.isSuccess(res) && res.has("auction")) {
+            res -> {
+              if (ServerCommand.isSuccess(res) && res.has("auction")) {
                 populateDetail(res.getAsJsonObject("auction"));
+              }
             }
-        }
     );
   }
 
   private void loadBidHistory() {
     new GetBidHistoryCommand(auctionId).executeAsync(
-        res -> {
-            if (res != null && res.has("history")) {
+            res -> {
+              if (res != null && res.has("history")) {
                 populateBidHistory(res.getAsJsonArray("history"));
+              }
             }
-        }
     );
   }
 
@@ -129,22 +130,28 @@ public class BiddingRoomController {
     lblStatus.setText(status);
     if ("ENDED".equals(status)) {
       lblStatus.setStyle(
-          "-fx-background-color:#F5F5F5;-fx-text-fill:#888;-fx-background-radius:10;-fx-padding:4 14 4 14;-fx-font-weight:bold;-fx-font-size:12px;");
+              "-fx-background-color:#F5F5F5;-fx-text-fill:#888;-fx-background-radius:10;-fx-padding:4 14 4 14;-fx-font-weight:bold;-fx-font-size:12px;");
       btnPlaceBid.setDisable(true);
     }
 
     setupCountdown(str(a, "endTime", ""));
 
-    String b64 = str(a, "imageBase64", "");
-    if (!b64.isEmpty()) {
-      try {
-        Image img = new Image(new ByteArrayInputStream(Base64.getDecoder().decode(b64)));
-        if (!img.isError()) {
-          imgProduct.setImage(img);
-          lblImgPlaceholder.setVisible(false);
+    // Lazy-load ảnh qua GET_ITEM_IMAGE — không nhúng Base64 trong detail response
+    String imagePath = str(a, "imagePath", "");
+    if (!imagePath.isEmpty()) {
+      new GetItemImageCommand(imagePath).executeAsync(res -> {
+        if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+          try {
+            byte[] bytes = Base64.getDecoder().decode(res.get("imageBase64").getAsString());
+            Image img = new Image(new ByteArrayInputStream(bytes));
+            if (!img.isError()) {
+              imgProduct.setImage(img);
+              lblImgPlaceholder.setVisible(false);
+            }
+          } catch (Exception ignored) {
+          }
         }
-      } catch (Exception ignored) {
-      }
+      });
     }
   }
 
@@ -154,16 +161,16 @@ public class BiddingRoomController {
       vboxBidHistory.getChildren().add(emptyLabel("Chưa có lượt đặt giá nào"));
       return;
     }
-      for (int i = 0; i < history.size(); i++) {
-          vboxBidHistory.getChildren().add(buildBidRow(history.get(i).getAsJsonObject(), i == 0));
-      }
+    for (int i = 0; i < history.size(); i++) {
+      vboxBidHistory.getChildren().add(buildBidRow(history.get(i).getAsJsonObject(), i == 0));
+    }
   }
 
   private HBox buildBidRow(JsonObject bid, boolean isTop) {
     HBox row = new HBox(12);
     row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
     row.setStyle("-fx-background-color:" + (isTop ? "#EEF9FF" : "#FAFAFA")
-        + ";-fx-background-radius:8;-fx-padding:8 12 8 12;");
+            + ";-fx-background-radius:8;-fx-padding:8 12 8 12;");
 
     Label lblUser = new Label(str(bid, "username", "?"));
     lblUser.setStyle("-fx-font-weight:bold;-fx-font-size:13px;");
@@ -184,9 +191,9 @@ public class BiddingRoomController {
   // ── Countdown ────────────────────────────────────────────────────────────
 
   private void setupCountdown(String endTimeStr) {
-      if (countdownTimer != null) {
-          countdownTimer.stop();
-      }
+    if (countdownTimer != null) {
+      countdownTimer.stop();
+    }
     try {
       LocalDateTime endTime = LocalDateTime.parse(endTimeStr, DT_FMT);
       countdownTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
@@ -202,7 +209,7 @@ public class BiddingRoomController {
         long s = ChronoUnit.SECONDS.between(now, endTime) % 60;
         lblCountdown.setText(String.format("%02d:%02d:%02d", h, m, s));
         lblCountdown.setStyle("-fx-font-size:22px;-fx-font-weight:bold;-fx-text-fill:"
-            + (h < 1 ? "#D96570" : "#4285F4") + ";");
+                + (h < 1 ? "#D96570" : "#4285F4") + ";");
       }));
       countdownTimer.setCycleCount(Timeline.INDEFINITE);
       countdownTimer.play();
@@ -242,27 +249,27 @@ public class BiddingRoomController {
     btnPlaceBid.setText("Đang đặt...");
 
     new PlaceBidCommand(auctionId, SessionManager.getUserId(), amount).executeAsync(
-        res -> {
-          btnPlaceBid.setDisable(false);
-          btnPlaceBid.setText("🔨 ĐẶT GIÁ NGAY");
-          if (ServerCommand.isSuccess(res)) {
-            currentPrice = amount;
-            lblCurrentPrice.setText(String.format("%,.0fđ", currentPrice));
-            lblMinBid.setText(
-                "Giá tối thiểu: " + String.format("%,.0f", currentPrice + minStep) + "đ");
-            txtBidAmount.clear();
-            lblBidStatus.setText("✓ Đặt giá thành công!");
-            lblBidStatus.setVisible(true);
-            loadBidHistory();
-          } else {
-            showBidError(ServerCommand.getMessage(res, "Đặt giá thất bại!"));
-          }
-        },
-        () -> {
-          btnPlaceBid.setDisable(false);
-          btnPlaceBid.setText("🔨 ĐẶT GIÁ NGAY");
-          showBidError("Lỗi kết nối!");
-        }
+            res -> {
+              btnPlaceBid.setDisable(false);
+              btnPlaceBid.setText("🔨 ĐẶT GIÁ NGAY");
+              if (ServerCommand.isSuccess(res)) {
+                currentPrice = amount;
+                lblCurrentPrice.setText(String.format("%,.0fđ", currentPrice));
+                lblMinBid.setText(
+                        "Giá tối thiểu: " + String.format("%,.0f", currentPrice + minStep) + "đ");
+                txtBidAmount.clear();
+                lblBidStatus.setText("✓ Đặt giá thành công!");
+                lblBidStatus.setVisible(true);
+                loadBidHistory();
+              } else {
+                showBidError(ServerCommand.getMessage(res, "Đặt giá thất bại!"));
+              }
+            },
+            () -> {
+              btnPlaceBid.setDisable(false);
+              btnPlaceBid.setText("🔨 ĐẶT GIÁ NGAY");
+              showBidError("Lỗi kết nối!");
+            }
     );
   }
 
@@ -273,13 +280,13 @@ public class BiddingRoomController {
 
   @FXML
   private void handleBack() {
-      if (countdownTimer != null) {
-          countdownTimer.stop();
-      }
+    if (countdownTimer != null) {
+      countdownTimer.stop();
+    }
     ViewManager.navigateTo(ViewManager.Views.HOME);
-      if (onBack != null) {
-          onBack.run();
-      }
+    if (onBack != null) {
+      onBack.run();
+    }
   }
 
   // ── Util ─────────────────────────────────────────────────────────────────
@@ -297,6 +304,6 @@ public class BiddingRoomController {
 
   private String str(JsonObject o, String key, String def) {
     return (o != null && o.has(key) && !o.get(key).isJsonNull())
-        ? o.get(key).getAsString() : def;
+            ? o.get(key).getAsString() : def;
   }
 }

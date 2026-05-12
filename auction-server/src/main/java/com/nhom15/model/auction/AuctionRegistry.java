@@ -3,19 +3,19 @@ package com.nhom15.model.auction;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AuctionManager {
+public class AuctionRegistry {
 
-  private static AuctionManager instance;
+  private static AuctionRegistry instance;
   // Danh sach phien dau gia
   private final List<Auction> autions;
 
-  private AuctionManager() {
+  private AuctionRegistry() {
     autions = new ArrayList<>();
   }
 
-  public static AuctionManager getInstance() {
+  public static AuctionRegistry getInstance() {
     if (instance == null) {
-      instance = new AuctionManager();
+      instance = new AuctionRegistry();
     }
     return instance;
   }

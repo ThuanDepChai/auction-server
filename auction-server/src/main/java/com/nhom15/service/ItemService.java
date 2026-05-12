@@ -13,14 +13,16 @@ public class ItemService {
   private final ItemDAO itemDAO = new ItemDAO();
 
   /**
-   * Đăng sản phẩm mới, lưu ảnh nếu có
+   * Đăng sản phẩm mới, lưu ảnh nếu có.
+   * Client gửi Base64 khi tạo (upload 1 lần) — server lưu ra file, trả về imagePath.
+   * Từ đó về sau client dùng GET_ITEM_IMAGE để lấy ảnh theo yêu cầu (lazy load).
    */
   public JsonObject createItem(int sellerId, String name, String description,
-      String category, double startPrice,
-      String imageBase64, String extension) {
+                               String category, double startPrice,
+                               String imageBase64, String extension) {
     JsonObject result = new JsonObject();
 
-    // Lưu ảnh trước
+    // Lưu ảnh ra file — chỉ xảy ra lúc tạo item, không lặp lại mỗi request
     String imagePath = "";
     if (imageBase64 != null && !imageBase64.isEmpty()) {
       try {
@@ -46,27 +48,25 @@ public class ItemService {
   }
 
   /**
-   * Lấy sản phẩm nổi bật kèm Base64 ảnh
+   * Lấy sản phẩm nổi bật — chỉ trả metadata + imagePath, không nhúng Base64.
+   * Client dùng GET_ITEM_IMAGE để lazy-load ảnh từng card khi cần.
    */
   public JsonArray getFeaturedItems() {
-    JsonArray items = itemDAO.getFeaturedItems(20);
-    return attachImageBase64(items);
+    return itemDAO.getFeaturedItems(20);
   }
 
   /**
-   * Tìm kiếm sản phẩm kèm Base64 ảnh
+   * Tìm kiếm sản phẩm — chỉ trả metadata + imagePath.
    */
   public JsonArray searchItems(String keyword, String category) {
-    JsonArray items = itemDAO.searchItems(keyword, category);
-    return attachImageBase64(items);
+    return itemDAO.searchItems(keyword, category);
   }
 
   /**
-   * Lấy sản phẩm của seller kèm Base64 ảnh
+   * Lấy sản phẩm của seller — chỉ trả metadata + imagePath.
    */
   public JsonArray getItemsBySeller(int sellerId) {
-    JsonArray items = itemDAO.getItemsBySeller(sellerId);
-    return attachImageBase64(items);
+    return itemDAO.getItemsBySeller(sellerId);
   }
 
   public boolean deleteItem(int itemId) {
@@ -75,29 +75,5 @@ public class ItemService {
 
   public boolean updateStatus(int itemId, String status) {
     return itemDAO.updateStatus(itemId, status);
-  }
-
-  /**
-   * Đính kèm imageBase64 vào mỗi item
-   */
-  private JsonArray attachImageBase64(JsonArray items) {
-    for (int i = 0; i < items.size(); i++) {
-      JsonObject item = items.get(i).getAsJsonObject();
-      String path = item.get("imagePath").getAsString();
-      if (path != null && !path.isEmpty()) {
-        try {
-          File f = new File(path);
-          if (f.exists()) {
-            byte[] bytes = Files.readAllBytes(f.toPath());
-            item.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
-          }
-        } catch (Exception e) {
-          item.addProperty("imageBase64", "");
-        }
-      } else {
-        item.addProperty("imageBase64", "");
-      }
-    }
-    return items;
   }
 }

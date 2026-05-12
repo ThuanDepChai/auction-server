@@ -3,31 +3,27 @@ package com.nhom15.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.nhom15.dao.AuctionDAO;
-import com.nhom15.dao.ItemDAO;
 import com.nhom15.exception.AuctionClosedException;
 import com.nhom15.exception.InvalidBidException;
 import com.nhom15.network.AuctionManager;
-import java.io.File;
-import java.nio.file.Files;
-import java.util.Base64;
 
 public class AuctionService {
 
   private final AuctionDAO auctionDAO = new AuctionDAO();
-  private final ItemDAO itemDAO = new ItemDAO();
   // Singleton — dùng chung toàn server, quản lý lock per auction
   private final AuctionManager auctionManager = AuctionManager.getInstance();
 
   /**
-   * Tạo phiên đấu giá
+   * Tạo phiên đấu giá — ATOMIC: đổi item status + tạo auction trong cùng 1 transaction DB.
+   * Nếu tạo auction thất bại, item KHÔNG bị đổi sang IN_AUCTION.
    */
   public JsonObject createAuction(int itemId, int sellerId, double startPrice,
                                   double minStep, String endTime) {
     JsonObject result = new JsonObject();
-    // Cập nhật status item → IN_AUCTION
-    itemDAO.updateStatus(itemId, "IN_AUCTION");
 
-    int auctionId = auctionDAO.createAuction(itemId, sellerId, startPrice, minStep, endTime);
+    // Gọi atomic method — 1 transaction duy nhất bao gồm cả 2 bước
+    int auctionId = auctionDAO.createAuctionAtomic(itemId, sellerId, startPrice, minStep, endTime);
+
     if (auctionId > 0) {
       result.addProperty("status", "SUCCESS");
       result.addProperty("auctionId", auctionId);
@@ -40,23 +36,17 @@ public class AuctionService {
   }
 
   /**
-   * Lấy các phiên đang active kèm Base64 ảnh
+   * Lấy các phiên đang active — trả imagePath, client tự load ảnh qua GET_AVATAR nếu cần.
    */
   public JsonArray getActiveAuctions() {
-    JsonArray auctions = auctionDAO.getActiveAuctions(20);
-    return attachImageBase64(auctions);
+    return auctionDAO.getActiveAuctions(20);
   }
 
   /**
-   * Chi tiết 1 phiên kèm Base64 ảnh
+   * Chi tiết 1 phiên — trả imagePath, không nhúng Base64 vào JSON.
    */
   public JsonObject getAuctionDetail(int auctionId) {
-    JsonObject auction = auctionDAO.getAuctionById(auctionId);
-    if (auction == null) {
-      return null;
-    }
-    attachSingleImage(auction);
-    return auction;
+    return auctionDAO.getAuctionById(auctionId);
   }
 
   /**
@@ -107,49 +97,27 @@ public class AuctionService {
    * Auction của seller
    */
   public JsonArray getAuctionsBySeller(int sellerId) {
-    JsonArray auctions = auctionDAO.getAuctionsBySeller(sellerId);
-    return attachImageBase64(auctions);
+    return auctionDAO.getAuctionsBySeller(sellerId);
   }
 
   /**
-   * Kết thúc phiên — cập nhật trạng thái item → SOLD và dọn lock của phiên.
+   * Kết thúc phiên — ATOMIC: đổi auction status + item status trong cùng 1 transaction DB.
+   * Sau đó dọn lock của phiên để tránh memory leak.
    */
   public boolean endAuction(int auctionId) {
+    // Lấy itemId trước khi đóng để truyền vào atomic method
     JsonObject auction = auctionDAO.getAuctionById(auctionId);
-    if (auction != null) {
-      itemDAO.updateStatus(auction.get("itemId").getAsInt(), "SOLD");
+    if (auction == null) {
+      return false;
     }
-    boolean ok = auctionDAO.endAuction(auctionId);
+    int itemId = auction.get("itemId").getAsInt();
+
+    // Gọi atomic method — 1 transaction duy nhất bao gồm cả 2 bước
+    boolean ok = auctionDAO.endAuctionAtomic(auctionId, itemId);
     if (ok) {
       // Dọn lock — tránh memory leak khi có nhiều phiên
       auctionManager.removeLock(auctionId);
     }
     return ok;
-  }
-
-  // ── Helper ───────────────────────────────────────────────────────────────
-
-  private JsonArray attachImageBase64(JsonArray items) {
-    for (int i = 0; i < items.size(); i++) {
-      attachSingleImage(items.get(i).getAsJsonObject());
-    }
-    return items;
-  }
-
-  private void attachSingleImage(JsonObject obj) {
-    String path = obj.has("imagePath") ? obj.get("imagePath").getAsString() : "";
-    if (path != null && !path.isEmpty()) {
-      try {
-        File f = new File(path);
-        if (f.exists()) {
-          byte[] bytes = Files.readAllBytes(f.toPath());
-          obj.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
-          return;
-        }
-      } catch (Exception e) {
-        System.err.println("Lỗi đọc ảnh: " + e.getMessage());
-      }
-    }
-    obj.addProperty("imageBase64", "");
   }
 }

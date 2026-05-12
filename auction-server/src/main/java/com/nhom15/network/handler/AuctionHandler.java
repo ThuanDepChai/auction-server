@@ -4,6 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.nhom15.service.AuctionService;
 import com.nhom15.service.ItemService;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Base64;
 
 /**
  * AuctionHandler — xử lý tất cả request liên quan đến đấu giá. Không chứa routing — chỉ chứa logic
@@ -32,6 +35,8 @@ public class AuctionHandler {
       case "GET_FEATURED_PRODUCTS" -> handleGetFeaturedProducts();
       case "SEARCH_PRODUCTS" -> handleSearchProducts(d);
       case "DELETE_ITEM" -> handleDeleteItem(d);
+      // Trả Base64 của 1 ảnh sản phẩm theo yêu cầu — lazy, không nhúng vào list response
+      case "GET_ITEM_IMAGE" -> handleGetItemImage(d);
       default -> error("AuctionHandler không hỗ trợ action: " + action);
     };
   }
@@ -112,6 +117,36 @@ public class AuctionHandler {
     return res;
   }
 
+  /**
+   * Trả Base64 của ảnh sản phẩm theo imagePath.
+   * Client gọi riêng (lazy) sau khi đã render card — không nhúng vào list/detail response.
+   * Mỗi request chỉ load 1 ảnh → tránh response 8MB+ khi load danh sách.
+   */
+  private JsonObject handleGetItemImage(JsonObject d) {
+    JsonObject res = new JsonObject();
+    try {
+      String imagePath = d.has("imagePath") ? d.get("imagePath").getAsString() : "";
+      if (imagePath.isEmpty()) {
+        res.addProperty("status", "FAIL");
+        res.addProperty("message", "Không có đường dẫn ảnh!");
+        return res;
+      }
+      File f = new File(imagePath);
+      if (!f.exists()) {
+        res.addProperty("status", "FAIL");
+        res.addProperty("message", "Không tìm thấy file ảnh!");
+        return res;
+      }
+      byte[] bytes = Files.readAllBytes(f.toPath());
+      res.addProperty("status", "SUCCESS");
+      res.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
+    } catch (Exception e) {
+      res.addProperty("status", "ERROR");
+      res.addProperty("message", "Lỗi đọc ảnh: " + e.getMessage());
+    }
+    return res;
+  }
+
 // ── Item Handlers (Dành cho Seller Dashboard) ─────────────────────────
 
   private JsonObject handleCreateItem(JsonObject d) {
@@ -125,7 +160,7 @@ public class AuctionHandler {
       String extension = d.has("extension") ? d.get("extension").getAsString() : "jpg";
 
       return itemService.createItem(sellerId, name, desc, category, startPrice, imageBase64,
-          extension);
+              extension);
     } catch (Exception e) {
       return error("Lỗi tạo sản phẩm: " + e.getMessage());
     }
@@ -195,3 +230,4 @@ public class AuctionHandler {
     return r;
   }
 }
+

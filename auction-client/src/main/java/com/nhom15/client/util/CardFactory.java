@@ -1,6 +1,8 @@
 package com.nhom15.client.util;
 
 import com.google.gson.JsonObject;
+import com.nhom15.client.command.GetItemImageCommand;
+import com.nhom15.client.command.ServerCommand;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,21 +25,22 @@ import javafx.util.Duration;
 public class CardFactory {
 
   private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern(
-      "yyyy-MM-dd HH:mm:ss");
+          "yyyy-MM-dd HH:mm:ss");
 
   public static VBox buildProductCard(JsonObject item, Consumer<Integer> onClick) {
     String name = getStr(item, "name", "Sản phẩm");
     String price = getStr(item, "price", "0");
     String sold = getStr(item, "sold", "0");
     int productId = item.has("productId") ? item.get("productId").getAsInt() : -1;
+    String imagePath = getStr(item, "imagePath", "");
 
-    VBox card = createBaseCard(getStr(item, "imageBase64", ""), 160);
+    VBox card = createBaseCard(imagePath, 160);
     VBox info = new VBox(5);
     info.setStyle("-fx-padding: 10 12 12 12;");
 
     Label lblName = createLabel(name, "-fx-font-size: 13px; -fx-text-fill: #333333;");
     Label lblPrice = createLabel(formatPrice(price) + "đ",
-        "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #D96570;");
+            "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #D96570;");
     Label lblSold = createLabel("Đã bán " + sold, "-fx-font-size: 11px; -fx-text-fill: #888888;");
 
     info.getChildren().addAll(lblName, lblPrice, lblSold);
@@ -47,27 +50,28 @@ public class CardFactory {
   }
 
   public static VBox buildAuctionCard(JsonObject auction, List<Timeline> activeTimers,
-      Consumer<Integer> onBidClick) {
+                                      Consumer<Integer> onBidClick) {
     String name = getStr(auction, "name", "Sản phẩm");
     String curPrice = getStr(auction, "currentPrice", "0");
     int auctionId = auction.has("auctionId") ? auction.get("auctionId").getAsInt() : -1;
+    String imagePath = getStr(auction, "imagePath", "");
 
-    VBox card = createBaseCard(getStr(auction, "imageBase64", ""), 150);
+    VBox card = createBaseCard(imagePath, 150);
     VBox info = new VBox(5);
     info.setStyle("-fx-padding: 10 12 12 12;");
 
     Label lblName = createLabel(name, "-fx-font-size: 13px; -fx-text-fill: #333333;");
     Label lblPrice = createLabel("Giá hiện tại: " + formatPrice(curPrice) + "đ",
-        "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #4285F4;");
+            "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #4285F4;");
 
     Label lblCountdown = createLabel("⏰ --:--:--",
-        "-fx-font-size: 12px; -fx-text-fill: #D96570; -fx-font-weight: bold;");
+            "-fx-font-size: 12px; -fx-text-fill: #D96570; -fx-font-weight: bold;");
     setupCountdown(lblCountdown, getStr(auction, "endTime", ""), activeTimers);
 
     Button btnBid = new Button("Đấu giá ngay");
     btnBid.setMaxWidth(Double.MAX_VALUE);
     btnBid.setStyle(
-        "-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 8; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 7 0 7 0;");
+            "-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 8; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 7 0 7 0;");
     btnBid.setOnAction(e -> onBidClick.accept(auctionId));
 
     info.getChildren().addAll(lblName, lblPrice, lblCountdown, btnBid);
@@ -82,41 +86,66 @@ public class CardFactory {
   }
 
   // --- Các hàm hỗ trợ nội bộ ---
-  private static VBox createBaseCard(String base64, double imgHeight) {
+
+  /**
+   * Tạo card với placeholder ảnh. Nếu imagePath không rỗng, tự động gọi GET_ITEM_IMAGE
+   * bất đồng bộ để load ảnh sau khi card đã hiển thị — tránh block UI.
+   */
+  private static VBox createBaseCard(String imagePath, double imgHeight) {
     VBox card = new VBox();
     card.setPrefWidth(210);
     card.setStyle(
-        "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 4); -fx-cursor: hand;");
+            "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 4); -fx-cursor: hand;");
     card.setOnMouseEntered(e -> card.setStyle(
-        card.getStyle().replace("0.08", "0.18").replace("10, 0, 0, 4", "15, 0, 0, 6")));
+            card.getStyle().replace("0.08", "0.18").replace("10, 0, 0, 4", "15, 0, 0, 6")));
     card.setOnMouseExited(e -> card.setStyle(
-        card.getStyle().replace("0.18", "0.08").replace("15, 0, 0, 6", "10, 0, 0, 4")));
+            card.getStyle().replace("0.18", "0.08").replace("15, 0, 0, 6", "10, 0, 0, 4")));
 
     StackPane imgContainer = new StackPane();
     imgContainer.setPrefHeight(imgHeight);
     imgContainer.setStyle("-fx-background-color: #F4F7FC; -fx-background-radius: 10 10 0 0;");
 
-    try {
-      if (!base64.isEmpty()) {
-        Image img = new Image(new ByteArrayInputStream(Base64.getDecoder().decode(base64)));
-        if (!img.isError()) {
-          ImageView iv = new ImageView(img);
-          iv.setFitWidth(210);
-          iv.setFitHeight(imgHeight);
-          iv.setPreserveRatio(true);
-          imgContainer.getChildren().add(iv);
-          card.getChildren().add(imgContainer);
-          return card;
-        }
-      }
-    } catch (Exception ignored) {
-    }
-
     Label placeholder = new Label("🖼");
     placeholder.setStyle("-fx-font-size: 36px; -fx-text-fill: #CCCCCC;");
     imgContainer.getChildren().add(placeholder);
     card.getChildren().add(imgContainer);
+
+    // Lazy-load ảnh bất đồng bộ — card hiển thị ngay, ảnh điền vào sau
+    if (imagePath != null && !imagePath.isEmpty()) {
+      new GetItemImageCommand(imagePath).executeAsync(res -> {
+        if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+          applyBase64ToContainer(imgContainer, res.get("imageBase64").getAsString(),
+                  imgHeight, placeholder);
+        }
+      });
+    }
+
     return card;
+  }
+
+  /**
+   * Điền ảnh từ Base64 vào StackPane — chạy trên FX thread (đã được Platform.runLater bởi
+   * executeAsync).
+   */
+  private static void applyBase64ToContainer(StackPane imgContainer, String base64,
+                                             double imgHeight, Label placeholder) {
+    try {
+      if (base64 == null || base64.isEmpty()) {
+        return;
+      }
+      Image img = new Image(new ByteArrayInputStream(Base64.getDecoder().decode(base64)));
+      if (img.isError()) {
+        return;
+      }
+      ImageView iv = new ImageView(img);
+      iv.setFitWidth(210);
+      iv.setFitHeight(imgHeight);
+      iv.setPreserveRatio(true);
+      imgContainer.getChildren().remove(placeholder);
+      imgContainer.getChildren().add(iv);
+    } catch (Exception ignored) {
+      // Giữ placeholder nếu decode lỗi
+    }
   }
 
   private static Label createLabel(String text, String style) {
@@ -142,8 +171,8 @@ public class CardFactory {
         long seconds = ChronoUnit.SECONDS.between(now, endTime) % 60;
         label.setText(String.format("⏰ %02d:%02d:%02d", hours, minutes, seconds));
         label.setStyle(
-            hours < 1 ? "-fx-font-size: 12px; -fx-text-fill: #D96570; -fx-font-weight: bold;"
-                : "-fx-font-size: 12px; -fx-text-fill: #E8A838; -fx-font-weight: bold;");
+                hours < 1 ? "-fx-font-size: 12px; -fx-text-fill: #D96570; -fx-font-weight: bold;"
+                        : "-fx-font-size: 12px; -fx-text-fill: #E8A838; -fx-font-weight: bold;");
       }));
       timeline.setCycleCount(Timeline.INDEFINITE);
       timeline.play();
@@ -155,7 +184,7 @@ public class CardFactory {
 
   private static String getStr(JsonObject obj, String key, String def) {
     return (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) ? obj.get(key).getAsString()
-        : def;
+            : def;
   }
 
   private static String formatPrice(String raw) {
@@ -192,34 +221,37 @@ public class CardFactory {
     String status = item.get("status").getAsString();
     String price = String.format("%,d", (long) item.get("startPrice").getAsDouble());
     String category = item.get("category").getAsString();
-    String imgBase64 =
-        item.has("imageBase64") && !item.get("imageBase64").isJsonNull() ? item.get("imageBase64")
-            .getAsString() : "";
+    String imagePath = item.has("imagePath") && !item.get("imagePath").isJsonNull()
+            ? item.get("imagePath").getAsString() : "";
     int itemId = item.get("itemId").getAsInt();
 
     VBox card = new VBox(8);
     card.setPrefWidth(200);
     card.setStyle(
-        "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);");
+            "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);");
 
+    // ── Ảnh: placeholder trước, lazy-load sau ────────────────────────────
     StackPane imgPane = new StackPane();
     imgPane.setPrefHeight(140);
     imgPane.setStyle("-fx-background-color: #F4F7FC; -fx-background-radius: 10 10 0 0;");
-    if (!imgBase64.isEmpty()) {
-      try {
-        byte[] bytes = Base64.getDecoder().decode(imgBase64);
-        ImageView iv = new ImageView(new Image(new ByteArrayInputStream(bytes)));
-        iv.setFitWidth(200);
-        iv.setFitHeight(140);
-        iv.setPreserveRatio(true);
-        imgPane.getChildren().add(iv);
-      } catch (Exception e) {
-        imgPane.getChildren().add(new Label("🖼"));
-      }
-    } else {
-      Label ph = new Label("🖼");
-      ph.setStyle("-fx-font-size: 30px; -fx-text-fill: #CCCCCC;");
-      imgPane.getChildren().add(ph);
+    Label phLabel = new Label("🖼");
+    phLabel.setStyle("-fx-font-size: 30px; -fx-text-fill: #CCCCCC;");
+    imgPane.getChildren().add(phLabel);
+
+    if (!imagePath.isEmpty()) {
+      new GetItemImageCommand(imagePath).executeAsync(res -> {
+        if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+          try {
+            byte[] bytes = Base64.getDecoder().decode(res.get("imageBase64").getAsString());
+            ImageView iv = new ImageView(new Image(new ByteArrayInputStream(bytes)));
+            iv.setFitWidth(200);
+            iv.setFitHeight(140);
+            iv.setPreserveRatio(true);
+            imgPane.getChildren().setAll(iv);
+          } catch (Exception ignored) {
+          }
+        }
+      });
     }
 
     VBox info = new VBox(4);
@@ -233,18 +265,18 @@ public class CardFactory {
     lblCat.setStyle("-fx-font-size: 11px; -fx-text-fill: #888888;");
 
     String statusColor = "AVAILABLE".equals(status) ? "#E8F5E9:#27AE60"
-        : "IN_AUCTION".equals(status) ? "#EEF2FF:#4285F4" : "#FCE4EC:#C62828";
+            : "IN_AUCTION".equals(status) ? "#EEF2FF:#4285F4" : "#FCE4EC:#C62828";
     String[] sc = statusColor.split(":");
     Label lblStatus = new Label("AVAILABLE".equals(status) ? "Sẵn bán"
-        : "IN_AUCTION".equals(status) ? "Đang đấu giá" : "Đã bán");
+            : "IN_AUCTION".equals(status) ? "Đang đấu giá" : "Đã bán");
     lblStatus.setStyle("-fx-background-color: " + sc[0] + "; -fx-text-fill: " + sc[1]
-        + "; -fx-background-radius: 8; -fx-padding: 2 8 2 8; -fx-font-size: 10px;");
+            + "; -fx-background-radius: 8; -fx-padding: 2 8 2 8; -fx-font-size: 10px;");
 
     HBox actions = new HBox(5);
     if ("AVAILABLE".equals(status)) {
       Button btnDelete = new Button("🗑 Xóa");
       btnDelete.setStyle(
-          "-fx-background-color: #FCE4EC; -fx-text-fill: #C62828; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 4 10 4 10;");
+              "-fx-background-color: #FCE4EC; -fx-text-fill: #C62828; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 4 10 4 10;");
       btnDelete.setOnAction(e -> onDelete.accept(itemId));
       actions.getChildren().add(btnDelete);
     }
@@ -263,7 +295,7 @@ public class CardFactory {
     HBox row = new HBox(15);
     row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
     row.setStyle(
-        "-fx-background-color: #F9F9F9; -fx-background-radius: 8; -fx-padding: 12 15 12 15;");
+            "-fx-background-color: #F9F9F9; -fx-background-radius: 8; -fx-padding: 12 15 12 15;");
 
     VBox info = new VBox(3);
     HBox.setHgrow(info, Priority.ALWAYS);
@@ -276,17 +308,17 @@ public class CardFactory {
     info.getChildren().addAll(lblName, lblPrice, lblEnd);
 
     String sc = "ACTIVE".equals(status) ? "#E8F5E9:#27AE60"
-        : "ENDED".equals(status) ? "#F5F5F5:#888888" : "#FCE4EC:#C62828";
+            : "ENDED".equals(status) ? "#F5F5F5:#888888" : "#FCE4EC:#C62828";
     String[] colors = sc.split(":");
     Label lblStatus = new Label("ACTIVE".equals(status) ? "Đang diễn ra"
-        : "ENDED".equals(status) ? "Đã kết thúc" : "Đã hủy");
+            : "ENDED".equals(status) ? "Đã kết thúc" : "Đã hủy");
     lblStatus.setStyle("-fx-background-color: " + colors[0] + "; -fx-text-fill: " + colors[1]
-        + "; -fx-background-radius: 10; -fx-padding: 4 12 4 12; -fx-font-size: 11px; -fx-font-weight: bold;");
+            + "; -fx-background-radius: 10; -fx-padding: 4 12 4 12; -fx-font-size: 11px; -fx-font-weight: bold;");
 
     if ("ACTIVE".equals(status)) {
       Button btnEnd = new Button("Kết thúc");
       btnEnd.setStyle(
-          "-fx-background-color: #FCE4EC; -fx-text-fill: #C62828; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 6 12 6 12;");
+              "-fx-background-color: #FCE4EC; -fx-text-fill: #C62828; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 6 12 6 12;");
       btnEnd.setOnAction(e -> onEnd.accept(auctionId));
       row.getChildren().addAll(info, lblStatus, btnEnd);
     } else {
