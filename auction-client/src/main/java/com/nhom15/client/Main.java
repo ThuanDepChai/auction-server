@@ -6,4 +6,4 @@ public class Main {
     // Khởi chạy hàm main của App
     App.main(args);
   }
-}
+} 

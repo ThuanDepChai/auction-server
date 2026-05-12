@@ -222,8 +222,16 @@ public class BiddingRoomController {
 
   @FXML
   private void handlePlaceBid() {
+    if (!SessionManager.isBidder()) {
+      showBidError("Chỉ Bidder mới được phép đặt giá!");
+      return;
+    }
     lblBidError.setVisible(false);
     lblBidStatus.setVisible(false);
+    // Tự ẩn sau 3s
+    new Timeline(new KeyFrame(Duration.seconds(3),
+            e -> lblBidStatus.setVisible(false)
+    )).play();
 
     String raw = txtBidAmount.getText().trim().replaceAll("[^0-9]", "");
     if (raw.isEmpty()) {
