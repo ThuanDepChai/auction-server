@@ -15,13 +15,13 @@ public class AuctionDAO {
    * Tạo phiên đấu giá mới
    */
   public int createAuction(int itemId, int sellerId, double startPrice,
-      double minStep, String endTime) {
+                           double minStep, String endTime) {
     String sql =
-        "INSERT INTO auction (item_id, seller_id, start_price, current_price, min_step, end_time) "
-            +
-            "VALUES (?, ?, ?, ?, ?, ?)";
+            "INSERT INTO auction (item_id, seller_id, start_price, current_price, min_step, end_time) "
+                    +
+                    "VALUES (?, ?, ?, ?, ?, ?)";
     try (Connection conn = DBConnection.getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+         PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
       ps.setInt(1, itemId);
       ps.setInt(2, sellerId);
       ps.setDouble(3, startPrice);
@@ -45,14 +45,14 @@ public class AuctionDAO {
    */
   public JsonArray getActiveAuctions(int limit) {
     String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
-        "u.username as seller_name FROM auction a " +
-        "JOIN item i ON a.item_id = i.item_id " +
-        "JOIN user u ON a.seller_id = u.user_id " +
-        "WHERE a.status = 'ACTIVE' AND a.end_time > NOW() " +
-        "ORDER BY a.end_time ASC LIMIT ?";
+            "u.username as seller_name FROM auction a " +
+            "JOIN item i ON a.item_id = i.item_id " +
+            "JOIN user u ON a.seller_id = u.user_id " +
+            "WHERE a.status = 'ACTIVE' AND a.end_time > NOW() " +
+            "ORDER BY a.end_time ASC LIMIT ?";
     JsonArray result = new JsonArray();
     try (Connection conn = DBConnection.getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql)) {
+         PreparedStatement ps = conn.prepareStatement(sql)) {
       ps.setInt(1, limit);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
@@ -70,12 +70,12 @@ public class AuctionDAO {
    */
   public JsonObject getAuctionById(int auctionId) {
     String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
-        "u.username as seller_name FROM auction a " +
-        "JOIN item i ON a.item_id = i.item_id " +
-        "JOIN user u ON a.seller_id = u.user_id " +
-        "WHERE a.auction_id = ?";
+            "u.username as seller_name FROM auction a " +
+            "JOIN item i ON a.item_id = i.item_id " +
+            "JOIN user u ON a.seller_id = u.user_id " +
+            "WHERE a.auction_id = ?";
     try (Connection conn = DBConnection.getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql)) {
+         PreparedStatement ps = conn.prepareStatement(sql)) {
       ps.setInt(1, auctionId);
       try (ResultSet rs = ps.executeQuery()) {
         if (rs.next()) {
@@ -152,15 +152,98 @@ public class AuctionDAO {
   }
 
   /**
+   * Phiên bản nâng cao — ném custom exception thay vì trả boolean.
+   * Được gọi từ AuctionManager (có ReentrantLock bảo vệ bên ngoài).
+   *
+   * @throws com.nhom15.exception.AuctionClosedException nếu phiên không còn ACTIVE
+   * @throws com.nhom15.exception.InvalidBidException    nếu amount < currentPrice + minStep
+   */
+  public void placeBidOrThrow(int auctionId, int bidderId, double amount)
+          throws com.nhom15.exception.AuctionClosedException,
+          com.nhom15.exception.InvalidBidException {
+
+    String checkSql =
+            "SELECT current_price, min_step, status FROM auction WHERE auction_id = ? FOR UPDATE";
+    String updateSql =
+            "UPDATE auction SET current_price = ?, winner_id = ? WHERE auction_id = ?";
+    String insertBid =
+            "INSERT INTO bid (auction_id, bidder_id, amount) VALUES (?, ?, ?)";
+
+    try (Connection conn = DBConnection.getConnection()) {
+      conn.setAutoCommit(false);
+      try {
+        double curPrice;
+        double minStep;
+        String status;
+
+        // FOR UPDATE — khoá dòng DB, ngăn concurrent read-modify-write
+        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+          ps.setInt(1, auctionId);
+          try (ResultSet rs = ps.executeQuery()) {
+            if (!rs.next()) {
+              throw new com.nhom15.exception.AuctionClosedException(auctionId, "NOT_FOUND");
+            }
+            curPrice = rs.getDouble("current_price");
+            minStep = rs.getDouble("min_step");
+            status = rs.getString("status");
+          }
+        }
+
+        // Kiểm tra trạng thái phiên
+        if (!"ACTIVE".equals(status)) {
+          conn.rollback();
+          throw new com.nhom15.exception.AuctionClosedException(auctionId, status);
+        }
+
+        // Kiểm tra giá hợp lệ
+        double minRequired = curPrice + minStep;
+        if (amount < minRequired) {
+          conn.rollback();
+          throw new com.nhom15.exception.InvalidBidException(curPrice, minRequired);
+        }
+
+        // Cập nhật giá cao nhất
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+          ps.setDouble(1, amount);
+          ps.setInt(2, bidderId);
+          ps.setInt(3, auctionId);
+          ps.executeUpdate();
+        }
+
+        // Ghi lịch sử bid
+        try (PreparedStatement ps = conn.prepareStatement(insertBid)) {
+          ps.setInt(1, auctionId);
+          ps.setInt(2, bidderId);
+          ps.setDouble(3, amount);
+          ps.executeUpdate();
+        }
+
+        conn.commit();
+
+      } catch (com.nhom15.exception.AuctionClosedException
+               | com.nhom15.exception.InvalidBidException e) {
+        // Re-throw custom exceptions sau khi rollback
+        try { conn.rollback(); } catch (SQLException ignored) { }
+        throw e;
+      } catch (Exception e) {
+        try { conn.rollback(); } catch (SQLException ignored) { }
+        throw new RuntimeException("Lỗi DB khi đặt giá: " + e.getMessage(), e);
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Không lấy được connection: " + e.getMessage(), e);
+    }
+  }
+
+  /**
    * Lịch sử đặt giá của 1 phiên
    */
   public JsonArray getBidHistory(int auctionId) {
     String sql = "SELECT b.*, u.username FROM bid b " +
-        "JOIN user u ON b.bidder_id = u.user_id " +
-        "WHERE b.auction_id = ? ORDER BY b.bid_time DESC LIMIT 20";
+            "JOIN user u ON b.bidder_id = u.user_id " +
+            "WHERE b.auction_id = ? ORDER BY b.bid_time DESC LIMIT 20";
     JsonArray result = new JsonArray();
     try (Connection conn = DBConnection.getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql)) {
+         PreparedStatement ps = conn.prepareStatement(sql)) {
       ps.setInt(1, auctionId);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
@@ -183,13 +266,13 @@ public class AuctionDAO {
    */
   public JsonArray getAuctionsBySeller(int sellerId) {
     String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
-        "u.username as seller_name FROM auction a " +
-        "JOIN item i ON a.item_id = i.item_id " +
-        "JOIN user u ON a.seller_id = u.user_id " +
-        "WHERE a.seller_id = ? ORDER BY a.start_time DESC";
+            "u.username as seller_name FROM auction a " +
+            "JOIN item i ON a.item_id = i.item_id " +
+            "JOIN user u ON a.seller_id = u.user_id " +
+            "WHERE a.seller_id = ? ORDER BY a.start_time DESC";
     JsonArray result = new JsonArray();
     try (Connection conn = DBConnection.getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql)) {
+         PreparedStatement ps = conn.prepareStatement(sql)) {
       ps.setInt(1, sellerId);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
@@ -208,7 +291,7 @@ public class AuctionDAO {
   public boolean endAuction(int auctionId) {
     String sql = "UPDATE auction SET status = 'ENDED' WHERE auction_id = ?";
     try (Connection conn = DBConnection.getConnection();
-        PreparedStatement ps = conn.prepareStatement(sql)) {
+         PreparedStatement ps = conn.prepareStatement(sql)) {
       ps.setInt(1, auctionId);
       return ps.executeUpdate() > 0;
     } catch (SQLException e) {
@@ -227,10 +310,10 @@ public class AuctionDAO {
     obj.addProperty("sellerName", rs.getString("seller_name"));
     obj.addProperty("name", rs.getString("name"));
     obj.addProperty("description",
-        rs.getString("description") != null ? rs.getString("description") : "");
+            rs.getString("description") != null ? rs.getString("description") : "");
     obj.addProperty("category", rs.getString("category") != null ? rs.getString("category") : "");
     obj.addProperty("imagePath",
-        rs.getString("image_path") != null ? rs.getString("image_path") : "");
+            rs.getString("image_path") != null ? rs.getString("image_path") : "");
     obj.addProperty("startPrice", rs.getDouble("start_price"));
     obj.addProperty("currentPrice", rs.getDouble("current_price"));
     obj.addProperty("minStep", rs.getDouble("min_step"));
