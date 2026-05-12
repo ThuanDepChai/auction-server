@@ -36,6 +36,13 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>21.0.2</version> </dependency>
+            <version>21.0.2</version>
+        </dependency>
+        <!-- Connection Pool -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <!-- phiên bản kế thừa từ parent dependencyManagement -->
+        </dependency>
     </dependencies>
 </project>

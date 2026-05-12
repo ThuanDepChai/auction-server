@@ -9,6 +9,7 @@ import java.net.Socket;
 
 public class SocketClient {
 
+  // Đổi thành IP thực tế của Server. Dùng "localhost" nếu chạy cùng máy.
   private static final String SERVER_IP = "26.159.224.110";
 
   // Cổng này phải khớp với cổng đang chạy ở AuctionServer
