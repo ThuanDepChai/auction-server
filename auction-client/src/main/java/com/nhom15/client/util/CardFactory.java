@@ -303,9 +303,15 @@ public class CardFactory {
     lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
     Label lblPrice = new Label("Giá hiện tại: " + curPrice + "đ");
     lblPrice.setStyle("-fx-font-size: 12px; -fx-text-fill: #4285F4;");
-    Label lblEnd = new Label("Kết thúc: " + endTime);
-    lblEnd.setStyle("-fx-font-size: 11px; -fx-text-fill: #888888;");
-    info.getChildren().addAll(lblName, lblPrice, lblEnd);
+    Label lblCountdown = new Label("⏰ --:--:--");
+    lblCountdown.setStyle("-fx-font-size: 11px; -fx-text-fill: #D96570; -fx-font-weight: bold;");
+    if ("ACTIVE".equals(status)) {
+      setupCountdown(lblCountdown, endTime, new java.util.ArrayList<>());
+    } else {
+      lblCountdown.setText("Kết thúc: " + endTime);
+      lblCountdown.setStyle("-fx-font-size: 11px; -fx-text-fill: #888888;");
+    }
+    info.getChildren().addAll(lblName, lblPrice, lblCountdown);
 
     String sc = "ACTIVE".equals(status) ? "#E8F5E9:#27AE60"
             : "ENDED".equals(status) ? "#F5F5F5:#888888" : "#FCE4EC:#C62828";
