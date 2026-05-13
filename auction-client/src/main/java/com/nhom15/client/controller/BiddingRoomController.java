@@ -323,18 +323,9 @@ public class BiddingRoomController {
 
     String imagePath = str(a, "imagePath", "");
     if (!imagePath.isEmpty()) {
-      new GetItemImageCommand(imagePath).executeAsync(res -> {
-        if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
-          try {
-            byte[] bytes = Base64.getDecoder().decode(res.get("imageBase64").getAsString());
-            Image img = new Image(new ByteArrayInputStream(bytes));
-            if (!img.isError()) {
-              if (imgProduct != null) imgProduct.setImage(img);
-              if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
-            }
-          } catch (Exception ignored) {}
-        }
-      });
+      loadProductImage(imagePath);
+    } else {
+      System.out.println("⚠️ [BiddingRoom] Sản phẩm không có imagePath trong dữ liệu auction.");
     }
   }
 
@@ -679,6 +670,56 @@ public class BiddingRoomController {
   // ═════════════════════════════════════════════════════════════════════════
   //  UTILS
   // ═════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Load ảnh sản phẩm từ server theo imagePath — có retry nếu thất bại lần đầu.
+   */
+  private void loadProductImage(String imagePath) {
+    System.out.println("🖼️ [BiddingRoom] Đang load ảnh sản phẩm: " + imagePath);
+    new GetItemImageCommand(imagePath).executeAsync(
+        res -> {
+          if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+            try {
+              String base64 = res.get("imageBase64").getAsString();
+              byte[] bytes = Base64.getDecoder().decode(base64);
+              Image img = new Image(new ByteArrayInputStream(bytes));
+              if (!img.isError()) {
+                if (imgProduct != null) imgProduct.setImage(img);
+                if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
+                System.out.println("✅ [BiddingRoom] Load ảnh thành công!");
+              } else {
+                System.err.println("❌ [BiddingRoom] Image bị lỗi sau khi decode.");
+              }
+            } catch (Exception e) {
+              System.err.println("❌ [BiddingRoom] Lỗi decode Base64 ảnh: " + e.getMessage());
+            }
+          } else {
+            String msg = ServerCommand.getMessage(res, "Không rõ lỗi");
+            System.err.println("❌ [BiddingRoom] Server trả FAIL khi load ảnh: " + msg);
+            // Retry 1 lần sau 2 giây (server có thể chưa sẵn sàng lúc đầu)
+            new Timeline(new KeyFrame(Duration.seconds(2), e -> {
+              System.out.println("🔄 [BiddingRoom] Retry load ảnh...");
+              new GetItemImageCommand(imagePath).executeAsync(retryRes -> {
+                if (ServerCommand.isSuccess(retryRes) && retryRes.has("imageBase64")) {
+                  try {
+                    byte[] bytes = Base64.getDecoder().decode(retryRes.get("imageBase64").getAsString());
+                    Image img = new Image(new ByteArrayInputStream(bytes));
+                    if (!img.isError()) {
+                      if (imgProduct != null) imgProduct.setImage(img);
+                      if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
+                      System.out.println("✅ [BiddingRoom] Retry load ảnh thành công!");
+                    }
+                  } catch (Exception ignored) {}
+                } else {
+                  System.err.println("❌ [BiddingRoom] Retry cũng thất bại. Giữ placeholder.");
+                }
+              });
+            })).play();
+          }
+        },
+        () -> System.err.println("🔌 [BiddingRoom] Lỗi kết nối khi load ảnh sản phẩm!")
+    );
+  }
 
   private Label emptyLabel(String msg) {
     Label l = new Label(msg);

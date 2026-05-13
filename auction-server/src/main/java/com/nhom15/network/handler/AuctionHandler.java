@@ -131,12 +131,23 @@ public class AuctionHandler {
         res.addProperty("message", "Không có đường dẫn ảnh!");
         return res;
       }
+
+      // Thử tìm file theo đường dẫn gốc trước (hỗ trợ cả tuyệt đối lẫn tương đối)
       File f = new File(imagePath);
+
+      // Nếu không tìm thấy (đường dẫn tương đối cũ) → thử ghép với working directory
+      if (!f.exists()) {
+        String baseDir = System.getProperty("user.dir");
+        f = new File(baseDir, imagePath);
+      }
+
       if (!f.exists()) {
         res.addProperty("status", "FAIL");
-        res.addProperty("message", "Không tìm thấy file ảnh!");
+        res.addProperty("message", "Không tìm thấy file ảnh: " + imagePath);
+        System.err.println("⚠️ [GET_ITEM_IMAGE] File không tồn tại: " + f.getAbsolutePath());
         return res;
       }
+
       byte[] bytes = Files.readAllBytes(f.toPath());
       res.addProperty("status", "SUCCESS");
       res.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));

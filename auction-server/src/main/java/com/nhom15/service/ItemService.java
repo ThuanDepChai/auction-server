@@ -26,10 +26,15 @@ public class ItemService {
     String imagePath = "";
     if (imageBase64 != null && !imageBase64.isEmpty()) {
       try {
-        new File("item_images").mkdirs();
+        // Dùng đường dẫn tuyệt đối để tránh lỗi khi working directory thay đổi
+        String baseDir = System.getProperty("user.dir");
+        File imgDir = new File(baseDir, "item_images");
+        imgDir.mkdirs();
         byte[] bytes = Base64.getDecoder().decode(imageBase64);
-        imagePath = "item_images/item_" + System.currentTimeMillis() + "." + extension;
-        Files.write(Paths.get(imagePath), bytes);
+        String fileName = "item_" + System.currentTimeMillis() + "." + extension;
+        File imgFile = new File(imgDir, fileName);
+        Files.write(imgFile.toPath(), bytes);
+        imagePath = imgFile.getAbsolutePath();
       } catch (Exception e) {
         System.err.println("Lỗi lưu ảnh sản phẩm: " + e.getMessage());
       }
