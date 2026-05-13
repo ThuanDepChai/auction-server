@@ -3,6 +3,7 @@ package com.nhom15.network.handler;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.nhom15.service.AuctionService;
+import com.nhom15.service.AutoBidService;
 import com.nhom15.service.ItemService;
 import java.io.File;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ public class AuctionHandler {
 
   private final AuctionService auctionService = new AuctionService();
   private final ItemService itemService = new ItemService();
+  private final AutoBidService autoBidService = new AutoBidService();
 
   public JsonObject handle(JsonObject request) {
     String action = request.get("action").getAsString();
@@ -24,24 +26,27 @@ public class AuctionHandler {
     return switch (action) {
       case "GET_AUCTIONS",
            "GET_ACTIVE_AUCTIONS" -> handleGetAuctions();
-      case "GET_AUCTION_DETAIL" -> handleGetAuctionDetail(d);
-      case "CREATE_AUCTION" -> handleCreateAuction(d);
-      case "PLACE_BID" -> handlePlaceBid(d);
-      case "GET_BID_HISTORY" -> handleGetBidHistory(d);
-      case "END_AUCTION" -> handleEndAuction(d);
-      case "GET_MY_AUCTIONS" -> handleGetMyAuctions(d);
-      case "CREATE_ITEM" -> handleCreateItem(d);
-      case "GET_MY_ITEMS" -> handleGetMyItems(d);
+      case "GET_AUCTION_DETAIL"  -> handleGetAuctionDetail(d);
+      case "CREATE_AUCTION"      -> handleCreateAuction(d);
+      case "PLACE_BID"           -> handlePlaceBid(d);
+      case "GET_BID_HISTORY"     -> handleGetBidHistory(d);
+      case "END_AUCTION"         -> handleEndAuction(d);
+      case "GET_MY_AUCTIONS"     -> handleGetMyAuctions(d);
+      case "CREATE_ITEM"         -> handleCreateItem(d);
+      case "GET_MY_ITEMS"        -> handleGetMyItems(d);
       case "GET_FEATURED_PRODUCTS" -> handleGetFeaturedProducts();
-      case "SEARCH_PRODUCTS" -> handleSearchProducts(d);
-      case "DELETE_ITEM" -> handleDeleteItem(d);
-      // Trả Base64 của 1 ảnh sản phẩm theo yêu cầu — lazy, không nhúng vào list response
-      case "GET_ITEM_IMAGE" -> handleGetItemImage(d);
+      case "SEARCH_PRODUCTS"     -> handleSearchProducts(d);
+      case "DELETE_ITEM"         -> handleDeleteItem(d);
+      case "GET_ITEM_IMAGE"      -> handleGetItemImage(d);
+      // FIX: Thêm routing cho Auto-Bid (trước đây bị thiếu hoàn toàn)
+      case "SET_AUTO_BID"        -> handleSetAutoBid(d);
+      case "CANCEL_AUTO_BID"     -> handleCancelAutoBid(d);
+      case "GET_AUTO_BID_STATUS" -> handleGetAutoBidStatus(d);
       default -> error("AuctionHandler không hỗ trợ action: " + action);
     };
   }
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // ── Auction Handlers ─────────────────────────────────────────────────────
 
   private JsonObject handleGetAuctions() {
     JsonArray auctions = auctionService.getActiveAuctions();
@@ -65,19 +70,15 @@ public class AuctionHandler {
     return res;
   }
 
-  /**
-   * Client gửi lên: itemId, sellerId, startPrice, minStep, endTime
-   */
+  /** Client gửi lên: itemId, sellerId, startPrice, minStep, endTime */
   private JsonObject handleCreateAuction(JsonObject d) {
     try {
-      int itemId = d.get("itemId").getAsInt();
-      int sellerId = d.get("sellerId").getAsInt();
+      int itemId       = d.get("itemId").getAsInt();
+      int sellerId     = d.get("sellerId").getAsInt();
       double startPrice = d.get("startPrice").getAsDouble();
-      double minStep = d.get("minStep").getAsDouble();
-      String endTime = d.get("endTime").getAsString();
-
+      double minStep   = d.get("minStep").getAsDouble();
+      String endTime   = d.get("endTime").getAsString();
       return auctionService.createAuction(itemId, sellerId, startPrice, minStep, endTime);
-
     } catch (Exception e) {
       return error("Lỗi tạo phiên đấu giá: " + e.getMessage());
     }
@@ -85,7 +86,7 @@ public class AuctionHandler {
 
   private JsonObject handlePlaceBid(JsonObject d) {
     int auctionId = d.get("auctionId").getAsInt();
-    int bidderId = d.get("bidderId").getAsInt();
+    int bidderId  = d.get("bidderId").getAsInt();
     double amount = d.get("amount").getAsDouble();
     return auctionService.placeBid(auctionId, bidderId, amount);
   }
@@ -117,61 +118,55 @@ public class AuctionHandler {
     return res;
   }
 
-  /**
-   * Trả Base64 của ảnh sản phẩm theo imagePath.
-   * Client gọi riêng (lazy) sau khi đã render card — không nhúng vào list/detail response.
-   * Mỗi request chỉ load 1 ảnh → tránh response 8MB+ khi load danh sách.
-   */
-  private JsonObject handleGetItemImage(JsonObject d) {
-    JsonObject res = new JsonObject();
+  // ── Auto-Bid Handlers ────────────────────────────────────────────────────
+
+  /** Đăng ký hoặc cập nhật cấu hình auto-bid */
+  private JsonObject handleSetAutoBid(JsonObject d) {
     try {
-      String imagePath = d.has("imagePath") ? d.get("imagePath").getAsString() : "";
-      if (imagePath.isEmpty()) {
-        res.addProperty("status", "FAIL");
-        res.addProperty("message", "Không có đường dẫn ảnh!");
-        return res;
-      }
-
-      // Thử tìm file theo đường dẫn gốc trước (hỗ trợ cả tuyệt đối lẫn tương đối)
-      File f = new File(imagePath);
-
-      // Nếu không tìm thấy (đường dẫn tương đối cũ) → thử ghép với working directory
-      if (!f.exists()) {
-        String baseDir = System.getProperty("user.dir");
-        f = new File(baseDir, imagePath);
-      }
-
-      if (!f.exists()) {
-        res.addProperty("status", "FAIL");
-        res.addProperty("message", "Không tìm thấy file ảnh: " + imagePath);
-        System.err.println("⚠️ [GET_ITEM_IMAGE] File không tồn tại: " + f.getAbsolutePath());
-        return res;
-      }
-
-      byte[] bytes = Files.readAllBytes(f.toPath());
-      res.addProperty("status", "SUCCESS");
-      res.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
+      int auctionId    = d.get("auctionId").getAsInt();
+      int bidderId     = d.get("bidderId").getAsInt();
+      double maxBid    = d.get("maxBid").getAsDouble();
+      double increment = d.get("increment").getAsDouble();
+      return autoBidService.setAutoBid(auctionId, bidderId, maxBid, increment);
     } catch (Exception e) {
-      res.addProperty("status", "ERROR");
-      res.addProperty("message", "Lỗi đọc ảnh: " + e.getMessage());
+      return error("Lỗi kích hoạt auto-bid: " + e.getMessage());
     }
-    return res;
   }
 
-// ── Item Handlers (Dành cho Seller Dashboard) ─────────────────────────
+  /** Huỷ auto-bid */
+  private JsonObject handleCancelAutoBid(JsonObject d) {
+    try {
+      int auctionId = d.get("auctionId").getAsInt();
+      int bidderId  = d.get("bidderId").getAsInt();
+      return autoBidService.cancelAutoBid(auctionId, bidderId);
+    } catch (Exception e) {
+      return error("Lỗi huỷ auto-bid: " + e.getMessage());
+    }
+  }
+
+  /** Lấy trạng thái auto-bid hiện tại của 1 bidder trong 1 phiên */
+  private JsonObject handleGetAutoBidStatus(JsonObject d) {
+    try {
+      int auctionId = d.get("auctionId").getAsInt();
+      int bidderId  = d.get("bidderId").getAsInt();
+      return autoBidService.getAutoBidStatus(auctionId, bidderId);
+    } catch (Exception e) {
+      return error("Lỗi lấy trạng thái auto-bid: " + e.getMessage());
+    }
+  }
+
+  // ── Item Handlers (Seller Dashboard) ────────────────────────────────────
 
   private JsonObject handleCreateItem(JsonObject d) {
     try {
-      int sellerId = d.get("sellerId").getAsInt();
-      String name = d.get("name").getAsString();
-      String desc = d.has("description") ? d.get("description").getAsString() : "";
-      String category = d.has("category") ? d.get("category").getAsString() : "";
-      double startPrice = d.get("startPrice").getAsDouble();
+      int sellerId       = d.get("sellerId").getAsInt();
+      String name        = d.get("name").getAsString();
+      String desc        = d.has("description") ? d.get("description").getAsString() : "";
+      String category    = d.has("category")    ? d.get("category").getAsString()    : "";
+      double startPrice  = d.get("startPrice").getAsDouble();
       String imageBase64 = d.has("imageBase64") ? d.get("imageBase64").getAsString() : "";
-      String extension = d.has("extension") ? d.get("extension").getAsString() : "jpg";
-
-      return itemService.createItem(sellerId, name, desc, category, startPrice, imageBase64,
-              extension);
+      String extension   = d.has("extension")   ? d.get("extension").getAsString()   : "jpg";
+      return itemService.createItem(sellerId, name, desc, category, startPrice, imageBase64, extension);
     } catch (Exception e) {
       return error("Lỗi tạo sản phẩm: " + e.getMessage());
     }
@@ -203,7 +198,7 @@ public class AuctionHandler {
     }
   }
 
-// ── Lấy Sản phẩm cho trang chủ ────────────────────────────────────────
+  // ── Sản phẩm trang chủ ───────────────────────────────────────────────────
 
   private JsonObject handleGetFeaturedProducts() {
     try {
@@ -219,9 +214,8 @@ public class AuctionHandler {
 
   private JsonObject handleSearchProducts(JsonObject d) {
     try {
-      String keyword = d.has("keyword") ? d.get("keyword").getAsString() : "";
+      String keyword  = d.has("keyword")  ? d.get("keyword").getAsString()  : "";
       String category = d.has("category") ? d.get("category").getAsString() : "";
-
       JsonArray items = itemService.searchItems(keyword, category);
       JsonObject res = new JsonObject();
       res.addProperty("status", "SUCCESS");
@@ -230,6 +224,52 @@ public class AuctionHandler {
     } catch (Exception e) {
       return error("Lỗi tìm kiếm sản phẩm: " + e.getMessage());
     }
+  }
+
+  // ── Ảnh sản phẩm ─────────────────────────────────────────────────────────
+
+  /**
+   * Trả Base64 của ảnh sản phẩm theo imagePath.
+   *
+   * <p>FIX: imagePath trong DB hiện là đường dẫn TƯƠNG ĐỐI (ví dụ "item_images/item_123.jpg").
+   * Server ghép với working directory để tìm file thực tế.
+   * Trước đây lưu absolute path rồi lại ghép thêm baseDir → path sai.
+   */
+  private JsonObject handleGetItemImage(JsonObject d) {
+    JsonObject res = new JsonObject();
+    try {
+      String imagePath = d.has("imagePath") ? d.get("imagePath").getAsString() : "";
+      if (imagePath.isEmpty()) {
+        res.addProperty("status", "FAIL");
+        res.addProperty("message", "Không có đường dẫn ảnh!");
+        return res;
+      }
+
+      File f = new File(imagePath);
+
+      // Nếu không phải absolute path (hoặc absolute path không tồn tại)
+      // → ghép với working directory của server
+      if (!f.isAbsolute() || !f.exists()) {
+        String baseDir = System.getProperty("user.dir");
+        f = new File(baseDir, imagePath);
+      }
+
+      if (!f.exists()) {
+        res.addProperty("status", "FAIL");
+        res.addProperty("message", "Không tìm thấy file ảnh: " + imagePath);
+        System.err.println("⚠️ [GET_ITEM_IMAGE] File không tồn tại: " + f.getAbsolutePath());
+        return res;
+      }
+
+      byte[] bytes = Files.readAllBytes(f.toPath());
+      res.addProperty("status", "SUCCESS");
+      res.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
+
+    } catch (Exception e) {
+      res.addProperty("status", "ERROR");
+      res.addProperty("message", "Lỗi đọc ảnh: " + e.getMessage());
+    }
+    return res;
   }
 
   // ── Util ─────────────────────────────────────────────────────────────────
@@ -241,4 +281,3 @@ public class AuctionHandler {
     return r;
   }
 }
-

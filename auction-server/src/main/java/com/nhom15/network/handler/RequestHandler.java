@@ -3,12 +3,12 @@ package com.nhom15.network.handler;
 import com.google.gson.JsonObject;
 
 /**
- * RequestHandler — router trung tâm. Đọc "action" từ request, điều phối sang đúng Handler. Không
- * chứa bất kỳ business logic nào.
+ * RequestHandler — router trung tâm. Đọc "action" từ request, điều phối sang đúng Handler.
+ * Không chứa bất kỳ business logic nào.
  */
 public class RequestHandler {
 
-    private final UserHandler userHandler = new UserHandler();
+    private final UserHandler    userHandler    = new UserHandler();
     private final AuctionHandler auctionHandler = new AuctionHandler();
 
     public JsonObject handle(JsonObject request) {
@@ -19,7 +19,8 @@ public class RequestHandler {
         String action = request.get("action").getAsString();
 
         return switch (action) {
-            // ── User ──────────────────────────────────────────────────────
+
+            // ── User ────────────────────────────────────────────────────────────
             case "CHECK_USERNAME",
                  "REGISTER",
                  "LOGIN",
@@ -28,9 +29,9 @@ public class RequestHandler {
                  "CHANGE_PASSWORD",
                  "UPGRADE_TO_SELLER",
                  "UPDATE_AVATAR",
-                 "GET_AVATAR" -> userHandler.handle(request);
+                 "GET_AVATAR"          -> userHandler.handle(request);
 
-            // ── Auction & Item ──────────────────────────────────────────────
+            // ── Auction & Item ───────────────────────────────────────────────────
             case "GET_AUCTIONS",
                  "GET_ACTIVE_AUCTIONS",
                  "GET_AUCTION_DETAIL",
@@ -44,7 +45,12 @@ public class RequestHandler {
                  "SEARCH_PRODUCTS",
                  "GET_MY_ITEMS",
                  "DELETE_ITEM",
-                 "GET_ITEM_IMAGE" -> auctionHandler.handle(request);
+                 "GET_ITEM_IMAGE"      -> auctionHandler.handle(request);
+
+            // FIX: Thêm routing cho Auto-Bid (trước đây bị thiếu → luôn trả "Action không được hỗ trợ")
+            case "SET_AUTO_BID",
+                 "CANCEL_AUTO_BID",
+                 "GET_AUTO_BID_STATUS" -> auctionHandler.handle(request);
 
             default -> error("Action không được hỗ trợ: " + action);
         };

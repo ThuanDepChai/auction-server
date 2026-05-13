@@ -280,7 +280,8 @@ public class BiddingRoomController {
   }
 
   private void loadAutoBidStatus() {
-    if (!SessionManager.isBidder()) return;
+    // FIX: Cho cả BIDDER và SELLER đều load được trạng thái auto-bid
+    if (!SessionManager.isBidder() && !SessionManager.isSeller()) return;
     new GetAutoBidStatusCommand(auctionId, SessionManager.getUserId()).executeAsync(res -> {
       if (ServerCommand.isSuccess(res) && res.has("autoBid")) {
         JsonObject ab = res.getAsJsonObject("autoBid");
@@ -489,7 +490,12 @@ public class BiddingRoomController {
 
   @FXML
   private void handlePlaceBid() {
-    if (!SessionManager.isBidder()) { showBidError("⛔ Chỉ Bidder mới được phép đặt giá!"); return; }
+    // FIX: Cho phép cả BIDDER và SELLER đặt giá
+    // Trước đây chỉ kiểm tra isBidder() → Seller bị chặn dù đáng lẽ được tham gia
+    if (!SessionManager.isBidder() && !SessionManager.isSeller()) {
+      showBidError("⛔ Vui lòng đăng nhập để đặt giá!");
+      return;
+    }
     if (lblBidError != null) lblBidError.setVisible(false);
     if (lblBidStatus != null) lblBidStatus.setVisible(false);
 
@@ -532,7 +538,11 @@ public class BiddingRoomController {
 
   @FXML
   private void handleSetAutoBid() {
-    if (!SessionManager.isBidder()) { showAutoBidStatus("⛔ Chỉ Bidder mới được dùng Auto-Bid!", false); return; }
+    // FIX: Cho phép cả BIDDER và SELLER dùng Auto-Bid
+    if (!SessionManager.isBidder() && !SessionManager.isSeller()) {
+      showAutoBidStatus("⛔ Vui lòng đăng nhập để dùng Auto-Bid!", false);
+      return;
+    }
     String rawMax = txtMaxBid.getText().trim().replaceAll("[^0-9]", "");
     String rawInc = txtIncrement.getText().trim().replaceAll("[^0-9]", "");
     if (rawMax.isEmpty() || rawInc.isEmpty()) { showAutoBidStatus("⚠️ Nhập đầy đủ Giá tối đa và Bước giá!", false); return; }
@@ -619,7 +629,6 @@ public class BiddingRoomController {
               + "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4 1 4;");
       row.getChildren().add(you);
     }
-    // Badge auto-bid nếu có
     if (bid.has("isAutoBid") && bid.get("isAutoBid").getAsBoolean()) {
       Label auto = new Label(" 🤖 Auto ");
       auto.setStyle("-fx-background-color:#9C27B0;-fx-text-fill:white;"
@@ -668,7 +677,7 @@ public class BiddingRoomController {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  //  UTILS
+  //  IMAGE LOADING
   // ═════════════════════════════════════════════════════════════════════════
 
   /**
@@ -677,49 +686,53 @@ public class BiddingRoomController {
   private void loadProductImage(String imagePath) {
     System.out.println("🖼️ [BiddingRoom] Đang load ảnh sản phẩm: " + imagePath);
     new GetItemImageCommand(imagePath).executeAsync(
-        res -> {
-          if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
-            try {
-              String base64 = res.get("imageBase64").getAsString();
-              byte[] bytes = Base64.getDecoder().decode(base64);
-              Image img = new Image(new ByteArrayInputStream(bytes));
-              if (!img.isError()) {
-                if (imgProduct != null) imgProduct.setImage(img);
-                if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
-                System.out.println("✅ [BiddingRoom] Load ảnh thành công!");
-              } else {
-                System.err.println("❌ [BiddingRoom] Image bị lỗi sau khi decode.");
-              }
-            } catch (Exception e) {
-              System.err.println("❌ [BiddingRoom] Lỗi decode Base64 ảnh: " + e.getMessage());
-            }
-          } else {
-            String msg = ServerCommand.getMessage(res, "Không rõ lỗi");
-            System.err.println("❌ [BiddingRoom] Server trả FAIL khi load ảnh: " + msg);
-            // Retry 1 lần sau 2 giây (server có thể chưa sẵn sàng lúc đầu)
-            new Timeline(new KeyFrame(Duration.seconds(2), e -> {
-              System.out.println("🔄 [BiddingRoom] Retry load ảnh...");
-              new GetItemImageCommand(imagePath).executeAsync(retryRes -> {
-                if (ServerCommand.isSuccess(retryRes) && retryRes.has("imageBase64")) {
-                  try {
-                    byte[] bytes = Base64.getDecoder().decode(retryRes.get("imageBase64").getAsString());
-                    Image img = new Image(new ByteArrayInputStream(bytes));
-                    if (!img.isError()) {
-                      if (imgProduct != null) imgProduct.setImage(img);
-                      if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
-                      System.out.println("✅ [BiddingRoom] Retry load ảnh thành công!");
-                    }
-                  } catch (Exception ignored) {}
-                } else {
-                  System.err.println("❌ [BiddingRoom] Retry cũng thất bại. Giữ placeholder.");
+            res -> {
+              if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+                try {
+                  String base64 = res.get("imageBase64").getAsString();
+                  byte[] bytes = Base64.getDecoder().decode(base64);
+                  Image img = new Image(new ByteArrayInputStream(bytes));
+                  if (!img.isError()) {
+                    if (imgProduct != null) imgProduct.setImage(img);
+                    if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
+                    System.out.println("✅ [BiddingRoom] Load ảnh thành công!");
+                  } else {
+                    System.err.println("❌ [BiddingRoom] Image bị lỗi sau khi decode.");
+                  }
+                } catch (Exception e) {
+                  System.err.println("❌ [BiddingRoom] Lỗi decode Base64 ảnh: " + e.getMessage());
                 }
-              });
-            })).play();
-          }
-        },
-        () -> System.err.println("🔌 [BiddingRoom] Lỗi kết nối khi load ảnh sản phẩm!")
+              } else {
+                String msg = ServerCommand.getMessage(res, "Không rõ lỗi");
+                System.err.println("❌ [BiddingRoom] Server trả FAIL khi load ảnh: " + msg);
+                // Retry 1 lần sau 2 giây
+                new Timeline(new KeyFrame(Duration.seconds(2), e -> {
+                  System.out.println("🔄 [BiddingRoom] Retry load ảnh...");
+                  new GetItemImageCommand(imagePath).executeAsync(retryRes -> {
+                    if (ServerCommand.isSuccess(retryRes) && retryRes.has("imageBase64")) {
+                      try {
+                        byte[] bytes = Base64.getDecoder().decode(retryRes.get("imageBase64").getAsString());
+                        Image img = new Image(new ByteArrayInputStream(bytes));
+                        if (!img.isError()) {
+                          if (imgProduct != null) imgProduct.setImage(img);
+                          if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
+                          System.out.println("✅ [BiddingRoom] Retry load ảnh thành công!");
+                        }
+                      } catch (Exception ignored) {}
+                    } else {
+                      System.err.println("❌ [BiddingRoom] Retry cũng thất bại. Giữ placeholder.");
+                    }
+                  });
+                })).play();
+              }
+            },
+            () -> System.err.println("🔌 [BiddingRoom] Lỗi kết nối khi load ảnh sản phẩm!")
     );
   }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  //  UTILS
+  // ═════════════════════════════════════════════════════════════════════════
 
   private Label emptyLabel(String msg) {
     Label l = new Label(msg);

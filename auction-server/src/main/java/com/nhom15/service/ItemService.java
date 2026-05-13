@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import com.nhom15.dao.ItemDAO;
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Base64;
 
 public class ItemService {
@@ -14,27 +13,33 @@ public class ItemService {
 
   /**
    * Đăng sản phẩm mới, lưu ảnh nếu có.
-   * Client gửi Base64 khi tạo (upload 1 lần) — server lưu ra file, trả về imagePath.
-   * Từ đó về sau client dùng GET_ITEM_IMAGE để lấy ảnh theo yêu cầu (lazy load).
+   *
+   * <p>Ảnh được lưu vào thư mục item_images/ với đường dẫn TƯƠNG ĐỐI (relative path).
+   * Lý do: đường dẫn tuyệt đối (absolute path) bị gắn cứng vào máy chủ hiện tại,
+   * khi server khởi động lại từ thư mục khác hoặc chạy trên máy khác thì ảnh sẽ
+   * không tìm thấy được. Relative path luôn được resolve từ working directory của server.
    */
   public JsonObject createItem(int sellerId, String name, String description,
                                String category, double startPrice,
                                String imageBase64, String extension) {
     JsonObject result = new JsonObject();
 
-    // Lưu ảnh ra file — chỉ xảy ra lúc tạo item, không lặp lại mỗi request
     String imagePath = "";
     if (imageBase64 != null && !imageBase64.isEmpty()) {
       try {
-        // Dùng đường dẫn tuyệt đối để tránh lỗi khi working directory thay đổi
         String baseDir = System.getProperty("user.dir");
         File imgDir = new File(baseDir, "item_images");
         imgDir.mkdirs();
+
         byte[] bytes = Base64.getDecoder().decode(imageBase64);
         String fileName = "item_" + System.currentTimeMillis() + "." + extension;
         File imgFile = new File(imgDir, fileName);
         Files.write(imgFile.toPath(), bytes);
-        imagePath = imgFile.getAbsolutePath();
+
+        // FIX: Lưu đường dẫn TƯƠNG ĐỐI thay vì tuyệt đối
+        // Ví dụ: "item_images/item_1715000000000.jpg"
+        imagePath = "item_images/" + fileName;
+
       } catch (Exception e) {
         System.err.println("Lỗi lưu ảnh sản phẩm: " + e.getMessage());
       }
