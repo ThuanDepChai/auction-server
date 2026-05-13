@@ -11,12 +11,12 @@ import javafx.scene.control.ProgressBar;
 import javafx.util.Duration;
 
 /**
- * PriceCountdownController — quản lý vùng STATS giữa màn hình:
- * giá hiện tại, đồng hồ đếm ngược, anti-snipe, badge trạng thái.
+ * PriceCountdownController — quản lý vùng STATS giữa màn hình.
  *
- * FIX: Không dùng @FXML nữa vì controller được khởi tạo bằng `new`.
- * Tất cả node được nhận qua setNodes().
- * initialize() được gọi thủ công từ BiddingRoomController.
+ * FIX:
+ *  - updateLeader(): kiểm tra currentUsername null/empty trước khi so sánh
+ *    → tránh trường hợp chưa login vẫn hiện "Bạn đang dẫn đầu"
+ *  - updateBudget(): hiển thị số dư và % đã dùng cho lblMyBudget / progressBudget
  */
 public class PriceCountdownController {
 
@@ -38,6 +38,10 @@ public class PriceCountdownController {
 
     private Runnable onAuctionExpired;
     private Timeline countdownTimer;
+
+    // thời điểm bắt đầu để tính progress bar thời gian
+    private LocalDateTime auctionStartTime;
+    private LocalDateTime auctionEndTime;
 
     // ── Inject thủ công từ BiddingRoomController ──────────────────────────
 
@@ -63,7 +67,7 @@ public class PriceCountdownController {
         this.lblLastUpdate   = lblLastUpdate;
     }
 
-    // ── initialize() — gọi thủ công sau setNodes() ────────────────────────
+    // ── initialize() ─────────────────────────────────────────────────────
 
     public void initialize() {
         if (lblAntiSnipe != null) {
@@ -76,6 +80,7 @@ public class PriceCountdownController {
 
     public void setOnAuctionExpired(Runnable cb) { this.onAuctionExpired = cb; }
 
+    /** Cập nhật giá hiện tại + animation. */
     public void updatePrice(double newPrice, double oldPrice) {
         if (lblCurrentPrice == null) return;
         lblCurrentPrice.setText(String.format("%,.0fđ", newPrice));
@@ -92,20 +97,51 @@ public class PriceCountdownController {
         if (lblPriceChange != null && oldPrice > 0 && newPrice != oldPrice) {
             double diff = newPrice - oldPrice;
             lblPriceChange.setText(String.format("▲ +%,.0fđ", diff));
+            lblPriceChange.setStyle(
+                    "-fx-font-size:11px;-fx-text-fill:#10B981;" +
+                            "-fx-background-color:#ECFDF5;-fx-background-radius:6;-fx-padding:2 8;");
         }
     }
 
+    /**
+     * FIX: Kiểm tra currentUsername trước khi so sánh.
+     * Trước đây không check null/empty → user chưa login hoặc username rỗng
+     * vẫn match → ai cũng thấy "Bạn đang dẫn đầu".
+     */
     public void updateLeader(String leader, String currentUsername) {
         if (lblLeader == null) return;
-        if (leader == null || leader.isEmpty()) {
+
+        boolean leaderEmpty   = (leader == null || leader.trim().isEmpty());
+        boolean userKnown     = (currentUsername != null && !currentUsername.trim().isEmpty());
+
+        if (leaderEmpty) {
             lblLeader.setText("Chưa có ai dẫn đầu");
             lblLeader.setStyle("-fx-text-fill:#AAAAAA;-fx-font-size:11px;");
-        } else if (leader.equals(currentUsername)) {
+        } else if (userKnown && leader.equals(currentUsername)) {
+            // Chỉ hiện "Bạn đang dẫn đầu" khi username thực sự khớp
             lblLeader.setText("🏆 Bạn đang dẫn đầu!");
             lblLeader.setStyle("-fx-text-fill:#27AE60;-fx-font-weight:bold;-fx-font-size:13px;");
         } else {
-            lblLeader.setText("🥇 Dẫn đầu: " + leader);
+            // Ẩn bớt tên: chỉ hiện 2 ký tự đầu + ***
+            String masked = maskUsername(leader);
+            lblLeader.setText("🥇 Dẫn đầu: " + masked);
             lblLeader.setStyle("-fx-text-fill:#333;-fx-font-size:12px;");
+        }
+    }
+
+    /** Hiển thị số dư ví và % ngân sách đã dùng so với giá hiện tại. */
+    public void updateBudget(double balance, double currentPrice) {
+        if (lblMyBudget != null)
+            lblMyBudget.setText(String.format("%,.0fđ", balance));
+
+        if (balance > 0 && currentPrice > 0) {
+            double pct = Math.min(1.0, currentPrice / balance);
+            if (progressBudget != null) progressBudget.setProgress(pct);
+            if (lblBudgetUsed  != null)
+                lblBudgetUsed.setText(String.format("%.0f%% ngân sách đã dùng", pct * 100));
+        } else {
+            if (progressBudget != null) progressBudget.setProgress(0);
+            if (lblBudgetUsed  != null) lblBudgetUsed.setText("0% ngân sách đã dùng");
         }
     }
 
@@ -117,9 +153,10 @@ public class PriceCountdownController {
         stopCountdown();
         this.onAuctionExpired = onExpiredCallback;
         try {
-            LocalDateTime endTime = LocalDateTime.parse(endTimeStr, DT_FMT);
-            countdownTimer = new Timeline(new KeyFrame(Duration.seconds(1),
-                    e -> tickCountdown(endTime)));
+            auctionEndTime   = LocalDateTime.parse(endTimeStr, DT_FMT);
+            auctionStartTime = LocalDateTime.now();
+            countdownTimer   = new Timeline(new KeyFrame(Duration.seconds(1),
+                    e -> tickCountdown(auctionEndTime)));
             countdownTimer.setCycleCount(Timeline.INDEFINITE);
             countdownTimer.play();
         } catch (Exception e) {
@@ -133,17 +170,23 @@ public class PriceCountdownController {
 
     public void updateStatusBadge(String status) {
         if (lblStatus == null) return;
-        lblStatus.setText(status);
+        String label = switch (status) {
+            case "ACTIVE", "RUNNING" -> "● ĐANG DIỄN RA";
+            case "ENDED"             -> "■ ĐÃ KẾT THÚC";
+            case "CANCELLED"         -> "✕ ĐÃ HUỶ";
+            default                  -> status;
+        };
         String style = switch (status) {
             case "ACTIVE", "RUNNING" ->
-                    "-fx-background-color:#E8F5E9;-fx-text-fill:#27AE60;";
+                    "-fx-background-color:linear-gradient(to right,#DCFCE7,#BBF7D0);-fx-text-fill:#166534;";
             case "ENDED" ->
-                    "-fx-background-color:#FFF3E0;-fx-text-fill:#E67E22;";
+                    "-fx-background-color:linear-gradient(to right,#FFF3E0,#FFECB3);-fx-text-fill:#92400E;";
             case "CANCELLED" ->
-                    "-fx-background-color:#FFEBEE;-fx-text-fill:#E53935;";
+                    "-fx-background-color:linear-gradient(to right,#FFE4E6,#FED7D7);-fx-text-fill:#9F1239;";
             default ->
                     "-fx-background-color:#EEEEEE;-fx-text-fill:#888;";
         };
+        lblStatus.setText(label);
         lblStatus.setStyle(style +
                 "-fx-background-radius:20;-fx-padding:5 16 5 16;" +
                 "-fx-font-weight:bold;-fx-font-size:11px;");
@@ -155,7 +198,7 @@ public class PriceCountdownController {
                     java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
     }
 
-    // ── Private: countdown tick ───────────────────────────────────────────
+    // ── Private ───────────────────────────────────────────────────────────
 
     private void tickCountdown(LocalDateTime endTime) {
         LocalDateTime now = LocalDateTime.now();
@@ -164,6 +207,7 @@ public class PriceCountdownController {
                 lblCountdown.setText("⏰ Đã kết thúc");
                 lblCountdown.setStyle("-fx-font-size:20px;-fx-font-weight:bold;-fx-text-fill:#E67E22;");
             }
+            if (progressTime != null) progressTime.setProgress(0);
             stopCountdown();
             if (onAuctionExpired != null) onAuctionExpired.run();
             return;
@@ -175,6 +219,13 @@ public class PriceCountdownController {
                 ? String.format("%02d:%02d:%02d", h, m, s)
                 : String.format("%02d:%02d", m, s);
         if (lblCountdown != null) lblCountdown.setText(txt);
+
+        // Progress bar thời gian
+        if (progressTime != null && auctionStartTime != null) {
+            long totalDuration = ChronoUnit.SECONDS.between(auctionStartTime, endTime);
+            double progress = totalDuration > 0 ? (double) totalSec / totalDuration : 0;
+            progressTime.setProgress(Math.max(0, Math.min(1, progress)));
+        }
 
         if (totalSec <= 30) {
             applyCountdownStyle("-fx-font-size:26px;-fx-font-weight:bold;-fx-text-fill:#FF4444;-fx-font-family:'Courier New';");
@@ -194,5 +245,16 @@ public class PriceCountdownController {
 
     private void applyCountdownStyle(String style) {
         if (lblCountdown != null) lblCountdown.setStyle(style);
+    }
+
+    /**
+     * Ẩn bớt username cho bảo mật: "nguyen123" → "ng*****23"
+     */
+    private String maskUsername(String name) {
+        if (name == null || name.length() <= 3) return name;
+        int show = Math.max(1, name.length() / 4);
+        String prefix = name.substring(0, show);
+        String suffix = name.substring(name.length() - 1);
+        return prefix + "*".repeat(name.length() - show - 1) + suffix;
     }
 }

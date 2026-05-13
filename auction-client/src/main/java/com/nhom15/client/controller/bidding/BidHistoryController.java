@@ -6,18 +6,20 @@ import com.nhom15.client.command.GetBidHistoryCommand;
 import com.nhom15.client.command.ServerCommand;
 import com.nhom15.client.util.SessionManager;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -25,11 +27,12 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 /**
- * BidHistoryController — quản lý TAB LỊCH SỬ và TAB BIỂU ĐỒ.
+ * BidHistoryController — TAB LỊCH SỬ + TAB BIỂU ĐỒ + LEADERBOARD panel bên phải.
  *
- * FIX: Không dùng @FXML nữa. Nodes được inject qua setNodes().
- * handleRefreshBids() đổi thành public để BiddingRoomController delegate được.
- * initialize() được gọi thủ công từ BiddingRoomController sau setNodes().
+ * FIX:
+ *  - buildLeaderboard(): tính rank từ bid history thực (gộp theo username, lấy max bid)
+ *  - buildBidRow(): highlight row "của mình" đúng màu (bid-row-mine)
+ *  - populateLeaderboard(): gọi sau load() để cập nhật panel leaderboard bên phải
  */
 public class BidHistoryController {
 
@@ -51,13 +54,15 @@ public class BidHistoryController {
     private ComboBox<String> cmbChartType;
     private ToggleButton     toggleSmoothChart;
 
-    // ── State ─────────────────────────────────────────────────────────────
+    // ── Nodes — Leaderboard panel (bên phải màn hình) ─────────────────────
+    private VBox vboxLeaderboard;
+
     private AuctionState state;
     private XYChart.Series<Number, Number> priceSeries;
     private long chartTick    = 0;
     private int  lastHistSize = 0;
 
-    // ── Inject thủ công từ BiddingRoomController ──────────────────────────
+    // ── Inject ────────────────────────────────────────────────────────────
 
     public void setNodes(
             VBox vboxBidHistory, ScrollPane scrollHistory,
@@ -85,7 +90,10 @@ public class BidHistoryController {
         this.toggleSmoothChart = toggleSmoothChart;
     }
 
-    // ── initialize() — gọi thủ công sau setNodes() ────────────────────────
+    /** Thêm node leaderboard riêng (panel bên phải của BiddingRoom). */
+    public void setLeaderboardNode(VBox vboxLeaderboard) {
+        this.vboxLeaderboard = vboxLeaderboard;
+    }
 
     public void initialize() {
         setupChart();
@@ -102,6 +110,7 @@ public class BidHistoryController {
             if (res == null || !res.has("history")) return;
             JsonArray h = res.getAsJsonArray("history");
             populateList(h);
+            populateLeaderboard(h);     // FIX: cập nhật leaderboard sau mỗi load
             if (h.size() != lastHistSize) {
                 lastHistSize = h.size();
                 rebuildChart(h);
@@ -117,8 +126,6 @@ public class BidHistoryController {
         if (priceSeries.getData().size() > 60) priceSeries.getData().remove(0);
     }
 
-    // ── Handler — public để BiddingRoomController delegate ───────────────
-
     public void handleRefreshBids() {
         load();
     }
@@ -128,6 +135,7 @@ public class BidHistoryController {
     private void populateList(JsonArray history) {
         if (vboxBidHistory == null) return;
         vboxBidHistory.getChildren().clear();
+
         if (history.isEmpty()) {
             vboxBidHistory.getChildren().add(emptyLabel("📭 Chưa có lượt đặt giá nào"));
             if (lblHistoryCount != null) lblHistoryCount.setText("0");
@@ -135,22 +143,29 @@ public class BidHistoryController {
         }
         if (lblHistoryCount != null) lblHistoryCount.setText(String.valueOf(history.size()));
 
-        String filter = cmbHistoryFilter != null ? cmbHistoryFilter.getValue() : "Tất cả";
-        String search = txtHistorySearch != null ? txtHistorySearch.getText().trim().toLowerCase() : "";
+        String filter = cmbHistoryFilter != null
+                ? (cmbHistoryFilter.getValue() != null ? cmbHistoryFilter.getValue() : "Tất cả")
+                : "Tất cả";
+        String search = txtHistorySearch != null
+                ? txtHistorySearch.getText().trim().toLowerCase() : "";
+
+        String me = SessionManager.getUsername();
 
         for (int i = 0; i < history.size(); i++) {
             JsonObject bid = history.get(i).getAsJsonObject();
+            String bidUser = str(bid, "username", "");
 
+            // Filter
             if ("Của tôi".equals(filter)) {
-                if (!str(bid, "username", "").equals(SessionManager.getUsername())) continue;
+                if (me == null || !bidUser.equals(me)) continue;
             } else if ("Auto-Bid".equals(filter)) {
                 if (!bid.has("isAutoBid") || !bid.get("isAutoBid").getAsBoolean()) continue;
             } else if ("Top 5".equals(filter) && i >= 5) {
                 break;
             }
-            if (!search.isEmpty() && !str(bid, "username", "").toLowerCase().contains(search)) continue;
+            if (!search.isEmpty() && !bidUser.toLowerCase().contains(search)) continue;
 
-            HBox row = buildBidRow(bid, i == 0);
+            HBox row = buildBidRow(bid, i == 0, me);
             if (i == 0) {
                 FadeTransition ft = new FadeTransition(Duration.millis(400), row);
                 ft.setFromValue(0); ft.setToValue(1); ft.play();
@@ -160,21 +175,38 @@ public class BidHistoryController {
         if (scrollHistory != null) Platform.runLater(() -> scrollHistory.setVvalue(0));
     }
 
-    private HBox buildBidRow(JsonObject bid, boolean isTop) {
+    /**
+     * FIX: Trước đây không phân biệt row "của mình" → dùng style CSS đúng.
+     *  - i == 0 (cao nhất) → bid-row-top
+     *  - username == mình   → bid-row-mine
+     *  - còn lại            → bid-row-normal
+     */
+    private HBox buildBidRow(JsonObject bid, boolean isTop, String me) {
         HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color:" + (isTop ? "#FFFDE7" : "#FAFAFA") +
-                ";-fx-background-radius:8;-fx-padding:10 14;" +
-                (isTop ? "-fx-border-color:#FFC107;-fx-border-width:0 0 0 4;" : ""));
+
+        String bidUser = str(bid, "username", "");
+        boolean isMine = (me != null && bidUser.equals(me));
+
+        if (isTop) {
+            row.getStyleClass().add("bid-row-top");
+        } else if (isMine) {
+            row.getStyleClass().add("bid-row-mine");
+        } else {
+            row.getStyleClass().add("bid-row-normal");
+        }
 
         Label lblRank = new Label(isTop ? "🥇" : "•");
         lblRank.setStyle("-fx-font-size:" + (isTop ? "16" : "12") + "px;");
-        Label lblUser = new Label(str(bid, "username", "?"));
+
+        Label lblUser = new Label(maskUsername(bidUser, isMine));
         lblUser.setStyle("-fx-font-weight:bold;-fx-font-size:13px;" +
-                (isTop ? "-fx-text-fill:#E65100;" : "-fx-text-fill:#333;"));
+                (isTop  ? "-fx-text-fill:#E65100;" :
+                        isMine ? "-fx-text-fill:#1D4ED8;" : "-fx-text-fill:#333;"));
+
         row.getChildren().addAll(lblRank, lblUser);
 
-        if (str(bid, "username", "").equals(SessionManager.getUsername())) {
+        if (isMine) {
             Label you = new Label(" Bạn ");
             you.setStyle("-fx-background-color:#4285F4;-fx-text-fill:white;" +
                     "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
@@ -190,7 +222,8 @@ public class BidHistoryController {
         Region gap = new Region(); HBox.setHgrow(gap, Priority.ALWAYS);
         row.getChildren().add(gap);
 
-        Label lblAmt  = new Label(String.format("%,.0fđ", bid.get("amount").getAsDouble()));
+        double amount = bid.has("amount") ? bid.get("amount").getAsDouble() : 0;
+        Label lblAmt  = new Label(String.format("%,.0fđ", amount));
         lblAmt.setStyle("-fx-font-weight:bold;-fx-text-fill:#D96570;-fx-font-size:14px;");
         Label lblTime = new Label(str(bid, "bidTime", ""));
         lblTime.setStyle("-fx-font-size:10px;-fx-text-fill:#AAAAAA;");
@@ -198,6 +231,71 @@ public class BidHistoryController {
         right.setAlignment(Pos.CENTER_RIGHT);
         row.getChildren().add(right);
         return row;
+    }
+
+    // ── Private: Leaderboard ─────────────────────────────────────────────
+
+    /**
+     * FIX: Tính rank từ bid history thực tế.
+     * Gộp theo username → lấy max bid của mỗi người → sắp xếp giảm dần → hiển thị top 5.
+     */
+    private void populateLeaderboard(JsonArray history) {
+        if (vboxLeaderboard == null) return;
+
+        // Gộp: username → max bid
+        Map<String, Double> maxBids = new LinkedHashMap<>();
+        for (int i = 0; i < history.size(); i++) {
+            JsonObject bid = history.get(i).getAsJsonObject();
+            String user = str(bid, "username", "?");
+            double amt  = bid.has("amount") ? bid.get("amount").getAsDouble() : 0;
+            maxBids.merge(user, amt, Math::max);
+        }
+
+        // Sắp xếp giảm dần
+        List<Map.Entry<String, Double>> sorted = new ArrayList<>(maxBids.entrySet());
+        sorted.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
+
+        vboxLeaderboard.getChildren().clear();
+        if (sorted.isEmpty()) {
+            Label empty = new Label("Chưa có dữ liệu...");
+            empty.setStyle("-fx-text-fill:#9CA3AF;-fx-font-size:11px;");
+            vboxLeaderboard.getChildren().add(empty);
+            return;
+        }
+
+        String me = SessionManager.getUsername();
+        String[] medals = {"🥇", "🥈", "🥉", "4.", "5."};
+        String[] styleClasses = {
+                "leader-row-1", "leader-row-2", "leader-row-3",
+                "leader-row-2", "leader-row-2"
+        };
+
+        for (int i = 0; i < Math.min(5, sorted.size()); i++) {
+            Map.Entry<String, Double> entry = sorted.get(i);
+            String user  = entry.getKey();
+            double price = entry.getValue();
+            boolean isMine = (me != null && user.equals(me));
+
+            HBox row = new HBox(8);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.getStyleClass().add(styleClasses[i]);
+
+            Label lblMedal = new Label(medals[i]);
+            lblMedal.setStyle("-fx-font-size:14px;");
+
+            // Hiển thị tên đầy đủ nếu là mình, mask nếu là người khác
+            Label lblName = new Label(isMine ? "Bạn" : maskUsername(user, false));
+            lblName.setStyle("-fx-font-size:11px;-fx-font-weight:bold;" +
+                    (isMine ? "-fx-text-fill:#1D4ED8;" : "-fx-text-fill:#374151;"));
+
+            Region gap = new Region(); HBox.setHgrow(gap, Priority.ALWAYS);
+
+            Label lblPrice = new Label(String.format("%,.0fđ", price));
+            lblPrice.setStyle("-fx-font-size:11px;-fx-font-weight:bold;-fx-text-fill:#D96570;");
+
+            row.getChildren().addAll(lblMedal, lblName, gap, lblPrice);
+            vboxLeaderboard.getChildren().add(row);
+        }
     }
 
     // ── Private: Chart ────────────────────────────────────────────────────
@@ -217,14 +315,13 @@ public class BidHistoryController {
         if (priceSeries == null) return;
         priceSeries.getData().clear();
         chartTick = 0;
-        List<Double> prices = new ArrayList<>();
         for (int i = history.size() - 1; i >= 0; i--) {
             JsonObject bid = history.get(i).getAsJsonObject();
-            if (bid.has("amount")) prices.add(bid.get("amount").getAsDouble());
-        }
-        for (double p : prices) {
-            chartTick++;
-            priceSeries.getData().add(new XYChart.Data<>(chartTick, p));
+            if (bid.has("amount")) {
+                chartTick++;
+                priceSeries.getData().add(
+                        new XYChart.Data<>(chartTick, bid.get("amount").getAsDouble()));
+            }
         }
     }
 
@@ -251,6 +348,18 @@ public class BidHistoryController {
         Label l = new Label(msg);
         l.setStyle("-fx-text-fill:#AAAAAA;-fx-font-size:13px;-fx-padding:16;");
         return l;
+    }
+
+    /**
+     * Mask username: hiển thị tên đầy đủ nếu là mình, ẩn giữa nếu là người khác.
+     * "nguyen123" → "ng*****23"
+     */
+    private String maskUsername(String name, boolean isMine) {
+        if (isMine || name == null || name.length() <= 3) return name;
+        int show = Math.max(1, name.length() / 4);
+        return name.substring(0, show)
+                + "*".repeat(Math.max(0, name.length() - show - 1))
+                + name.charAt(name.length() - 1);
     }
 
     private String str(JsonObject o, String key, String def) {
