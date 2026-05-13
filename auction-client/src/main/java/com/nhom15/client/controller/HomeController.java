@@ -25,26 +25,16 @@ import javafx.scene.layout.VBox;
 public class HomeController {
 
   // ── FXML Fields ──────────────────────────────────────────────────────────
-  @FXML
-  private Label lblUsername;
-  @FXML
-  private Label lblAvatarInitial;
-  @FXML
-  private ImageView imgAvatar;
-  @FXML
-  private VBox userDropdown;
-  @FXML
-  private FlowPane flowProducts;
-  @FXML
-  private FlowPane flowAuctions;
-  @FXML
-  private Button btnSellerDashboard;
-  @FXML
-  private TextField txtSearch;
-  @FXML
-  private ComboBox<String> cmbCategory;
-  @FXML
-  private ScrollPane mainScrollPane;
+  @FXML private Label lblUsername;
+  @FXML private Label lblAvatarInitial;
+  @FXML private ImageView imgAvatar;
+  @FXML private VBox userDropdown;
+  @FXML private FlowPane flowProducts;
+  @FXML private FlowPane flowAuctions;
+  @FXML private Button btnSellerDashboard;
+  @FXML private TextField txtSearch;
+  @FXML private ComboBox<String> cmbCategory;
+  @FXML private ScrollPane mainScrollPane;
 
   private final List<Timeline> countdownTimers = new ArrayList<>();
 
@@ -58,7 +48,6 @@ public class HomeController {
   }
 
   private void setupUserInfo() {
-    // Nếu chưa đăng nhập, hiển thị giao diện Khách
     if (!SessionManager.isLoggedIn()) {
       lblUsername.setText("Khách");
       lblAvatarInitial.setText("K");
@@ -67,20 +56,16 @@ public class HomeController {
       return;
     }
 
-    // Lấy thông tin từ SessionManager (đã được bọc an toàn chống Null)
     String username = SessionManager.getUsername();
     lblUsername.setText((username == null || username.trim().isEmpty()) ? "Người dùng" : username);
 
-    // Lấy chữ cái đầu tiên làm Avatar mặc định
     String initial = lblUsername.getText().substring(0, 1).toUpperCase();
     lblAvatarInitial.setText(initial);
 
-    // Hiển thị nút Seller Dashboard dựa trên quyền
     boolean isSellerMode = SessionManager.isSeller() || SessionManager.isAdmin();
     btnSellerDashboard.setVisible(isSellerMode);
     btnSellerDashboard.setManaged(isSellerMode);
 
-    // Tải ảnh đại diện từ Server
     HomeCommand.fetchUserAvatar(SessionManager.getUserId(), base64 -> {
       CardFactory.setAvatar(base64, imgAvatar, lblAvatarInitial);
     });
@@ -89,8 +74,8 @@ public class HomeController {
   private void setupCategories() {
     if (cmbCategory != null) {
       cmbCategory.getItems().setAll(
-          "Tất cả danh mục", "Điện tử", "Thời trang",
-          "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao"
+              "Tất cả danh mục", "Điện tử", "Thời trang",
+              "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao"
       );
       cmbCategory.setValue("Tất cả danh mục");
     }
@@ -98,13 +83,12 @@ public class HomeController {
 
   private void setupClickOutsideToCloseDropdown() {
     Platform.runLater(() -> {
-      if (userDropdown == null || userDropdown.getScene() == null) {
-        return;
-      }
+      if (userDropdown == null || userDropdown.getScene() == null) return;
       Scene scene = userDropdown.getScene();
       scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
-        if (userDropdown.isVisible() && !userDropdown.localToScene(userDropdown.getBoundsInLocal())
-            .contains(e.getSceneX(), e.getSceneY())) {
+        if (userDropdown.isVisible()
+                && !userDropdown.localToScene(userDropdown.getBoundsInLocal())
+                .contains(e.getSceneX(), e.getSceneY())) {
           userDropdown.setVisible(false);
           userDropdown.setManaged(false);
         }
@@ -115,22 +99,20 @@ public class HomeController {
   // ── Load Dữ Liệu ────────────────────────────────────────────────────────
   private void loadData() {
     HomeCommand.fetchFeaturedProducts(
-        items -> populateFlowPane(flowProducts, items, true),
-        () -> flowProducts.getChildren()
-            .setAll(CardFactory.buildEmptyLabel("Chưa có sản phẩm nổi bật"))
+            items -> populateFlowPane(flowProducts, items, true),
+            () -> flowProducts.getChildren()
+                    .setAll(CardFactory.buildEmptyLabel("Chưa có sản phẩm nổi bật"))
     );
 
     HomeCommand.fetchActiveAuctions(
-        auctions -> populateFlowPane(flowAuctions, auctions, false),
-        () -> flowAuctions.getChildren()
-            .setAll(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào"))
+            auctions -> populateFlowPane(flowAuctions, auctions, false),
+            () -> flowAuctions.getChildren()
+                    .setAll(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào"))
     );
   }
 
   private void populateFlowPane(FlowPane pane, JsonArray dataArray, boolean isProduct) {
-    if (pane == null) {
-      return;
-    }
+    if (pane == null) return;
     pane.getChildren().clear();
 
     if (!isProduct) {
@@ -144,12 +126,11 @@ public class HomeController {
 
     for (int i = 0; i < dataArray.size(); i++) {
       if (isProduct) {
-        pane.getChildren().add(CardFactory.buildProductCard(dataArray.get(i).getAsJsonObject(),
-            this::handleGoToProductDetail));
+        pane.getChildren().add(CardFactory.buildProductCard(
+                dataArray.get(i).getAsJsonObject(), this::handleGoToProductDetail));
       } else {
-        pane.getChildren().add(
-            CardFactory.buildAuctionCard(dataArray.get(i).getAsJsonObject(), countdownTimers,
-                this::handleGoToBidding));
+        pane.getChildren().add(CardFactory.buildAuctionCard(
+                dataArray.get(i).getAsJsonObject(), countdownTimers, this::handleGoToBidding));
       }
     }
   }
@@ -197,18 +178,16 @@ public class HomeController {
 
   @FXML
   private void handleSearch(ActionEvent event) {
-    String keyword = txtSearch != null ? txtSearch.getText().trim() : "";
+    String keyword  = txtSearch != null ? txtSearch.getText().trim() : "";
     String category = (cmbCategory != null && !"Tất cả danh mục".equals(cmbCategory.getValue()))
-        ? cmbCategory.getValue() : "";
+            ? cmbCategory.getValue() : "";
 
     HomeCommand.searchProducts(keyword, category,
-        items -> populateFlowPane(flowProducts, items, true),
-        () -> flowProducts.getChildren()
-            .setAll(CardFactory.buildEmptyLabel("Không tìm thấy sản phẩm"))
+            items -> populateFlowPane(flowProducts, items, true),
+            () -> flowProducts.getChildren()
+                    .setAll(CardFactory.buildEmptyLabel("Không tìm thấy sản phẩm"))
     );
-    if (mainScrollPane != null) {
-      mainScrollPane.setVvalue(0);
-    }
+    if (mainScrollPane != null) mainScrollPane.setVvalue(0);
   }
 
   @FXML
@@ -218,9 +197,7 @@ public class HomeController {
 
   @FXML
   private void handleWallet(ActionEvent event) {
-    if (userDropdown != null) {
-      userDropdown.setVisible(false);
-    }
+    if (userDropdown != null) userDropdown.setVisible(false);
     try {
       double balance = SessionManager.getBalance();
       showAlert(String.format("Số dư ví: %,d đ", (long) balance));
@@ -232,8 +209,7 @@ public class HomeController {
   @FXML
   private void handleSell(ActionEvent event) {
     if (!SessionManager.isSeller() && !SessionManager.isAdmin()) {
-      showAlert(
-          "Bạn cần đăng ký tài khoản Seller để đăng bán!\nVào Trang cá nhân → Đăng ký bán hàng.");
+      showAlert("Bạn cần đăng ký tài khoản Seller để đăng bán!\nVào Trang cá nhân → Đăng ký bán hàng.");
       return;
     }
     ViewManager.navigateTo(ViewManager.Views.SELLER_DASHBOARD);
@@ -247,57 +223,52 @@ public class HomeController {
     int i = 0;
     while (i < raw.length()) {
       int cp = raw.codePointAt(i);
-      if (Character.isLetter(cp)) {
-        break;
-      }
+      if (Character.isLetter(cp)) break;
       i += Character.charCount(cp);
     }
     String category = raw.substring(i).trim();
 
-    if (cmbCategory != null) {
-      cmbCategory.setValue(category);
-    }
+    if (cmbCategory != null) cmbCategory.setValue(category);
 
     HomeCommand.searchProducts("", category,
-        items -> populateFlowPane(flowProducts, items, true),
-        () -> flowProducts.getChildren()
-            .setAll(CardFactory.buildEmptyLabel("Không tìm thấy sản phẩm"))
+            items -> populateFlowPane(flowProducts, items, true),
+            () -> flowProducts.getChildren()
+                    .setAll(CardFactory.buildEmptyLabel("Không tìm thấy sản phẩm"))
     );
   }
 
-  // ── Callbacks (Điều hướng chi tiết) ─────────────────────────────────────
+  // ── Callbacks ────────────────────────────────────────────────────────────
+
   private void handleGoToProductDetail(int productId) {
     countdownTimers.forEach(Timeline::stop);
     ViewManager.navigateTo("/view/product_detail.fxml", "Chi tiết sản phẩm", c -> {
-      if (c instanceof ProductDetailController) {
-        ((ProductDetailController) c).setProductId(productId);
-      }
+      // ProductDetailController không có trong dự án hiện tại — bỏ qua
     });
   }
 
+  /**
+   * FIX: Trước đây dùng inner interface BiddingRoomController (stub) nên
+   * "c instanceof BiddingRoomController" luôn FALSE → setAuctionId() không bao giờ được gọi
+   * → auctionId mãi là 0 → server trả NOT_FOUND.
+   *
+   * Sửa: Cast trực tiếp sang class thật
+   * com.nhom15.client.controller.BiddingRoomController (cùng package).
+   */
   private void handleGoToBidding(int auctionId) {
     countdownTimers.forEach(Timeline::stop);
-    ViewManager.navigateTo(ViewManager.Views.BIDDING_ROOM, "Phòng đấu giá #" + auctionId, c -> {
-      if (c instanceof BiddingRoomController) {
-        ((BiddingRoomController) c).setAuctionId(auctionId);
-      }
-    });
+    ViewManager.navigateTo(ViewManager.Views.BIDDING_ROOM,
+            "Phòng đấu giá #" + auctionId,
+            c -> {
+              // FIX: Cast sang class thật thay vì inner interface stub
+              if (c instanceof com.nhom15.client.controller.BiddingRoomController b) {
+                b.setAuctionId(auctionId);
+              }
+            });
   }
 
   private void showAlert(String msg) {
     Alert alert = new Alert(Alert.AlertType.INFORMATION, msg);
     alert.setHeaderText(null);
     alert.showAndWait();
-  }
-
-  // (Stub Interfaces)
-  public interface ProductDetailController {
-
-    void setProductId(int productId);
-  }
-
-  public interface BiddingRoomController {
-
-    void setAuctionId(int auctionId);
   }
 }
