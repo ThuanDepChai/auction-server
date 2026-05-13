@@ -462,18 +462,17 @@ public class SellerDashboardController {
   }
 
   private void handleEndAuction(int auctionId) {
-    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-            "Dừng phiên sớm? Sản phẩm sẽ về trạng thái sẵn bán.",
+    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Kết thúc phiên đấu giá sớm?",
             ButtonType.OK, ButtonType.CANCEL);
-    confirm.setTitle("Dừng phiên đấu giá");
+    confirm.setTitle("Kết thúc phiên");
     confirm.showAndWait().ifPresent(result -> {
       if (result == ButtonType.OK) {
-        SellerCommand.cancelAuction(auctionId, res -> {
-          if (res != null && "SUCCESS".equals(res.get("status").getAsString())) {
+        SellerCommand.endAuction(auctionId, res -> {
+          if (res != null) {
             loadMyAuctions();
             loadOverview();
           } else {
-            showAlert("Dừng phiên thất bại!");
+            showAlert("Thất bại!");
           }
         });
       }
