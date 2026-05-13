@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
-import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -26,41 +25,68 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 /**
- * BidHistoryController — quản lý:
- * 1. TAB LỊCH SỬ: danh sách lượt đặt, filter, tìm kiếm
- * 2. TAB BIỂU ĐỒ: LineChart giá theo thời gian + stats (max, min, avg, volatility)
+ * BidHistoryController — quản lý TAB LỊCH SỬ và TAB BIỂU ĐỒ.
  *
- * Dùng GetBidHistoryCommand để tải dữ liệu.
+ * FIX: Không dùng @FXML nữa. Nodes được inject qua setNodes().
+ * handleRefreshBids() đổi thành public để BiddingRoomController delegate được.
+ * initialize() được gọi thủ công từ BiddingRoomController sau setNodes().
  */
 public class BidHistoryController {
 
-    // ── FXML: History tab ─────────────────────────────────────────────────
-    @FXML private VBox            vboxBidHistory;
-    @FXML private ScrollPane      scrollHistory;
-    @FXML private Label           lblHistoryCount;
-    @FXML private TextField       txtHistorySearch;
-    @FXML private ComboBox<String> cmbHistoryFilter;
+    // ── Nodes — History tab ───────────────────────────────────────────────
+    private VBox             vboxBidHistory;
+    private ScrollPane       scrollHistory;
+    private Label            lblHistoryCount;
+    private TextField        txtHistorySearch;
+    private ComboBox<String> cmbHistoryFilter;
 
-    // ── FXML: Chart tab ───────────────────────────────────────────────────
-    @FXML private LineChart<Number, Number> priceChart;
-    @FXML private NumberAxis      xAxis;
-    @FXML private NumberAxis      yAxis;
-    @FXML private Label           lblChartMax;
-    @FXML private Label           lblChartMin;
-    @FXML private Label           lblChartAvg;
-    @FXML private Label           lblChartVolatility;
-    @FXML private ComboBox<String> cmbChartType;
-    @FXML private ToggleButton    toggleSmoothChart;
+    // ── Nodes — Chart tab ─────────────────────────────────────────────────
+    private LineChart<Number, Number> priceChart;
+    private NumberAxis       xAxis;
+    private NumberAxis       yAxis;
+    private Label            lblChartMax;
+    private Label            lblChartMin;
+    private Label            lblChartAvg;
+    private Label            lblChartVolatility;
+    private ComboBox<String> cmbChartType;
+    private ToggleButton     toggleSmoothChart;
 
     // ── State ─────────────────────────────────────────────────────────────
     private AuctionState state;
     private XYChart.Series<Number, Number> priceSeries;
-    private long   chartTick     = 0;
-    private int    lastHistSize  = 0;
+    private long chartTick    = 0;
+    private int  lastHistSize = 0;
 
-    // ── Init ──────────────────────────────────────────────────────────────
+    // ── Inject thủ công từ BiddingRoomController ──────────────────────────
 
-    @FXML
+    public void setNodes(
+            VBox vboxBidHistory, ScrollPane scrollHistory,
+            Label lblHistoryCount, TextField txtHistorySearch,
+            ComboBox<String> cmbHistoryFilter,
+            LineChart<Number, Number> priceChart,
+            NumberAxis xAxis, NumberAxis yAxis,
+            Label lblChartMax, Label lblChartMin,
+            Label lblChartAvg, Label lblChartVolatility,
+            ComboBox<String> cmbChartType, ToggleButton toggleSmoothChart) {
+
+        this.vboxBidHistory    = vboxBidHistory;
+        this.scrollHistory     = scrollHistory;
+        this.lblHistoryCount   = lblHistoryCount;
+        this.txtHistorySearch  = txtHistorySearch;
+        this.cmbHistoryFilter  = cmbHistoryFilter;
+        this.priceChart        = priceChart;
+        this.xAxis             = xAxis;
+        this.yAxis             = yAxis;
+        this.lblChartMax       = lblChartMax;
+        this.lblChartMin       = lblChartMin;
+        this.lblChartAvg       = lblChartAvg;
+        this.lblChartVolatility = lblChartVolatility;
+        this.cmbChartType      = cmbChartType;
+        this.toggleSmoothChart = toggleSmoothChart;
+    }
+
+    // ── initialize() — gọi thủ công sau setNodes() ────────────────────────
+
     public void initialize() {
         setupChart();
     }
@@ -71,7 +97,6 @@ public class BidHistoryController {
 
     // ── Public API ────────────────────────────────────────────────────────
 
-    /** Tải lịch sử từ server, cập nhật danh sách + chart nếu có thay đổi. */
     public void load() {
         new GetBidHistoryCommand(state.getAuctionId()).executeAsync(res -> {
             if (res == null || !res.has("history")) return;
@@ -85,7 +110,6 @@ public class BidHistoryController {
         });
     }
 
-    /** Thêm 1 điểm giá mới vào chart (gọi sau mỗi bid mới từ polling). */
     public void addChartPoint(double price) {
         if (priceSeries == null) return;
         chartTick++;
@@ -93,10 +117,9 @@ public class BidHistoryController {
         if (priceSeries.getData().size() > 60) priceSeries.getData().remove(0);
     }
 
-    // ── FXML handler ──────────────────────────────────────────────────────
+    // ── Handler — public để BiddingRoomController delegate ───────────────
 
-    @FXML
-    private void handleRefreshBids() {
+    public void handleRefreshBids() {
         load();
     }
 
@@ -118,7 +141,6 @@ public class BidHistoryController {
         for (int i = 0; i < history.size(); i++) {
             JsonObject bid = history.get(i).getAsJsonObject();
 
-            // Filter
             if ("Của tôi".equals(filter)) {
                 if (!str(bid, "username", "").equals(SessionManager.getUsername())) continue;
             } else if ("Auto-Bid".equals(filter)) {
@@ -126,7 +148,6 @@ public class BidHistoryController {
             } else if ("Top 5".equals(filter) && i >= 5) {
                 break;
             }
-            // Search
             if (!search.isEmpty() && !str(bid, "username", "").toLowerCase().contains(search)) continue;
 
             HBox row = buildBidRow(bid, i == 0);
@@ -143,26 +164,26 @@ public class BidHistoryController {
         HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setStyle("-fx-background-color:" + (isTop ? "#FFFDE7" : "#FAFAFA") +
-            ";-fx-background-radius:8;-fx-padding:10 14;" +
-            (isTop ? "-fx-border-color:#FFC107;-fx-border-width:0 0 0 4;" : ""));
+                ";-fx-background-radius:8;-fx-padding:10 14;" +
+                (isTop ? "-fx-border-color:#FFC107;-fx-border-width:0 0 0 4;" : ""));
 
         Label lblRank = new Label(isTop ? "🥇" : "•");
         lblRank.setStyle("-fx-font-size:" + (isTop ? "16" : "12") + "px;");
         Label lblUser = new Label(str(bid, "username", "?"));
         lblUser.setStyle("-fx-font-weight:bold;-fx-font-size:13px;" +
-            (isTop ? "-fx-text-fill:#E65100;" : "-fx-text-fill:#333;"));
+                (isTop ? "-fx-text-fill:#E65100;" : "-fx-text-fill:#333;"));
         row.getChildren().addAll(lblRank, lblUser);
 
         if (str(bid, "username", "").equals(SessionManager.getUsername())) {
             Label you = new Label(" Bạn ");
             you.setStyle("-fx-background-color:#4285F4;-fx-text-fill:white;" +
-                "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
+                    "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
             row.getChildren().add(you);
         }
         if (bid.has("isAutoBid") && bid.get("isAutoBid").getAsBoolean()) {
             Label auto = new Label(" 🤖 Auto ");
             auto.setStyle("-fx-background-color:#9C27B0;-fx-text-fill:white;" +
-                "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
+                    "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
             row.getChildren().add(auto);
         }
 
@@ -234,6 +255,6 @@ public class BidHistoryController {
 
     private String str(JsonObject o, String key, String def) {
         return (o != null && o.has(key) && !o.get(key).isJsonNull())
-            ? o.get(key).getAsString() : def;
+                ? o.get(key).getAsString() : def;
     }
 }
