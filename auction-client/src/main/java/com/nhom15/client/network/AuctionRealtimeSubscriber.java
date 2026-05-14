@@ -2,34 +2,83 @@ package com.nhom15.client.network;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.function.Consumer;
 import javafx.application.Platform;
 
 /**
- * Một kết nối TCP dài hạn tới server: SUBSCRIBE_AUCTION rồi đọc các dòng {@code AUCTION_UPDATE}.
- * Phải {@link #stop()} khi rời phòng đấu giá.
+ * Kết nối TCP dài hạn: SUBSCRIBE_AUCTION rồi đọc các dòng {@code AUCTION_UPDATE}.
+ *
+ * <p><b>Độ tin cậy:</b> đọc có timeout + ping định kỳ (tránh proxy/NAT đóng idle); parse từng dòng
+ * an toàn (một dòng lỗi không giết luồng); tự kết nối lại khi mất kết nối (trừ khi ACK từ chối).
  */
 public final class AuctionRealtimeSubscriber {
 
-  private final Object socketLock = new Object();
+  private static final int READ_TIMEOUT_MS = 30_000;
+  private static final int INITIAL_RECONNECT_MS = 900;
+  private static final int MAX_RECONNECT_MS = 12_000;
+
+  private final Object lifecycleLock = new Object();
   private volatile Socket activeSocket;
+  private volatile boolean runRequested;
+  private Thread workerThread;
 
   public void start(int auctionId, Consumer<JsonObject> onPushFx) {
     stop();
-    Thread t = new Thread(() -> runLoop(auctionId, onPushFx), "auction-live-" + auctionId);
-    t.setDaemon(true);
-    t.start();
+    synchronized (lifecycleLock) {
+      runRequested = true;
+      workerThread =
+          new Thread(() -> runWithReconnect(auctionId, onPushFx), "auction-live-" + auctionId);
+      workerThread.setDaemon(true);
+      workerThread.start();
+    }
   }
 
-  private void runLoop(int auctionId, Consumer<JsonObject> onPushFx) {
+  private void runWithReconnect(int auctionId, Consumer<JsonObject> onPushFx) {
+    int backoff = INITIAL_RECONNECT_MS;
+    while (runRequested) {
+      SessionEnd reason = runSingleSession(auctionId, onPushFx);
+      if (!runRequested) {
+        break;
+      }
+      if (reason == SessionEnd.ACK_DENIED) {
+        break;
+      }
+      if (reason == SessionEnd.STOPPED) {
+        break;
+      }
+      try {
+        Thread.sleep(backoff);
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+      backoff = Math.min((int) (backoff * 1.35), MAX_RECONNECT_MS);
+    }
+  }
+
+  private enum SessionEnd {
+    STOPPED,
+    ACK_DENIED,
+    DISCONNECTED
+  }
+
+  /**
+   * Một lần mở socket tới khi đóng.
+   *
+   * @return {@link SessionEnd#ACK_DENIED} nếu server không chấp nhận SUBSCRIBE (không retry).
+   */
+  private SessionEnd runSingleSession(int auctionId, Consumer<JsonObject> onPushFx) {
     Socket s = new Socket();
-    synchronized (socketLock) {
+    synchronized (lifecycleLock) {
       activeSocket = s;
     }
     try {
@@ -37,7 +86,7 @@ public final class AuctionRealtimeSubscriber {
           new InetSocketAddress(SocketClient.getServerHost(), SocketClient.getServerPort()),
           SocketClient.getConnectTimeoutMs());
       s.setTcpNoDelay(true);
-      s.setSoTimeout(0);
+      s.setSoTimeout(READ_TIMEOUT_MS);
 
       try (BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
            PrintWriter out = new PrintWriter(s.getOutputStream(), true)) {
@@ -48,32 +97,68 @@ public final class AuctionRealtimeSubscriber {
         data.addProperty("auctionId", auctionId);
         req.add("data", data);
         out.println(req);
+        out.flush();
 
-        String ackLine = in.readLine();
+        String ackLine;
+        try {
+          ackLine = in.readLine();
+        } catch (SocketTimeoutException e) {
+          return SessionEnd.DISCONNECTED;
+        }
         if (ackLine == null) {
-          return;
+          return SessionEnd.DISCONNECTED;
         }
-        JsonObject ack = JsonParser.parseString(ackLine).getAsJsonObject();
+        JsonObject ack;
+        try {
+          ack = JsonParser.parseString(ackLine.trim()).getAsJsonObject();
+        } catch (JsonSyntaxException e) {
+          return SessionEnd.ACK_DENIED;
+        }
         if (!ack.has("status") || !"SUCCESS".equals(ack.get("status").getAsString())) {
-          return;
+          return SessionEnd.ACK_DENIED;
         }
 
-        String line;
-        while ((line = in.readLine()) != null) {
-          JsonObject msg = JsonParser.parseString(line).getAsJsonObject();
+        while (runRequested) {
+          String line;
+          try {
+            line = in.readLine();
+          } catch (SocketTimeoutException e) {
+            JsonObject ping = new JsonObject();
+            ping.addProperty("action", "SUBSCRIBE_PING");
+            out.println(ping);
+            out.flush();
+            continue;
+          }
+          if (line == null) {
+            return SessionEnd.DISCONNECTED;
+          }
+          String trimmed = line.trim();
+          if (trimmed.isEmpty()) {
+            continue;
+          }
+          JsonObject msg;
+          try {
+            msg = JsonParser.parseString(trimmed).getAsJsonObject();
+          } catch (JsonSyntaxException e) {
+            continue;
+          }
           if (!msg.has("action") || !"AUCTION_UPDATE".equals(msg.get("action").getAsString())) {
             continue;
           }
           JsonObject copy = JsonParser.parseString(msg.toString()).getAsJsonObject();
           Platform.runLater(() -> onPushFx.accept(copy));
         }
+        return SessionEnd.STOPPED;
       }
-    } catch (IOException ignored) {
-      // ngắt kết nối / đóng socket
+    } catch (SocketException e) {
+      return runRequested ? SessionEnd.DISCONNECTED : SessionEnd.STOPPED;
+    } catch (IOException e) {
+      return runRequested ? SessionEnd.DISCONNECTED : SessionEnd.STOPPED;
     } catch (Exception e) {
       System.err.println("[AuctionRealtime] " + e.getMessage());
+      return SessionEnd.DISCONNECTED;
     } finally {
-      synchronized (socketLock) {
+      synchronized (lifecycleLock) {
         if (activeSocket == s) {
           activeSocket = null;
         }
@@ -87,8 +172,11 @@ public final class AuctionRealtimeSubscriber {
   }
 
   public void stop() {
+    synchronized (lifecycleLock) {
+      runRequested = false;
+    }
     Socket s;
-    synchronized (socketLock) {
+    synchronized (lifecycleLock) {
       s = activeSocket;
       activeSocket = null;
     }
@@ -98,6 +186,21 @@ public final class AuctionRealtimeSubscriber {
       } catch (IOException ignored) {
         // ignore
       }
+    }
+    Thread t;
+    synchronized (lifecycleLock) {
+      t = workerThread;
+    }
+    if (t != null) {
+      t.interrupt();
+      try {
+        t.join(2000);
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+      }
+    }
+    synchronized (lifecycleLock) {
+      workerThread = null;
     }
   }
 }

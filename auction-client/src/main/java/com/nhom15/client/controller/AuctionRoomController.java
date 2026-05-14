@@ -86,7 +86,7 @@ public class AuctionRoomController implements Initializable {
   private Timeline       pollingTimeline;
   private AnimationTimer bgAnimationTimer;
   private MediaPlayer    gifPlayer;
-  private AuctionRealtimeSubscriber realtimeSubscriber;
+  private final AuctionRealtimeSubscriber realtimeSubscriber = new AuctionRealtimeSubscriber();
   private XYChart.Series<Number, Number> priceChartSeries;
   private Timeline                 chartTimeline;
   private int                      chartXSeq = 0;
@@ -112,6 +112,7 @@ public class AuctionRoomController implements Initializable {
   // ─────────────────────────────────────────────────────────────────
 
   public void setAuctionId(int id) {
+    stopRealtimeWatch();
     stopPriceChartTimeline();
     chartXSeq = 0;
     if (priceChartSeries != null) {
@@ -334,11 +335,11 @@ public class AuctionRoomController implements Initializable {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  //  POLLING mỗi 5s
+  //  POLLING mỗi 1s (đồng bộ nhanh nếu push chậm / nhiều replica)
   // ─────────────────────────────────────────────────────────────────
 
   private void startPolling() {
-    pollingTimeline = new Timeline(new KeyFrame(Duration.seconds(5), e -> poll()));
+    pollingTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> poll()));
     pollingTimeline.setCycleCount(Timeline.INDEFINITE);
     pollingTimeline.play();
   }
@@ -372,7 +373,7 @@ public class AuctionRoomController implements Initializable {
 
   private void startRealtimeWatch(int id) {
     try {
-      realtimeSubscriber = new AuctionRealtimeSubscriber();
+      stopRealtimeWatch();
       realtimeSubscriber.start(id, envelope -> {
         if (envelope == null) {
           return;
@@ -396,9 +397,9 @@ public class AuctionRoomController implements Initializable {
   }
 
   private void stopRealtimeWatch() {
-    if (realtimeSubscriber != null) {
-      try { realtimeSubscriber.stop(); } catch (Exception ignored) {}
-    }
+    try {
+      realtimeSubscriber.stop();
+    } catch (Exception ignored) {}
   }
 
   // ─────────────────────────────────────────────────────────────────

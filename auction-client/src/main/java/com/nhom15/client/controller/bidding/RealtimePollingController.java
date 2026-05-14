@@ -15,8 +15,8 @@ import javafx.util.Duration;
  */
 public class RealtimePollingController {
 
-    /** Polling chậm hơn vì cập nhật chính đến từ push; vẫn giữ để tự hồi phục. */
-    private static final int POLL_INTERVAL_SEC = 5;
+    /** Polling 1s: dự phòng nhanh nếu kênh SUBSCRIBE / proxy mất push. */
+    private static final int POLL_INTERVAL_SEC = 1;
 
     private AuctionState state;
     private Timeline     poller;

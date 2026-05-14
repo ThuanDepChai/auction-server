@@ -98,6 +98,7 @@ public class AuctionServer {
 
       JsonObject response = requestHandler.handle(request);
       out.println(response.toString());
+      out.flush();
 
     } catch (Exception e) {
       System.err.println("❌ Lỗi khi xử lý request từ " + clientSocket.getInetAddress()
@@ -126,6 +127,7 @@ public class AuctionServer {
       err.addProperty("status", "FAIL");
       err.addProperty("message", "Thiếu auctionId");
       out.println(err);
+      out.flush();
       try {
         socket.close();
       } catch (IOException ignored) {
@@ -140,15 +142,26 @@ public class AuctionServer {
     ack.addProperty("message", "SUBSCRIBED");
     ack.addProperty("auctionId", auctionId);
     out.println(ack);
+    out.flush();
 
     AuctionRoomBroadcaster.INSTANCE.register(auctionId, out);
     try {
       String line;
       while ((line = in.readLine()) != null) {
-        JsonObject msg = JsonParser.parseString(line).getAsJsonObject();
-        String a = msg.has("action") ? msg.get("action").getAsString() : "";
-        if ("UNSUBSCRIBE_AUCTION".equals(a)) {
-          break;
+        String trimmed = line.trim();
+        if (trimmed.isEmpty()) {
+          continue;
+        }
+        try {
+          JsonObject msg = JsonParser.parseString(trimmed).getAsJsonObject();
+          String a = msg.has("action") ? msg.get("action").getAsString() : "";
+          if ("UNSUBSCRIBE_AUCTION".equals(a)) {
+            break;
+          }
+          // SUBSCRIBE_PING / dòng khác: giữ kết nối, không hủy đăng ký
+        } catch (com.google.gson.JsonSyntaxException ex) {
+          System.err.println("⚠️ Subscribe #" + auctionId + " bỏ qua dòng JSON lỗi: "
+                  + trimmed.substring(0, Math.min(80, trimmed.length())));
         }
       }
     } catch (Exception e) {
