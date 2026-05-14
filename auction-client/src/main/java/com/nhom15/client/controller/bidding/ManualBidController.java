@@ -38,6 +38,9 @@ public class ManualBidController {
     private AuctionState state;
     private java.util.function.DoubleConsumer onBidPlaced;
 
+    /** Tham chiếu đến polling controller để cập nhật newEndTime ngay sau bid. */
+    private RealtimePollingController pollingController;
+
     // ── Inject thủ công từ BiddingRoomController ──────────────────────────
 
     public void setNodes(
@@ -70,9 +73,11 @@ public class ManualBidController {
         bindLabelVisible(lblBidStatus);
     }
 
-    public void setup(AuctionState state, java.util.function.DoubleConsumer onBidPlaced) {
-        this.state       = state;
-        this.onBidPlaced = onBidPlaced;
+    public void setup(AuctionState state, java.util.function.DoubleConsumer onBidPlaced,
+                      RealtimePollingController pollingController) {
+        this.state             = state;
+        this.onBidPlaced       = onBidPlaced;
+        this.pollingController = pollingController;
         setupSlider();
         setupQuickBidButtons();
         refreshLabels();
@@ -127,7 +132,9 @@ public class ManualBidController {
                             if (ServerCommand.isSuccess(res)) {
                                 if (txtBidAmount != null) txtBidAmount.clear();
                                 showSuccess("✓ Đặt giá thành công!");
-                                if (onBidPlaced != null) onBidPlaced.accept(amount);
+                                // Cập nhật ngay: giá mới + end_time mới (nếu anti-sniping gia hạn)
+                                if (pollingController != null) pollingController.notifyBidResult(res);
+                                if (onBidPlaced != null) onBidPlaced.accept(state.getCurrentPrice());
                             } else {
                                 showError(ServerCommand.getMessage(res, "❌ Đặt giá thất bại!"));
                             }

@@ -174,9 +174,13 @@ public class AuctionDAO {
      */
     public JsonObject getAuctionById(int auctionId) {
         String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
-                "u.username as seller_name FROM auction a " +
+                "u.username AS seller_name, " +
+                "w.username AS leadingBidder, " +
+                "(SELECT COUNT(*) FROM bid b WHERE b.auction_id = a.auction_id) AS totalBids " +
+                "FROM auction a " +
                 "JOIN item i ON a.item_id = i.item_id " +
                 "JOIN user u ON a.seller_id = u.user_id " +
+                "LEFT JOIN user w ON a.winner_id = w.user_id " +
                 "WHERE a.auction_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -389,6 +393,71 @@ public class AuctionDAO {
         return result;
     }
 
+    // ── Anti-sniping helpers ─────────────────────────────────────────────────
+
+    /**
+     * Lấy min_step của phiên — dùng bởi AuctionManager khi kiểm tra auto-bid.
+     *
+     * @return min_step, hoặc 0 nếu không tìm thấy
+     */
+    public double getMinStep(int auctionId) {
+        String sql = "SELECT min_step FROM auction WHERE auction_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, auctionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble("min_step");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Số giây còn lại cho đến khi phiên kết thúc.
+     *
+     * @return số giây còn lại (≥ 0), hoặc -1 nếu phiên không tồn tại / đã kết thúc
+     */
+    public long getSecondsUntilEnd(int auctionId) {
+        String sql = "SELECT TIMESTAMPDIFF(SECOND, NOW(), end_time) AS secs "
+                + "FROM auction WHERE auction_id = ? AND status = 'ACTIVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, auctionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    long secs = rs.getLong("secs");
+                    return secs < 0 ? -1 : secs;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Gia hạn thời gian kết thúc của phiên thêm {@code extraSeconds} giây.
+     * Chỉ gia hạn khi phiên vẫn còn ACTIVE.
+     *
+     * @return true nếu gia hạn thành công
+     */
+    public boolean extendAuctionTime(int auctionId, int extraSeconds) {
+        String sql = "UPDATE auction "
+                + "SET end_time = DATE_ADD(end_time, INTERVAL ? SECOND) "
+                + "WHERE auction_id = ? AND status = 'ACTIVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, extraSeconds);
+            ps.setInt(2, auctionId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     /**
      * Kết thúc phiên đấu giá
      */
@@ -423,6 +492,27 @@ public class AuctionDAO {
         obj.addProperty("minStep", rs.getDouble("min_step"));
         obj.addProperty("endTime", rs.getString("end_time"));
         obj.addProperty("status", rs.getString("status"));
+        appendLeaderAndBidCount(rs, obj);
         return obj;
+    }
+
+    /** Chỉ thêm field khi có trong ResultSet (danh sách phiên active không SELECT cột này). */
+    private void appendLeaderAndBidCount(ResultSet rs, JsonObject obj) {
+        try {
+            String lb = rs.getString("leadingBidder");
+            if (lb != null && !lb.isEmpty()) {
+                obj.addProperty("leadingBidder", lb);
+            }
+        } catch (SQLException ignored) {
+            // cột không có trong query
+        }
+        try {
+            int n = rs.getInt("totalBids");
+            if (!rs.wasNull()) {
+                obj.addProperty("totalBids", n);
+            }
+        } catch (SQLException ignored) {
+            // cột không có trong query
+        }
     }
 }

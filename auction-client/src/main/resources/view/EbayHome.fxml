@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<ScrollPane fitToWidth="true" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.EbayHomeController">
+  <content>
+    <VBox alignment="TOP_CENTER" spacing="25.0" style="-fx-background-color: white;">
+      <padding>
+        <Insets bottom="30.0" left="40.0" right="40.0" top="10.0" />
+      </padding>
+
+      <HBox alignment="CENTER_LEFT" spacing="15.0">
+        <Label style="-fx-text-fill: #e53238; -fx-font-weight: bold;" text="ebay" textFill="#e53238">
+          <font>
+            <Font size="36.0" />
+          </font>
+        </Label>
+
+        <Label text="Shop by&#10;category" textFill="#555555" />
+
+        <HBox alignment="CENTER_LEFT" style="-fx-border-color: #555; -fx-border-width: 2; -fx-border-radius: 5;" HBox.hgrow="ALWAYS">
+          <TextField fx:id="searchField" promptText="Search for anything" style="-fx-background-color: transparent;" HBox.hgrow="ALWAYS">
+            <padding>
+              <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
+            </padding>
+            <font>
+              <Font size="14.0" />
+            </font>
+          </TextField>
+          <ComboBox fx:id="categoryCombo" prefWidth="150.0" promptText="All Categories" style="-fx-background-color: transparent; -fx-border-color: #ccc; -fx-border-width: 0 0 0 1;" />
+        </HBox>
+
+        <Button style="-fx-background-color: #3665f3; -fx-text-fill: white; -fx-background-radius: 20; -fx-font-weight: bold;" text="Search">
+          <padding>
+            <Insets bottom="10.0" left="30.0" right="30.0" top="10.0" />
+          </padding>
+          <font>
+            <Font size="14.0" />
+          </font>
+        </Button>
+        <Hyperlink text="Advanced" textFill="#555555" />
+      </HBox>
+
+      <HBox alignment="CENTER" spacing="20.0" style="-fx-border-color: #eee; -fx-border-width: 1 0 0 0; -fx-padding: 10 0 0 0;">
+        <Hyperlink text="Saved" textFill="#333333" />
+        <Hyperlink text="Electronics" textFill="#333333" />
+        <Hyperlink text="Motors" textFill="#333333" />
+        <Hyperlink text="Fashion" textFill="#333333" />
+        <Hyperlink text="Collectibles and art" textFill="#333333" />
+        <Hyperlink text="Sports" textFill="#333333" />
+        <Hyperlink text="Health and beauty" textFill="#333333" />
+        <Hyperlink text="Industrial equipment" textFill="#333333" />
+        <Hyperlink text="Home and garden" textFill="#333333" />
+        <Hyperlink text="Deals" textFill="#333333" />
+        <Hyperlink text="Sell" textFill="#333333" />
+      </HBox>
+
+      <AnchorPane prefHeight="250.0" style="-fx-background-color: #4b32c3; -fx-background-radius: 15;">
+        <VBox alignment="CENTER_LEFT" layoutX="40.0" layoutY="40.0" spacing="15.0">
+          <Label text="Free shipping. Global&#10;shopping." textFill="WHITE">
+            <font>
+              <Font name="System Bold" size="36.0" />
+            </font>
+          </Label>
+          <Label text="Shop internationally and enjoy free shipping on many items." textFill="WHITE">
+            <font>
+              <Font size="16.0" />
+            </font>
+          </Label>
+          <Button style="-fx-background-color: white; -fx-text-fill: #4b32c3; -fx-background-radius: 20; -fx-font-weight: bold;" text="Shop now">
+            <padding>
+              <Insets bottom="10.0" left="25.0" right="25.0" top="10.0" />
+            </padding>
+          </Button>
+        </VBox>
+      </AnchorPane>
+
+      <VBox spacing="15.0">
+        <Label text="The future in your hands">
+          <font>
+            <Font name="System Bold" size="20.0" />
+          </font>
+        </Label>
+        <ScrollPane hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-border-color: transparent;" vbarPolicy="NEVER">
+          <HBox fx:id="futureCategoriesContainer" spacing="15.0" />
+        </ScrollPane>
+      </VBox>
+
+      <VBox spacing="10.0">
+        <VBox spacing="5.0">
+          <Label text="Today's Deals">
+            <font>
+              <Font name="System Bold" size="20.0" />
+            </font>
+          </Label>
+          <Label text="All with free shipping" textFill="#555555" />
+        </VBox>
+        <ScrollPane hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-border-color: transparent;" vbarPolicy="NEVER">
+          <HBox fx:id="dealsContainer" spacing="15.0" />
+        </ScrollPane>
+      </VBox>
+
+      <VBox spacing="15.0">
+        <Label text="Trending on eBay">
+          <font>
+            <Font name="System Bold" size="20.0" />
+          </font>
+        </Label>
+        <ScrollPane hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-border-color: transparent;" vbarPolicy="NEVER">
+          <HBox fx:id="trendingContainer" spacing="15.0" />
+        </ScrollPane>
+      </VBox>
+
+    </VBox>
+  </content>
+</ScrollPane>

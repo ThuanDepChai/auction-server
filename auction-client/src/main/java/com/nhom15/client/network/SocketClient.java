@@ -18,6 +18,18 @@ public class SocketClient {
   // Timeout kết nối: 5 giây — tránh treo vô thời hạn khi server không trả lời TCP handshake
   private static final int CONNECT_TIMEOUT_MS = 5000;
 
+  public static String getServerHost() {
+    return SERVER_IP;
+  }
+
+  public static int getServerPort() {
+    return SERVER_PORT;
+  }
+
+  public static int getConnectTimeoutMs() {
+    return CONNECT_TIMEOUT_MS;
+  }
+
   // Timeout đọc: 15 giây — đủ cho các request nặng (tạo item, upload), ngắt sớm nếu server hang
   private static final int READ_TIMEOUT_MS = 15000;
 

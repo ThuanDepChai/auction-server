@@ -4,16 +4,22 @@ package com.nhom15.client.controller.bidding;
  * AuctionState — trạng thái chia sẻ giữa các sub-controller của BiddingRoom.
  *
  * Tất cả sub-controller đều giữ tham chiếu đến cùng 1 instance này,
- * đảm bảo currentPrice / minStep luôn nhất quán mà không cần truyền
+ * đảm bảo currentPrice / minStep / endTime luôn nhất quán mà không cần truyền
  * tham số qua lại.
  */
 public class AuctionState {
 
-    private int    auctionId;
-    private double currentPrice;
-    private double minStep      = 50_000;
+    private int     auctionId;
+    private double  currentPrice;
+    private double  minStep       = 50_000;
     private boolean autoBidActive = false;
     private boolean auctionEnded  = false;
+
+    /**
+     * Thời điểm kết thúc phiên (ISO string "yyyy-MM-dd HH:mm:ss").
+     * Được cập nhật bởi RealtimePollingController khi server gia hạn (anti-sniping).
+     */
+    private String endTime = "";
 
     // ── Getters / Setters ────────────────────────────────────────────────
 
@@ -31,6 +37,9 @@ public class AuctionState {
 
     public boolean isAuctionEnded()               { return auctionEnded; }
     public void    setAuctionEnded(boolean v)     { this.auctionEnded = v; }
+
+    public String getEndTime()                    { return endTime; }
+    public void   setEndTime(String t)            { this.endTime = (t != null) ? t : ""; }
 
     /** Giá tối thiểu hợp lệ cho lần đặt tiếp theo. */
     public double nextMinBid() {

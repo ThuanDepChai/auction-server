@@ -1,0 +1,689 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║     GEMINI — Live Auction Room  (AnchorPane 1280×900)    ║
+  ║     Controller: com.nhom15.client.controller             ║
+  ║                 .AuctionRoomController                   ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  fx:id catalogue
+  ──────────────────────────────────────────────────────────
+  lblCountdown        — real-time HH:MM:SS countdown label
+  lblSoftClose        — soft-close tooltip / sub-caption
+  lblCurrentBid       — highest bid amount (e.g. $15,800 USD)
+  lblBidStatus        — "Mức giá sàn đã đạt" status label
+  txtCustomBid        — free-text custom bid input field
+  btnQuickBid1/2/3    — +$500 / +$1,000 / +$2,500 quick buttons
+  btnConfirmBid       — primary "Xác nhận đặt giá" CTA
+  btnPlaceBid         — secondary "Đặt giá ngay" CTA
+  rowWinning          — green-highlighted winning bid row HBox
+  paneBackground      — animated background pane (code-driven)
+  btnLogin / btnRegister inherited from LoginController FXML pattern
+-->
+
+<AnchorPane fx:id="rootPane" prefHeight="900.0" prefWidth="1280.0" style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.AuctionRoomController">
+
+  <children>
+
+    <!-- ░░░ ANIMATED BACKGROUND LAYER ░░░ -->
+    <Pane fx:id="paneBackground" mouseTransparent="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+
+    <!-- ░░░ ROOT VERTICAL STACK ░░░ -->
+    <VBox spacing="0.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+
+      <!-- ══════════════════════════════════════════════════════
+           SECTION 1 ▸ HEADER / NAVIGATION BAR
+           ══════════════════════════════════════════════════════ -->
+      <HBox fx:id="headerBar" alignment="CENTER_LEFT" prefHeight="64.0" spacing="0.0" style="-fx-background-color: white;                  -fx-border-color: transparent transparent #E8EAED transparent;                  -fx-border-width: 0 0 1 0;">
+        <padding>
+          <Insets left="28.0" right="28.0" />
+        </padding>
+
+        <!-- ── Logo cluster ── -->
+        <HBox alignment="CENTER_LEFT" spacing="7.0">
+
+          <!-- Multi-colour star mark (gradient approximated via layered labels) -->
+          <StackPane prefHeight="28.0" prefWidth="28.0">
+                  <children>
+                     <ImageView fitHeight="44.0" fitWidth="38.0" pickOnBounds="true" preserveRatio="true" />
+                  </children>
+          </StackPane>
+
+          <Label style="-fx-text-fill: #202124;                         -fx-font-weight: bold;" text="Gemini">
+            <font><Font size="21.0" /></font>
+          </Label>
+        </HBox>
+
+        <!-- ── Spacer ── -->
+        <Region HBox.hgrow="ALWAYS" />
+
+        <!-- ── Nav links ── -->
+        <HBox alignment="CENTER" spacing="4.0">
+          <Button mnemonicParsing="false" style="-fx-background-color: transparent;                          -fx-text-fill: #202124;                          -fx-cursor: hand;                          -fx-font-size: 13.5;" text="Gói thuê bao">
+            <font><Font size="13.5" /></font>
+          </Button>
+          <Button mnemonicParsing="false" style="-fx-background-color: transparent;                          -fx-text-fill: #202124;                          -fx-cursor: hand;                          -fx-font-size: 13.5;" text="Tính năng mới  ▾">
+            <font><Font size="13.5" /></font>
+          </Button>
+        </HBox>
+
+        <!-- ── Spacer ── -->
+        <Region HBox.hgrow="ALWAYS" />
+
+        <!-- ── Social icons + CTA ── -->
+        <HBox alignment="CENTER" spacing="18.0">
+          <!-- Instagram -->
+          <Label style="-fx-text-fill: #606368;                         -fx-font-size: 18;                         -fx-cursor: hand;" text="◎">
+            <font><Font size="18.0" /></font>
+          </Label>
+          <!-- TikTok -->
+          <Label style="-fx-text-fill: #606368;                         -fx-font-size: 18;                         -fx-cursor: hand;" text="♩">
+            <font><Font size="18.0" /></font>
+          </Label>
+          <!-- Discord -->
+          <Label style="-fx-text-fill: #606368;                         -fx-font-size: 18;                         -fx-cursor: hand;" text="◈">
+            <font><Font size="18.0" /></font>
+          </Label>
+          <!-- X / Twitter -->
+          <Label style="-fx-text-fill: #606368;                         -fx-font-size: 18;                         -fx-cursor: hand;" text="✕">
+            <font><Font size="18.0" /></font>
+          </Label>
+        </HBox>
+
+      </HBox>
+      <!-- END HEADER -->
+
+
+      <!-- ══════════════════════════════════════════════════════
+           SECTION 2 ▸ LIVE STATUS RIBBON
+           ══════════════════════════════════════════════════════ -->
+      <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="12.0" style="-fx-background-color: white;                  -fx-border-color: transparent transparent #E8EAED transparent;                  -fx-border-width: 0 0 1 0;">
+        <padding>
+          <Insets left="28.0" right="28.0" />
+        </padding>
+
+        <!-- LIVE pill -->
+        <StackPane>
+          <Rectangle arcHeight="14.0" arcWidth="14.0" fill="#FF4444" height="24.0" width="64.0" />
+          <Label style="-fx-font-weight: bold; -fx-font-size: 11;" text="● LIVE" textFill="white">
+            <font><Font size="11.0" /></font>
+          </Label>
+        </StackPane>
+
+        <Label style="-fx-text-fill: #606368; -fx-font-size: 13;" text="Phiên đấu giá đang diễn ra · Lot 12">
+          <font><Font size="13.0" /></font>
+        </Label>
+
+        <Region HBox.hgrow="ALWAYS" />
+
+        <Label style="-fx-text-fill: #888888; -fx-font-size: 12;" text="👥  142 người đang xem">
+          <font><Font size="12.0" /></font>
+        </Label>
+      </HBox>
+      <!-- END RIBBON -->
+
+
+      <!-- ══════════════════════════════════════════════════════
+           SECTION 3 ▸ SCROLLABLE MAIN CONTENT
+           ══════════════════════════════════════════════════════ -->
+      <ScrollPane fitToWidth="true" style="-fx-background-color: #F4F7FC;                  -fx-background: #F4F7FC;                  -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
+
+        <content>
+
+          <VBox spacing="0.0" style="-fx-background-color: #F4F7FC;">
+            <padding>
+              <Insets bottom="48.0" left="40.0" right="40.0" top="28.0" />
+            </padding>
+
+            <!-- ┌────────────────────────────────────────────────────┐ -->
+            <!-- │         TWO-COLUMN AUCTION LAYOUT                  │ -->
+            <!-- └────────────────────────────────────────────────────┘ -->
+            <HBox spacing="24.0" VBox.vgrow="ALWAYS">
+
+              <!-- ═══════════════════════════════════════════════════
+                   LEFT COLUMN  ▸ Product Gallery + Info
+                   ═══════════════════════════════════════════════════ -->
+              <VBox spacing="18.0" HBox.hgrow="ALWAYS">
+
+                <!-- ── Main Watch Image Card ── -->
+                <StackPane prefHeight="360.0" style="-fx-background-color: white;                                   -fx-background-radius: 18;                                   -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.07),24,0,0,6);">
+
+                  <!-- Background gradient shimmer -->
+                  <!-- Decorative ring behind watch -->
+                  <Circle fill="transparent" opacity="0.5" radius="130.0" stroke="#E8EAED" strokeWidth="1.0" />
+
+                  <!-- Watch emoji placeholder (replace with ImageView in controller) -->
+                  <Label style="-fx-font-size: 160; -fx-opacity: 0.92;" text="⌚" />
+
+                  <!-- LOT badge -->
+                  <StackPane StackPane.alignment="TOP_LEFT">
+                    <Rectangle arcHeight="0.0" arcWidth="0.0" fill="#4285F4" height="28.0" width="72.0" />
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 11;" text="LOT 12" textFill="white">
+                      <font><Font size="11.0" /></font>
+                    </Label>
+                  </StackPane>
+
+                  <!-- Gemini accent star (top-right) -->
+                  <Label style="-fx-text-fill: #9B72CB;                                 -fx-font-size: 22;                                 -fx-opacity: 0.4;" text="✦" StackPane.alignment="TOP_RIGHT">
+                    <StackPane.margin><Insets right="16.0" top="12.0" /></StackPane.margin>
+                  </Label>
+
+                  <!-- Zoom hint -->
+                  <Label style="-fx-font-size: 18; -fx-opacity: 0.6; -fx-cursor: hand;" text="🔍" StackPane.alignment="BOTTOM_RIGHT">
+                    <StackPane.margin><Insets bottom="14.0" right="16.0" /></StackPane.margin>
+                  </Label>
+                </StackPane>
+
+                <!-- ── Thumbnail Strip ── -->
+                <HBox spacing="10.0">
+                  <!-- Thumb 1 — active / selected -->
+                  <StackPane prefHeight="68.0" prefWidth="68.0" style="-fx-background-color: #EEF3FE;                                     -fx-background-radius: 10;                                     -fx-border-color: #4285F4;                                     -fx-border-radius: 10;                                     -fx-border-width: 2.5;                                     -fx-cursor: hand;">
+                    <Label style="-fx-font-size: 30;" text="⌚" />
+                  </StackPane>
+                  <!-- Thumb 2 -->
+                  <StackPane prefHeight="68.0" prefWidth="68.0" style="-fx-background-color: white;                                     -fx-background-radius: 10;                                     -fx-border-color: #E8EAED;                                     -fx-border-radius: 10;                                     -fx-border-width: 1;                                     -fx-cursor: hand;">
+                    <Label style="-fx-font-size: 26; -fx-opacity: 0.65;" text="⌚" />
+                  </StackPane>
+                  <!-- Thumb 3 -->
+                  <StackPane prefHeight="68.0" prefWidth="68.0" style="-fx-background-color: white;                                     -fx-background-radius: 10;                                     -fx-border-color: #E8EAED;                                     -fx-border-radius: 10;                                     -fx-border-width: 1;                                     -fx-cursor: hand;">
+                    <Label style="-fx-font-size: 26; -fx-opacity: 0.65;" text="⌚" />
+                  </StackPane>
+                  <!-- Thumb 4 -->
+                  <StackPane prefHeight="68.0" prefWidth="68.0" style="-fx-background-color: white;                                     -fx-background-radius: 10;                                     -fx-border-color: #E8EAED;                                     -fx-border-radius: 10;                                     -fx-border-width: 1;                                     -fx-cursor: hand;">
+                    <Label style="-fx-font-size: 26; -fx-opacity: 0.65;" text="⌚" />
+                  </StackPane>
+                  <!-- Thumb 5 -->
+                  <StackPane prefHeight="68.0" prefWidth="68.0" style="-fx-background-color: white;                                     -fx-background-radius: 10;                                     -fx-border-color: #E8EAED;                                     -fx-border-radius: 10;                                     -fx-border-width: 1;                                     -fx-cursor: hand;">
+                    <Label style="-fx-font-size: 26; -fx-opacity: 0.65;" text="⌚" />
+                  </StackPane>
+                </HBox>
+
+                <!-- ── Product Information Card ── -->
+                <VBox spacing="14.0" style="-fx-background-color: white;                              -fx-background-radius: 18;                              -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),20,0,0,4);">
+                  <padding>
+                    <Insets bottom="26.0" left="26.0" right="26.0" top="26.0" />
+                  </padding>
+
+                  <!-- Title -->
+                  <Label style="-fx-text-fill: #202124;                                 -fx-font-weight: bold;" text="Lot 12: Đồng hồ Patek Philippe Calatrava Cổ điển" wrapText="true">
+                    <font><Font size="23.0" /></font>
+                  </Label>
+
+                  <!-- Description -->
+                  <Label style="-fx-text-fill: #606368; -fx-line-spacing: 3;" text="Đồng hồ Patek Philippe Calatrava Cổ điển. Em sở minh, cống giá tiếng Pháp; dương nữa hàng kinh. Đồng hồ đã hiện giá cao có các sàn trong thất giá hầm sản thực màng cao khú ninh hạnh lịch rộng bạn.in tả nhận đoàn trọc tin bạn nhận — một trong những tác phẩm đồng hồ đẹp nhất thế kỷ 21." wrapText="true">
+                    <font><Font size="13.5" /></font>
+                  </Label>
+
+                  <!-- Verified Badge -->
+                  <HBox alignment="CENTER_LEFT" spacing="0.0">
+                    <VBox.margin><Insets top="2.0" /></VBox.margin>
+                    <StackPane>
+                      <Rectangle arcHeight="22.0" arcWidth="22.0" fill="#E8F5E9" height="34.0" width="226.0" />
+                      <HBox alignment="CENTER_LEFT" spacing="7.0">
+                        <padding>
+                          <Insets left="13.0" right="13.0" />
+                        </padding>
+                        <Label style="-fx-text-fill: #34A853;                                       -fx-font-weight: bold;                                       -fx-font-size: 14;" text="✓">
+                          <font><Font size="14.0" /></font>
+                        </Label>
+                        <Label style="-fx-text-fill: #34A853;                                       -fx-font-size: 13;                                       -fx-font-weight: bold;" text="Đã xác minh tính xác thực">
+                          <font><Font size="13.0" /></font>
+                        </Label>
+                      </HBox>
+                    </StackPane>
+                  </HBox>
+
+                  <Separator style="-fx-opacity: 0.4;" />
+
+                  <!-- Specs Grid (2×2) -->
+                  <GridPane hgap="10.0" vgap="10.0">
+                    <columnConstraints>
+                      <ColumnConstraints percentWidth="50.0" />
+                      <ColumnConstraints percentWidth="50.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                      <RowConstraints />
+                      <RowConstraints />
+                    </rowConstraints>
+
+                    <!-- Cell: Brand -->
+                    <VBox spacing="3.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 10;" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
+                      <Label style="-fx-text-fill: #888888; -fx-font-size: 11;" text="Thương hiệu">
+                        <font><Font size="11.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-weight: bold;                                     -fx-font-size: 14;" text="Patek Philippe">
+                        <font><Font size="14.0" /></font>
+                      </Label>
+                    </VBox>
+
+                    <!-- Cell: Model -->
+                    <VBox spacing="3.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 10;" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
+                      <Label style="-fx-text-fill: #888888; -fx-font-size: 11;" text="Model">
+                        <font><Font size="11.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-weight: bold;                                     -fx-font-size: 14;" text="Calatrava 5119J">
+                        <font><Font size="14.0" /></font>
+                      </Label>
+                    </VBox>
+
+                    <!-- Cell: Year -->
+                    <VBox spacing="3.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 10;" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
+                      <Label style="-fx-text-fill: #888888; -fx-font-size: 11;" text="Năm sản xuất">
+                        <font><Font size="11.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-weight: bold;                                     -fx-font-size: 14;" text="2008">
+                        <font><Font size="14.0" /></font>
+                      </Label>
+                    </VBox>
+
+                    <!-- Cell: Condition -->
+                    <VBox spacing="3.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 10;" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
+                      <Label style="-fx-text-fill: #888888; -fx-font-size: 11;" text="Tình trạng">
+                        <font><Font size="11.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-weight: bold;                                     -fx-font-size: 14;" text="Xuất sắc ★★★★★">
+                        <font><Font size="14.0" /></font>
+                      </Label>
+                    </VBox>
+                  </GridPane>
+
+                </VBox>
+                <!-- END PRODUCT INFO CARD -->
+
+                <!-- ── Related Lots Section ── -->
+                <VBox spacing="12.0">
+                  <Label style="-fx-text-fill: #202124; -fx-font-weight: bold;" text="Các lot liên quan">
+                    <font><Font size="17.0" /></font>
+                  </Label>
+
+                  <HBox spacing="12.0">
+
+                    <!-- Related Lot 1 -->
+                    <VBox spacing="8.0" style="-fx-background-color: white;                                  -fx-background-radius: 14;                                  -fx-cursor: hand;                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),12,0,0,2);" HBox.hgrow="ALWAYS">
+                      <padding><Insets bottom="14.0" left="14.0" right="14.0" top="14.0" /></padding>
+                      <Label style="-fx-font-size: 40;" text="⌚" />
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-size: 12;                                     -fx-font-weight: bold;" text="Lot 12: Đồng hồ Patek Philippe Calatrava Cổ điển" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #4285F4;                                     -fx-font-size: 12;                                     -fx-cursor: hand;" text="Link thành link →">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                    </VBox>
+
+                    <!-- Related Lot 2 -->
+                    <VBox spacing="8.0" style="-fx-background-color: white;                                  -fx-background-radius: 14;                                  -fx-cursor: hand;                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),12,0,0,2);" HBox.hgrow="ALWAYS">
+                      <padding><Insets bottom="14.0" left="14.0" right="14.0" top="14.0" /></padding>
+                      <Label style="-fx-font-size: 40;" text="⌚" />
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-size: 12;                                     -fx-font-weight: bold;" text="Lot 13: Đồng hồ Patek Philippe Calatrava Cổ điển" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #4285F4;                                     -fx-font-size: 12;                                     -fx-cursor: hand;" text="Link thính link →">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                    </VBox>
+
+                    <!-- Related Lot 3 -->
+                    <VBox spacing="8.0" style="-fx-background-color: white;                                  -fx-background-radius: 14;                                  -fx-cursor: hand;                                  -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.05),12,0,0,2);" HBox.hgrow="ALWAYS">
+                      <padding><Insets bottom="14.0" left="14.0" right="14.0" top="14.0" /></padding>
+                      <Label style="-fx-font-size: 40;" text="⌚" />
+                      <Label style="-fx-text-fill: #202124;                                     -fx-font-size: 12;                                     -fx-font-weight: bold;" text="Lot 14: Đồng hồ Patek Philippe Calatrava Cổ điển" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                      <Label style="-fx-text-fill: #4285F4;                                     -fx-font-size: 12;                                     -fx-cursor: hand;" text="Link thính link →">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                    </VBox>
+
+                  </HBox>
+                </VBox>
+
+              </VBox>
+              <!-- END LEFT COLUMN -->
+
+
+              <!-- ═══════════════════════════════════════════════════
+                   RIGHT COLUMN  ▸ Auction Control Panel
+                   Fixed width 370px — the financial trading panel
+                   ═══════════════════════════════════════════════════ -->
+              <VBox minWidth="350.0" prefWidth="370.0" spacing="16.0">
+
+                <!-- Panel title + star accent -->
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
+                  <Label style="-fx-text-fill: #9B72CB;                                 -fx-font-size: 16;" text="✦">
+                    <font><Font size="16.0" /></font>
+                  </Label>
+                  <Label style="-fx-text-fill: #202124;                                 -fx-font-weight: bold;" text="Auction Control Panel">
+                    <font><Font size="18.0" /></font>
+                  </Label>
+                </HBox>
+
+
+                <!-- ┌──────────────────────────────────────────────┐ -->
+                <!-- │  COUNTDOWN TIMER + CURRENT BID CARD          │ -->
+                <!-- └──────────────────────────────────────────────┘ -->
+                <VBox spacing="0.0" style="-fx-background-color: white;                              -fx-background-radius: 18;                              -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.09),24,0,0,6);">
+
+                  <!-- ▌TIMER section — gradient bg ▌ -->
+                  <StackPane prefHeight="116.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570);                                     -fx-background-radius: 18 18 0 0;">
+
+                    <!-- Decorative glow ring -->
+                    <Circle fill="transparent" opacity="0.15" radius="44.0" stroke="white" strokeWidth="1.0" />
+
+                    <VBox alignment="CENTER" spacing="5.0">
+                      <!-- Countdown digits -->
+                      <Label fx:id="lblCountdown" style="-fx-font-weight: bold;                                     -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.25),8,0,0,3);" text="00:00:24" textFill="white">
+                        <font><Font size="54.0" /></font>
+                      </Label>
+
+                      <!-- Soft-close sub-label -->
+                      <HBox alignment="CENTER" spacing="5.0">
+                        <Label style="-fx-font-size: 11; -fx-opacity: 0.9;" text="⚠" textFill="white">
+                          <font><Font size="11.0" /></font>
+                        </Label>
+                        <Label fx:id="lblSoftClose" style="-fx-font-size: 11; -fx-opacity: 0.9;" text="Luật Soft Close — Đếm ngược 30 giây" textFill="white">
+                          <font><Font size="11.0" /></font>
+                        </Label>
+                      </HBox>
+                    </VBox>
+
+                    <!-- Red pulse dot (top-right corner) -->
+                    <Circle fx:id="dotPulse" fill="#FF3333" radius="5.5" StackPane.alignment="TOP_RIGHT">
+                      <StackPane.margin>
+                        <Insets right="14.0" top="13.0" />
+                      </StackPane.margin>
+                    </Circle>
+                  </StackPane>
+                  <!-- END TIMER -->
+
+                  <!-- ▌CURRENT BID section ▌ -->
+                  <VBox alignment="CENTER" spacing="4.0" style="-fx-background-color: white;                                -fx-background-radius: 0 0 18 18;">
+                    <padding>
+                      <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                    </padding>
+
+                    <Label style="-fx-text-fill: #888888; -fx-font-size: 12.5;" text="Mức giá cao nhất hiện tại">
+                      <font><Font size="40.0" /></font>
+                    </Label>
+
+                    <Label fx:id="lblCurrentBid" style="-fx-text-fill: #1A73E8;                                   -fx-font-weight: bold;" text="">
+                      <font><Font size="36.0" /></font>
+                    </Label>
+
+                    <HBox alignment="CENTER" spacing="5.0">
+                      <Label style="-fx-text-fill: #34A853;                                     -fx-font-weight: bold;                                     -fx-font-size: 12;" text="✓">
+                        <font><Font size="12.0" /></font>
+                      </Label>
+                      <Label fx:id="lblBidStatus" style="-fx-text-fill: #34A853;                                     -fx-font-size: 12.5;                                     -fx-font-weight: bold;" text="Mức giá sàn đã đạt">
+                        <font><Font size="12.5" /></font>
+                      </Label>
+                    </HBox>
+                  </VBox>
+
+                </VBox>
+                <!-- END TIMER+BID CARD -->
+
+
+                <!-- ┌──────────────────────────────────────────────┐ -->
+                <!-- │  BIDDING CONTROLS CARD                        │ -->
+                <!-- └──────────────────────────────────────────────┘ -->
+                <VBox spacing="14.0" style="-fx-background-color: white;                              -fx-background-radius: 18;                              -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),20,0,0,4);">
+                  <padding>
+                    <Insets bottom="22.0" left="20.0" right="20.0" top="20.0" />
+                  </padding>
+
+                  <!-- Increment rule notice -->
+                  <HBox alignment="CENTER_LEFT" spacing="6.0" style="-fx-background-color: #F4F7FC;                                -fx-background-radius: 8;">
+                    <padding>
+                      <Insets bottom="9.0" left="12.0" right="12.0" top="9.0" />
+                    </padding>
+                    <Label style="-fx-font-size: 13;" text="📋">
+                      <font><Font size="13.0" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="Bước giá tối thiểu:">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #202124;                                   -fx-font-weight: bold;                                   -fx-font-size: 13;" text="">
+                      <font><Font size="13.0" /></font>
+                    </Label>
+                  </HBox>
+
+                  <!-- Quick-Bid 3 Buttons (+1 / +2 / +3 increment) -->
+                  <HBox spacing="8.0">
+
+                    <!-- +$500  (1× increment) -->
+                    <Button fx:id="btnQuickBid1" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleQuickBid1" prefHeight="42.0" style="-fx-background-color: #EEF3FE;                                    -fx-text-fill: #4285F4;                                    -fx-font-weight: bold;                                    -fx-background-radius: 21;                                    -fx-cursor: hand;                                    -fx-font-size: 13;" text="+$500" HBox.hgrow="ALWAYS">
+                      <font><Font size="13.0" /></font>
+                    </Button>
+
+                    <!-- +$1,000  (2× increment) -->
+                    <Button fx:id="btnQuickBid2" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleQuickBid2" prefHeight="42.0" style="-fx-background-color: #F3EEFB;                                    -fx-text-fill: #9B72CB;                                    -fx-font-weight: bold;                                    -fx-background-radius: 21;                                    -fx-cursor: hand;                                    -fx-font-size: 13;" text="+$1,000" HBox.hgrow="ALWAYS">
+                      <font><Font size="13.0" /></font>
+                    </Button>
+
+                    <!-- +$2,500  (5× increment) -->
+                    <Button fx:id="btnQuickBid3" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleQuickBid3" prefHeight="42.0" style="-fx-background-color: #FDEEF0;                                    -fx-text-fill: #D96570;                                    -fx-font-weight: bold;                                    -fx-background-radius: 21;                                    -fx-cursor: hand;                                    -fx-font-size: 13;" text="+$2,500" HBox.hgrow="ALWAYS">
+                      <font><Font size="13.0" /></font>
+                    </Button>
+
+                  </HBox>
+
+                  <!-- Custom Bid Input -->
+                  <TextField fx:id="txtCustomBid" maxWidth="Infinity" prefHeight="46.0" promptText="Custom nhập giá (VD: 16500)" style="-fx-background-color: #F4F7FC;                                     -fx-background-radius: 23;                                     -fx-border-color: #E8EAED;                                     -fx-border-radius: 23;                                     -fx-border-width: 1.5;                                     -fx-padding: 0 18 0 18;                                     -fx-font-size: 13.5;">
+                    <font><Font size="13.5" /></font>
+                  </TextField>
+
+                  <!-- Primary CTA — Confirm Bid -->
+                  <Button fx:id="btnConfirmBid" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleConfirmBid" prefHeight="50.0" style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB);                                  -fx-background-radius: 25;                                  -fx-text-fill: white;                                  -fx-font-weight: bold;                                  -fx-cursor: hand;                                  -fx-font-size: 14.5;" text="Xác nhận đặt giá">
+                    <font><Font size="14.5" /></font>
+                    <effect>
+                      <DropShadow height="14.0" offsetY="4.0" radius="7.0" width="14.0">
+                        <color>
+                          <Color red="0.26" green="0.32" blue="0.91" opacity="0.38" />
+                        </color>
+                      </DropShadow>
+                    </effect>
+                  </Button>
+
+                  <!-- Secondary CTA — Quick Place Bid -->
+                  <Button fx:id="btnPlaceBid" maxWidth="Infinity" mnemonicParsing="false" onAction="#handlePlaceBid" prefHeight="46.0" style="-fx-background-color: #FFFFFF;                                  -fx-border-color: #4285F4;                                  -fx-border-radius: 23;                                  -fx-background-radius: 23;                                  -fx-border-width: 1.8;                                  -fx-text-fill: #4285F4;                                  -fx-font-weight: bold;                                  -fx-cursor: hand;                                  -fx-font-size: 13.5;" text="Đặt giá ngay">
+                    <font><Font size="13.5" /></font>
+                  </Button>
+
+                </VBox>
+                <!-- END BIDDING CONTROLS CARD -->
+
+
+                <!-- ┌──────────────────────────────────────────────┐ -->
+                <!-- │  LIVE BID HISTORY LEDGER CARD                 │ -->
+                <!-- └──────────────────────────────────────────────┘ -->
+                <VBox spacing="0.0" style="-fx-background-color: white;                              -fx-background-radius: 18;                              -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),20,0,0,4);">
+
+                  <!-- Card header -->
+                  <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <padding>
+                      <Insets bottom="12.0" left="18.0" right="18.0" top="16.0" />
+                    </padding>
+                    <Label style="-fx-text-fill: #202124; -fx-font-weight: bold;" text="Lịch sử đấu giá">
+                      <font><Font size="15.0" /></font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <!-- Live pulse indicator -->
+                    <HBox alignment="CENTER" spacing="4.0">
+                      <Circle fill="#FF4444" radius="4.5" />
+                      <Label style="-fx-text-fill: #FF4444;                                     -fx-font-size: 11;                                     -fx-font-weight: bold;" text="Trực tiếp">
+                        <font><Font size="11.0" /></font>
+                      </Label>
+                    </HBox>
+                  </HBox>
+
+                  <!-- Table column headers -->
+                  <HBox style="-fx-background-color: #F4F7FC;">
+                    <padding>
+                      <Insets bottom="8.0" left="18.0" right="18.0" top="8.0" />
+                    </padding>
+                    <Label prefWidth="88.0" style="-fx-text-fill: #888888;                                   -fx-font-size: 11;                                   -fx-font-weight: bold;" text="Thời gian">
+                      <font><Font size="11.0" /></font>
+                    </Label>
+                    <Label prefWidth="100.0" style="-fx-text-fill: #888888;                                   -fx-font-size: 11;                                   -fx-font-weight: bold;" text="Người dùng">
+                      <font><Font size="11.0" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #888888;                                   -fx-font-size: 11;                                   -fx-font-weight: bold;" text="Số tiền">
+                      <font><Font size="11.0" /></font>
+                    </Label>
+                  </HBox>
+
+                  <!-- ▌ROW 1 — Winning / highest bid (green highlight) ▌ -->
+                  <HBox fx:id="rowWinning" alignment="CENTER_LEFT" style="-fx-background-color: #E8F5E9;">
+                    <padding>
+                      <Insets bottom="11.0" left="18.0" right="18.0" top="11.0" />
+                    </padding>
+                    <Label prefWidth="88.0" style="-fx-text-fill: #2E7D32;                                   -fx-font-size: 12.5;                                   -fx-font-weight: bold;" text="00:22:30">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label prefWidth="100.0" style="-fx-text-fill: #2E7D32;                                   -fx-font-size: 12.5;                                   -fx-font-weight: bold;" text="N***A">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #2E7D32;                                   -fx-font-size: 12.5;                                   -fx-font-weight: bold;" text="">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                  </HBox>
+
+                  <!-- ▌ROW 2 ▌ -->
+                  <HBox alignment="CENTER_LEFT">
+                    <padding>
+                      <Insets bottom="9.0" left="18.0" right="18.0" top="9.0" />
+                    </padding>
+                    <Label prefWidth="88.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="00:22:39">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label prefWidth="100.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="N***B">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="17,000 USD">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                  </HBox>
+
+                  <Separator style="-fx-opacity: 0.35;" />
+
+                  <!-- ▌ROW 3 ▌ -->
+                  <HBox alignment="CENTER_LEFT">
+                    <padding>
+                      <Insets bottom="9.0" left="18.0" right="18.0" top="9.0" />
+                    </padding>
+                    <Label prefWidth="88.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="00:21:55">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label prefWidth="100.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="T***C">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="15,300 USD">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                  </HBox>
+
+                  <!-- ▌ROW 4 ▌ -->
+                  <HBox alignment="CENTER_LEFT">
+                    <padding>
+                      <Insets bottom="9.0" left="18.0" right="18.0" top="9.0" />
+                    </padding>
+                    <Label prefWidth="88.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="00:21:10">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label prefWidth="100.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="M***D">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                  </HBox>
+
+                  <!-- ▌ROW 5 ▌ -->
+                  <HBox alignment="CENTER_LEFT">
+                    <padding>
+                      <Insets bottom="9.0" left="18.0" right="18.0" top="9.0" />
+                    </padding>
+                    <Label prefWidth="88.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="00:20:45">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label prefWidth="100.0" style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="P***E">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #606368; -fx-font-size: 12.5;" text="14,300 USD">
+                      <font><Font size="12.5" /></font>
+                    </Label>
+                  </HBox>
+
+                  <!-- View-all link -->
+                  <Button maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: transparent;                                  -fx-text-fill: #4285F4;                                  -fx-cursor: hand;                                  -fx-font-size: 12.5;                                  -fx-font-weight: bold;" text="Xem tất cả lịch sử  →">
+                    <font><Font size="12.5" /></font>
+                    <padding>
+                      <Insets bottom="14.0" left="18.0" right="18.0" top="12.0" />
+                    </padding>
+                  </Button>
+
+                </VBox>
+                <!-- END BID HISTORY CARD -->
+
+
+                <!-- ┌──────────────────────────────────────────────┐ -->
+                <!-- │  USER STATUS / DEPOSIT BANNER                 │ -->
+                <!-- └──────────────────────────────────────────────┘ -->
+                <HBox alignment="CENTER_LEFT" spacing="12.0" style="-fx-background-color: #FFF8E1;                              -fx-background-radius: 14;                              -fx-border-color: #FFCA28;                              -fx-border-radius: 14;                              -fx-border-width: 1;">
+                  <padding>
+                    <Insets bottom="14.0" left="16.0" right="16.0" top="14.0" />
+                  </padding>
+
+                  <!-- Lock icon -->
+                  <Label style="-fx-font-size: 22;" text="🔒">
+                    <font><Font size="22.0" /></font>
+                  </Label>
+
+                  <!-- Status messages -->
+                  <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+                    <Label style="-fx-text-fill: #795548;                                   -fx-font-size: 12;                                   -fx-font-weight: bold;" text="Số tiền đặt trước $1,000 của bạn đã được khóa." wrapText="true">
+                      <font><Font size="12.0" /></font>
+                    </Label>
+                    <Label style="-fx-text-fill: #34A853;                                   -fx-font-size: 12;                                   -fx-font-weight: bold;" text="Bạn đủ điều kiện tham gia.">
+                      <font><Font size="12.0" /></font>
+                    </Label>
+                  </VBox>
+
+                  <!-- Vietnam Flag Badge -->
+                  <Label style="-fx-font-size: 24;                                 -fx-cursor: hand;" text="🇻🇳">
+                    <font><Font size="24.0" /></font>
+                  </Label>
+
+                </HBox>
+                <!-- END USER STATUS BANNER -->
+
+              </VBox>
+              <!-- END RIGHT COLUMN -->
+
+            </HBox>
+            <!-- END TWO-COLUMN LAYOUT -->
+
+          </VBox>
+        </content>
+      </ScrollPane>
+      <!-- END SCROLL CONTENT -->
+
+    </VBox>
+    <!-- END ROOT VBOX -->
+
+  </children>
+</AnchorPane>

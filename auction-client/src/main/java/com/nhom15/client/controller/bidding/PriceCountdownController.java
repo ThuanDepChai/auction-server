@@ -198,6 +198,22 @@ public class PriceCountdownController {
                     java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
     }
 
+    /**
+     * Hiển thị banner thông báo anti-sniping khi server gia hạn thời gian.
+     * Gọi từ BiddingRoomController.onEndTimeChanged().
+     */
+    public void showAntiSnipeAlert() {
+        if (lblAntiSnipe == null) return;
+        lblAntiSnipe.setText("⚡ Phiên được gia hạn do có bid mới cuối giờ!");
+        lblAntiSnipe.setStyle(
+                "-fx-text-fill:#FFFFFF;-fx-background-color:#E67E22;" +
+                        "-fx-background-radius:6;-fx-padding:4 12;-fx-font-weight:bold;");
+        lblAntiSnipe.setVisible(true);
+        // Tự ẩn sau 8 giây
+        new Timeline(new KeyFrame(Duration.seconds(8),
+                e -> lblAntiSnipe.setVisible(false))).play();
+    }
+
     // ── Private ───────────────────────────────────────────────────────────
 
     private void tickCountdown(LocalDateTime endTime) {
