@@ -9,6 +9,8 @@
 <?import javafx.scene.paint.*?>
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
 
 <!--
   ╔══════════════════════════════════════════════════════════╗
@@ -29,7 +31,8 @@
   btnPlaceBid         — secondary "Đặt giá ngay" CTA
   rowWinning          — green-highlighted winning bid row HBox
   paneBackground      — animated background pane (code-driven)
-  btnLogin / btnRegister inherited from LoginController FXML pattern
+  chartPriceLive      — biểu đồ giá live (1s + mỗi bid)
+  btnCloseRoom        — đóng phòng (header phải, dấu ✕)
 -->
 
 <AnchorPane fx:id="rootPane" prefHeight="900.0" prefWidth="1280.0" style="-fx-background-color: #F4F7FC;" stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.nhom15.client.controller.AuctionRoomController">
@@ -52,21 +55,6 @@
 
         <!-- ── Logo cluster ── -->
         <HBox alignment="CENTER_LEFT" spacing="7.0">
-
-          <!-- ◀ Nút Quay lại -->
-          <Button fx:id="btnBack" mnemonicParsing="false" onAction="#handleBack"
-                  style="-fx-background-color: #F4F7FC;
-                         -fx-text-fill: #4285F4;
-                         -fx-cursor: hand;
-                         -fx-font-size: 13;
-                         -fx-font-weight: bold;
-                         -fx-background-radius: 20;
-                         -fx-border-color: #4285F4;
-                         -fx-border-radius: 20;
-                         -fx-border-width: 1.5;"
-                  text="◀ Quay lại">
-            <font><Font size="13.0" /></font>
-          </Button>
 
           <!-- Multi-colour star mark (gradient approximated via layered labels) -->
           <StackPane prefHeight="28.0" prefWidth="28.0">
@@ -109,10 +97,13 @@
           <Label style="-fx-text-fill: #606368;                         -fx-font-size: 18;                         -fx-cursor: hand;">
             <font><Font size="18.0" /></font>
           </Label>
-          <!-- X / Twitter -->
-          <Label style="-fx-text-fill: #606368;                         -fx-font-size: 18;                         -fx-cursor: hand;" text="✕">
+          <!-- Đóng phòng đấu giá -->
+          <Button fx:id="btnCloseRoom" mnemonicParsing="false" onAction="#handleCloseRoom"
+                  focusTraversable="false"
+                  style="-fx-background-color: transparent; -fx-text-fill: #606368; -fx-cursor: hand; -fx-font-size: 18; -fx-padding: 4 10 4 10; -fx-min-width: 36; -fx-min-height: 36;"
+                  text="✕">
             <font><Font size="18.0" /></font>
-          </Label>
+          </Button>
         </HBox>
 
       </HBox>
@@ -524,6 +515,35 @@
 
                 </VBox>
                 <!-- END BIDDING CONTROLS CARD -->
+
+
+                <!-- ┌──────────────────────────────────────────────┐ -->
+                <!-- │  LIVE PRICE CHART (1s + mỗi bid mới)          │ -->
+                <!-- └──────────────────────────────────────────────┘ -->
+                <VBox spacing="10.0" style="-fx-background-color: white;                              -fx-background-radius: 18;                              -fx-effect: dropshadow(gaussian,rgba(0,0,0,0.06),20,0,0,4);">
+                  <padding>
+                    <Insets bottom="16.0" left="16.0" right="16.0" top="16.0" />
+                  </padding>
+                  <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <Label style="-fx-text-fill: #1A73E8; -fx-font-size: 15; -fx-font-weight: bold;" text="📈 Biểu đồ giá (live)">
+                      <font><Font size="15.0" /></font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="lblChartLastUpdate" style="-fx-text-fill: #888888; -fx-font-size: 11;" text="—">
+                      <font><Font size="11.0" /></font>
+                    </Label>
+                  </HBox>
+                  <LineChart fx:id="chartPriceLive" animated="false" createSymbols="true" legendVisible="false"
+                             minHeight="180.0" prefHeight="220.0" style="-fx-background-color: transparent; -fx-padding: 0; -fx-font-size: 11;"
+                             verticalGridLinesVisible="true" horizontalGridLinesVisible="true">
+                    <xAxis>
+                      <NumberAxis fx:id="axisChartX" side="BOTTOM" label="Mốc (1s / bid)" />
+                    </xAxis>
+                    <yAxis>
+                      <NumberAxis fx:id="axisChartY" side="LEFT" label="Giá (USD)" />
+                    </yAxis>
+                  </LineChart>
+                </VBox>
 
 
                 <!-- ┌──────────────────────────────────────────────┐ -->

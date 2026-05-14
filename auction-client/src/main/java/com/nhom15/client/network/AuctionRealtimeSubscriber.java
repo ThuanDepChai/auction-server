@@ -36,6 +36,7 @@ public final class AuctionRealtimeSubscriber {
       s.connect(
           new InetSocketAddress(SocketClient.getServerHost(), SocketClient.getServerPort()),
           SocketClient.getConnectTimeoutMs());
+      s.setTcpNoDelay(true);
       s.setSoTimeout(0);
 
       try (BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));

@@ -54,6 +54,7 @@ public class AuctionServer {
 
       while (true) {
         Socket clientSocket = serverSocket.accept();
+        clientSocket.setTcpNoDelay(true);
         System.out.println("🔌 Client mới kết nối: " + clientSocket.getInetAddress());
         // Submit vào pool — không tạo thread mới vô hạn, tránh server crash
         threadPool.submit(() -> handleClientConnection(clientSocket));

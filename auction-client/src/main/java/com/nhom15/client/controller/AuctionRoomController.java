@@ -16,6 +16,9 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -40,7 +43,9 @@ public class AuctionRoomController implements Initializable {
 
   private static final DateTimeFormatter DT_FMT =
           DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private static final DateTimeFormatter CHART_TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
   private static final int SOFT_CLOSE_SECONDS = 30;
+  private static final int MAX_CHART_POINTS = 120;
 
   // ── FXML nodes ──────────────────────────────────────────────────
   @FXML private Label      lblCountdown;
@@ -62,8 +67,12 @@ public class AuctionRoomController implements Initializable {
   @FXML private Label      lblProductName;
   @FXML private Label      lblProductDesc;
   @FXML private Label      lblViewerCount;
-  @FXML private Button     btnBack;
+  @FXML private Button     btnCloseRoom;
   @FXML private StackPane  timerPane;
+  @FXML private LineChart<Number, Number> chartPriceLive;
+  @FXML private NumberAxis axisChartX;
+  @FXML private NumberAxis axisChartY;
+  @FXML private Label      lblChartLastUpdate;
 
   // ── State ────────────────────────────────────────────────────────
   private int            auctionId     = 0;
@@ -78,6 +87,9 @@ public class AuctionRoomController implements Initializable {
   private AnimationTimer bgAnimationTimer;
   private MediaPlayer    gifPlayer;
   private AuctionRealtimeSubscriber realtimeSubscriber;
+  private XYChart.Series<Number, Number> priceChartSeries;
+  private Timeline                 chartTimeline;
+  private int                      chartXSeq = 0;
 
   private final NumberFormat currencyFmt = NumberFormat.getNumberInstance(Locale.US);
 
@@ -92,6 +104,7 @@ public class AuctionRoomController implements Initializable {
     startBackgroundAnimation();
     attachNumericFilter();
     playGifBackground();
+    setupPriceChart();
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -99,6 +112,11 @@ public class AuctionRoomController implements Initializable {
   // ─────────────────────────────────────────────────────────────────
 
   public void setAuctionId(int id) {
+    stopPriceChartTimeline();
+    chartXSeq = 0;
+    if (priceChartSeries != null) {
+      priceChartSeries.getData().clear();
+    }
     this.auctionId = id;
     loadAuctionDetail();
     loadBidHistory();
@@ -174,6 +192,7 @@ public class AuctionRoomController implements Initializable {
             System.err.println("[AuctionRoom] endTime parse lỗi: " + endStr);
           }
         }
+        seedPriceChartFromCurrentState();
       });
 
       String imageId = str(a, "imageId", str(a, "imagePath", str(a, "image", null)));
@@ -184,7 +203,7 @@ public class AuctionRoomController implements Initializable {
   private void loadProductImage(String imageId) {
     new GetItemImageCommand(imageId).executeAsync(res -> {
       Platform.runLater(() -> {
-        if (res == null || !ServerCommand.isSuccess(res) || !res.has("imageBase64")) return;
+        if (!ServerCommand.isSuccess(res) || !res.has("imageBase64")) return;
         try {
           String b64 = res.get("imageBase64").getAsString();
           if (b64 == null || b64.isBlank()) return;
@@ -240,6 +259,7 @@ public class AuctionRoomController implements Initializable {
       if (topPrice > currentBidUSD) {
         currentBidUSD = topPrice;
         refreshBidDisplay();
+        appendPriceChartPoint(topPrice);
       }
     }
   }
@@ -305,6 +325,7 @@ public class AuctionRoomController implements Initializable {
   private void onAuctionEnd() {
     if (countdownTimeline != null) countdownTimeline.stop();
     if (pollingTimeline   != null) pollingTimeline.stop();
+    stopPriceChartTimeline();
     setText(lblCountdown, "00:00:00");
     setText(lblBidStatus, "⏹ Phiên đấu giá kết thúc");
     if (lblBidStatus != null)
@@ -336,6 +357,7 @@ public class AuctionRoomController implements Initializable {
           refreshBidDisplay();
           animateBidUpdate();
           applySoftClose();
+          appendPriceChartPoint(price);
           loadBidHistory();
         }
         if (viewers > 0 && lblViewerCount != null)
@@ -351,14 +373,21 @@ public class AuctionRoomController implements Initializable {
   private void startRealtimeWatch(int id) {
     try {
       realtimeSubscriber = new AuctionRealtimeSubscriber();
-      realtimeSubscriber.start(id, update -> {
-        if (update == null) return;
-        double newPrice = dbl(update, "currentPrice", 0);
-        if (newPrice > 0 && newPrice > currentBidUSD) {
-          Platform.runLater(() -> {
-            currentBidUSD = newPrice;
-            refreshBidDisplay(); animateBidUpdate(); applySoftClose(); loadBidHistory();
-          });
+      realtimeSubscriber.start(id, envelope -> {
+        if (envelope == null) {
+          return;
+        }
+        // Server gửi { "action":"AUCTION_UPDATE", "data": { "currentPrice", ... } }
+        JsonObject d = (envelope.has("data") && envelope.get("data").isJsonObject())
+                ? envelope.getAsJsonObject("data") : envelope;
+        double newPrice = dbl(d, "currentPrice", 0);
+        if (newPrice > currentBidUSD) {
+          currentBidUSD = newPrice;
+          refreshBidDisplay();
+          animateBidUpdate();
+          applySoftClose();
+          appendPriceChartPoint(newPrice);
+          loadBidHistory();
         }
       });
     } catch (Exception e) {
@@ -390,8 +419,12 @@ public class AuctionRoomController implements Initializable {
     new PlaceBidCommand(auctionId, SessionManager.getUserId(), amount).executeAsync(res -> {
       Platform.runLater(() -> {
         if (ServerCommand.isSuccess(res)) {
-          currentBidUSD = amount;
-          refreshBidDisplay(); applySoftClose(); animateBidUpdate(); loadBidHistory();
+          double shown = (res != null && res.has("currentPrice"))
+                  ? res.get("currentPrice").getAsDouble() : amount;
+          currentBidUSD = shown;
+          refreshBidDisplay(); applySoftClose(); animateBidUpdate();
+          appendPriceChartPoint(shown);
+          loadBidHistory();
           if (txtCustomBid != null) txtCustomBid.clear();
         } else {
           String msg = (res != null && res.has("message"))
@@ -418,7 +451,8 @@ public class AuctionRoomController implements Initializable {
 
   @FXML private void handlePlaceBid() { submitBid(currentBidUSD + minStep); }
 
-  @FXML private void handleBack() {
+  @FXML
+  private void handleCloseRoom() {
     cleanup();
     if (onBack != null) onBack.run();
     else ViewManager.navigateTo(ViewManager.Views.HOME);
@@ -537,9 +571,82 @@ public class AuctionRoomController implements Initializable {
     if (countdownTimeline != null) countdownTimeline.stop();
     if (pulseTimeline     != null) pulseTimeline.stop();
     if (pollingTimeline   != null) pollingTimeline.stop();
+    stopPriceChartTimeline();
     if (bgAnimationTimer  != null) bgAnimationTimer.stop();
     if (gifPlayer         != null) gifPlayer.stop();
     stopRealtimeWatch();
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  LIVE PRICE CHART (1s tick + điểm mới mỗi lần giá tăng)
+  // ─────────────────────────────────────────────────────────────────
+
+  private void setupPriceChart() {
+    if (chartPriceLive == null) {
+      return;
+    }
+    chartPriceLive.setAnimated(false);
+    chartPriceLive.setLegendVisible(false);
+    chartPriceLive.setCreateSymbols(true);
+    priceChartSeries = new XYChart.Series<>();
+    priceChartSeries.setName("Giá");
+    chartPriceLive.getData().clear();
+    chartPriceLive.getData().add(priceChartSeries);
+    if (axisChartX != null) {
+      axisChartX.setForceZeroInRange(false);
+    }
+    if (axisChartY != null) {
+      axisChartY.setForceZeroInRange(false);
+    }
+  }
+
+  /** Gọi sau khi đã có currentBidUSD từ server (load phiên). */
+  private void seedPriceChartFromCurrentState() {
+    if (priceChartSeries == null || chartPriceLive == null || auctionId == 0) {
+      return;
+    }
+    if (!priceChartSeries.getData().isEmpty()) {
+      startPriceChartTimeline();
+      return;
+    }
+    appendPriceChartPoint(currentBidUSD);
+    startPriceChartTimeline();
+  }
+
+  private void startPriceChartTimeline() {
+    if (chartPriceLive == null || auctionId == 0) {
+      return;
+    }
+    stopPriceChartTimeline();
+    chartTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+      if (auctionId == 0 || priceChartSeries == null) {
+        return;
+      }
+      appendPriceChartPoint(currentBidUSD);
+    }));
+    chartTimeline.setCycleCount(Timeline.INDEFINITE);
+    chartTimeline.play();
+  }
+
+  private void stopPriceChartTimeline() {
+    if (chartTimeline != null) {
+      chartTimeline.stop();
+      chartTimeline = null;
+    }
+  }
+
+  private void appendPriceChartPoint(double y) {
+    if (priceChartSeries == null || chartPriceLive == null || auctionId == 0) {
+      return;
+    }
+    chartXSeq++;
+    priceChartSeries.getData().add(new XYChart.Data<>(chartXSeq, y));
+    while (priceChartSeries.getData().size() > MAX_CHART_POINTS) {
+      priceChartSeries.getData().remove(0);
+    }
+    if (lblChartLastUpdate != null) {
+      lblChartLastUpdate.setText(LocalDateTime.now().format(CHART_TIME_FMT));
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────
