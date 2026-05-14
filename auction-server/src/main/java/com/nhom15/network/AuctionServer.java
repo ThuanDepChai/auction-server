@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
  */
 public class AuctionServer {
 
-  private static final String SERVER_IP = "26.159.224.110";
+  private static final String SERVER_IP = "0.0.0.0";
   private static final int PORT = 8888;
 
   // Giới hạn tối đa 100 client đồng thời — tránh crash khi bị flood kết nối.
@@ -33,7 +33,7 @@ public class AuctionServer {
   // RequestHandler dùng chung — thread-safe vì các handler không có state mutable
   private static final RequestHandler requestHandler = new RequestHandler();
 
-  static void main(String[] args) {
+  public static void main(String[] args) {
     // Tạo thư mục lưu avatar nếu chưa có
     File avatarDir = new File("avatars");
     if (!avatarDir.exists()) {
