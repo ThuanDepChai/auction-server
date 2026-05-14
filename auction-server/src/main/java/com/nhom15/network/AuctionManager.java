@@ -170,6 +170,8 @@ public class AuctionManager {
       autoBidDAO.cancelAutoBid(auctionId, autoBidderId);
       System.out.println("ℹ️ [AutoBid] Bidder #" + autoBidderId
               + " hết quota (maxBid < currentPrice + minStep) → đã tắt.");
+      // Thử ứng viên auto-bid cao tiếp theo (trước đây dừng sớm nên hành vi sai)
+      triggerAutoBids(auctionId, lastBidderId, currentPrice, round);
       return;
     }
 

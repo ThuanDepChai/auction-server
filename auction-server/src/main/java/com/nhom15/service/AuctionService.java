@@ -6,6 +6,7 @@ import com.nhom15.dao.AuctionDAO;
 import com.nhom15.exception.AuctionClosedException;
 import com.nhom15.exception.InvalidBidException;
 import com.nhom15.network.AuctionManager;
+import com.nhom15.network.AuctionRoomBroadcaster;
 
 public class AuctionService {
 
@@ -70,6 +71,13 @@ public class AuctionService {
       if (detail != null && detail.has("currentPrice")) {
         result.addProperty("currentPrice", detail.get("currentPrice").getAsDouble());
       }
+      if (detail != null && detail.has("leadingBidder")) {
+        result.addProperty("leadingBidder", detail.get("leadingBidder").getAsString());
+      }
+      if (detail != null && detail.has("totalBids")) {
+        result.addProperty("totalBids", detail.get("totalBids").getAsInt());
+      }
+      broadcastFromDetail(auctionId, detail);
       return result;
 
     } catch (InvalidBidException e) {
@@ -126,7 +134,37 @@ public class AuctionService {
     if (ok) {
       // Dọn lock — tránh memory leak khi có nhiều phiên
       auctionManager.removeLock(auctionId);
+      JsonObject detail = auctionDAO.getAuctionById(auctionId);
+      broadcastFromDetail(auctionId, detail);
     }
     return ok;
+  }
+
+  /** Đẩy snapshot phiên tới mọi client đang SUBSCRIBE (cùng cổng TCP). */
+  private void broadcastFromDetail(int auctionId, JsonObject detail) {
+    if (detail == null) {
+      return;
+    }
+    JsonObject data = new JsonObject();
+    data.addProperty("auctionId", auctionId);
+    if (detail.has("currentPrice")) {
+      data.addProperty("currentPrice", detail.get("currentPrice").getAsDouble());
+    }
+    if (detail.has("endTime")) {
+      data.addProperty("endTime", detail.get("endTime").getAsString());
+    }
+    if (detail.has("status")) {
+      data.addProperty("status", detail.get("status").getAsString());
+    }
+    if (detail.has("leadingBidder")) {
+      data.addProperty("leadingBidder", detail.get("leadingBidder").getAsString());
+    }
+    if (detail.has("totalBids")) {
+      data.addProperty("totalBids", detail.get("totalBids").getAsInt());
+    }
+    JsonObject envelope = new JsonObject();
+    envelope.addProperty("action", "AUCTION_UPDATE");
+    envelope.add("data", data);
+    AuctionRoomBroadcaster.INSTANCE.broadcast(auctionId, envelope);
   }
 }

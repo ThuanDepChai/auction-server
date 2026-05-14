@@ -174,9 +174,13 @@ public class AuctionDAO {
      */
     public JsonObject getAuctionById(int auctionId) {
         String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
-                "u.username as seller_name FROM auction a " +
+                "u.username AS seller_name, " +
+                "w.username AS leadingBidder, " +
+                "(SELECT COUNT(*) FROM bid b WHERE b.auction_id = a.auction_id) AS totalBids " +
+                "FROM auction a " +
                 "JOIN item i ON a.item_id = i.item_id " +
                 "JOIN user u ON a.seller_id = u.user_id " +
+                "LEFT JOIN user w ON a.winner_id = w.user_id " +
                 "WHERE a.auction_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -488,6 +492,27 @@ public class AuctionDAO {
         obj.addProperty("minStep", rs.getDouble("min_step"));
         obj.addProperty("endTime", rs.getString("end_time"));
         obj.addProperty("status", rs.getString("status"));
+        appendLeaderAndBidCount(rs, obj);
         return obj;
+    }
+
+    /** Chỉ thêm field khi có trong ResultSet (danh sách phiên active không SELECT cột này). */
+    private void appendLeaderAndBidCount(ResultSet rs, JsonObject obj) {
+        try {
+            String lb = rs.getString("leadingBidder");
+            if (lb != null && !lb.isEmpty()) {
+                obj.addProperty("leadingBidder", lb);
+            }
+        } catch (SQLException ignored) {
+            // cột không có trong query
+        }
+        try {
+            int n = rs.getInt("totalBids");
+            if (!rs.wasNull()) {
+                obj.addProperty("totalBids", n);
+            }
+        } catch (SQLException ignored) {
+            // cột không có trong query
+        }
     }
 }

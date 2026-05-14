@@ -10,6 +10,7 @@ import com.nhom15.client.controller.bidding.ManualBidController;
 import com.nhom15.client.controller.bidding.PriceCountdownController;
 import com.nhom15.client.controller.bidding.ProductPanelController;
 import com.nhom15.client.controller.bidding.RealtimePollingController;
+import com.nhom15.client.network.AuctionRealtimeSubscriber;
 import com.nhom15.client.util.SessionManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -168,6 +169,7 @@ public class BiddingRoomController {
     private final BidHistoryController     bidHistoryController     = new BidHistoryController();
     private final RealtimePollingController poller                  = new RealtimePollingController();
     private final AuctionState             state                    = new AuctionState();
+    private final AuctionRealtimeSubscriber auctionRealtime          = new AuctionRealtimeSubscriber();
 
     private Runnable onBack;
 
@@ -260,6 +262,7 @@ public class BiddingRoomController {
     // ══════════════════════════════════════════════════════════════════════
 
     public void setAuctionId(int id) {
+        stopRealtimeWatch();
         state.setAuctionId(id);
         if (lblRoomId != null) lblRoomId.setText("#" + id);
 
@@ -267,6 +270,7 @@ public class BiddingRoomController {
         bidHistoryController.load();
         autoBidController.loadStatus();
         poller.start();
+        startRealtimeWatch(id);
     }
 
     public void setOnBack(Runnable r) { this.onBack = r; }
@@ -305,8 +309,7 @@ public class BiddingRoomController {
         double old = state.getCurrentPrice();
         state.setCurrentPrice(amount);
         priceCountdownController.updatePrice(amount, old);
-        priceCountdownController.updateLeader(
-                SessionManager.getUsername(), SessionManager.getUsername());
+        // Người dẫn đầu lấy từ server (notifyBidResult / poll), không gán nhầm người vừa đặt
         bidHistoryController.addChartPoint(amount);
         bidHistoryController.load();
         manualBidController.refreshLabels();
@@ -327,6 +330,7 @@ public class BiddingRoomController {
     }
 
     private void onAuctionEnded() {
+        stopRealtimeWatch();
         poller.stop();
         priceCountdownController.stopCountdown();
         priceCountdownController.updateStatusBadge("ENDED");
@@ -335,12 +339,21 @@ public class BiddingRoomController {
         state.setAuctionEnded(true);
     }
 
+    private void startRealtimeWatch(int auctionId) {
+        auctionRealtime.start(auctionId, envelope -> poller.applyPushEnvelope(envelope));
+    }
+
+    private void stopRealtimeWatch() {
+        auctionRealtime.stop();
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     //  FXML HANDLERS — Top bar
     // ══════════════════════════════════════════════════════════════════════
 
     @FXML
     private void handleBack() {
+        stopRealtimeWatch();
         poller.stop();
         priceCountdownController.stopCountdown();
         if (onBack != null) {

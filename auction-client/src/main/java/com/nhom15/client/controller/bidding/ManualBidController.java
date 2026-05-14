@@ -134,7 +134,7 @@ public class ManualBidController {
                                 showSuccess("✓ Đặt giá thành công!");
                                 // Cập nhật ngay: giá mới + end_time mới (nếu anti-sniping gia hạn)
                                 if (pollingController != null) pollingController.notifyBidResult(res);
-                                if (onBidPlaced != null) onBidPlaced.accept(amount);
+                                if (onBidPlaced != null) onBidPlaced.accept(state.getCurrentPrice());
                             } else {
                                 showError(ServerCommand.getMessage(res, "❌ Đặt giá thất bại!"));
                             }

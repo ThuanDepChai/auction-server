@@ -8,18 +8,15 @@ import javafx.animation.Timeline;
 import javafx.util.Duration;
 
 /**
- * RealtimePollingController — chịu trách nhiệm duy nhất:
- * Định kỳ gọi GetAuctionDetailCommand mỗi 3 giây và thông báo
- * kết quả về BiddingRoomController qua callback.
+ * RealtimePollingController — polling dự phòng + nhận push tức thì qua {@link #applyPushEnvelope}.
  *
- * <p>Ngoài ra hỗ trợ {@link #notifyBidResult} để BiddingRoomController
- * báo kết quả bid tức thì (kèm newEndTime nếu anti-sniping đã gia hạn).
- *
- * <p>Không giữ tham chiếu đến bất kỳ UI node nào — hoàn toàn tách rời UI.
+ * <p>Push: server gửi {@code AUCTION_UPDATE} trên kết nối SUBSCRIBE (cùng cổng TCP).
+ * Polling: định kỳ GET_AUCTION_DETAIL để đồng bộ nếu lỡ mất push.
  */
 public class RealtimePollingController {
 
-    private static final int POLL_INTERVAL_SEC = 3;
+    /** Polling chậm hơn vì cập nhật chính đến từ push; vẫn giữ để tự hồi phục. */
+    private static final int POLL_INTERVAL_SEC = 5;
 
     private AuctionState state;
     private Timeline     poller;
@@ -113,6 +110,29 @@ public class RealtimePollingController {
                 onEndTimeChanged.onChanged(newEndTime);
             }
         }
+
+        if (onUpdate != null && (serverResponse.has("leadingBidder") || serverResponse.has("totalBids"))) {
+            String leader = serverResponse.has("leadingBidder")
+                    ? serverResponse.get("leadingBidder").getAsString() : "";
+            int total = serverResponse.has("totalBids")
+                    ? serverResponse.get("totalBids").getAsInt() : 0;
+            onUpdate.onUpdate(leader, total);
+        }
+    }
+
+    /**
+     * Server push: {@code { "action":"AUCTION_UPDATE", "data": { ... giống trường auction ... } }}.
+     * Gọi trên JavaFX thread.
+     */
+    public void applyPushEnvelope(JsonObject envelope) {
+        if (envelope == null || !envelope.has("data")) {
+            return;
+        }
+        JsonObject d = envelope.getAsJsonObject("data");
+        if (d.has("auctionId") && d.get("auctionId").getAsInt() != state.getAuctionId()) {
+            return;
+        }
+        applyAuctionDetail(d);
     }
 
     // ── Private: Poll ─────────────────────────────────────────────────────
@@ -120,38 +140,44 @@ public class RealtimePollingController {
     private void poll() {
         new GetAuctionDetailCommand(state.getAuctionId()).executeAsync(res -> {
             if (!ServerCommand.isSuccess(res) || !res.has("auction")) return;
-            JsonObject a = res.getAsJsonObject("auction");
-
-            double newPrice = a.has("currentPrice")
-                    ? a.get("currentPrice").getAsDouble()
-                    : state.getCurrentPrice();
-            String status = str(a, "status", "ACTIVE");
-
-            if (newPrice != state.getCurrentPrice()) {
-                double old = state.getCurrentPrice();
-                state.setCurrentPrice(newPrice);
-                if (onPriceChanged != null) onPriceChanged.onChanged(newPrice, old);
-            }
-
-            // Cập nhật end_time nếu server đã gia hạn (anti-sniping)
-            if (a.has("endTime") && onEndTimeChanged != null) {
-                String serverEndTime = a.get("endTime").getAsString();
-                if (!serverEndTime.equals(state.getEndTime())) {
-                    state.setEndTime(serverEndTime);
-                    onEndTimeChanged.onChanged(serverEndTime);
-                }
-            }
-
-            if ("ENDED".equals(status) || "CANCELLED".equals(status)) {
-                state.setAuctionEnded(true);
-                stop();
-                if (onAuctionEnded != null) onAuctionEnded.run();
-            }
-
-            String leader    = str(a, "leadingBidder", "");
-            int    totalBids = a.has("totalBids") ? a.get("totalBids").getAsInt() : 0;
-            if (onUpdate != null) onUpdate.onUpdate(leader, totalBids);
+            applyAuctionDetail(res.getAsJsonObject("auction"));
         });
+    }
+
+    /** Đồng bộ state/UI từ snapshot phiên (poll hoặc push). */
+    private void applyAuctionDetail(JsonObject a) {
+        if (a == null) {
+            return;
+        }
+
+        double newPrice = a.has("currentPrice")
+                ? a.get("currentPrice").getAsDouble()
+                : state.getCurrentPrice();
+        String status = str(a, "status", "ACTIVE");
+
+        if (newPrice != state.getCurrentPrice()) {
+            double old = state.getCurrentPrice();
+            state.setCurrentPrice(newPrice);
+            if (onPriceChanged != null) onPriceChanged.onChanged(newPrice, old);
+        }
+
+        if (a.has("endTime") && onEndTimeChanged != null) {
+            String serverEndTime = a.get("endTime").getAsString();
+            if (!serverEndTime.equals(state.getEndTime())) {
+                state.setEndTime(serverEndTime);
+                onEndTimeChanged.onChanged(serverEndTime);
+            }
+        }
+
+        if ("ENDED".equals(status) || "CANCELLED".equals(status)) {
+            state.setAuctionEnded(true);
+            stop();
+            if (onAuctionEnded != null) onAuctionEnded.run();
+        }
+
+        String leader    = str(a, "leadingBidder", "");
+        int    totalBids = a.has("totalBids") ? a.get("totalBids").getAsInt() : 0;
+        if (onUpdate != null) onUpdate.onUpdate(leader, totalBids);
     }
 
     private String str(JsonObject o, String key, String def) {
