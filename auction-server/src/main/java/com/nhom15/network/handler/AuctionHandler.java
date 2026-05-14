@@ -7,7 +7,9 @@ import com.nhom15.service.AutoBidService;
 import com.nhom15.service.ItemService;
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * AuctionHandler — xử lý tất cả request liên quan đến đấu giá. Không chứa routing — chỉ chứa logic
@@ -159,14 +161,30 @@ public class AuctionHandler {
 
   private JsonObject handleCreateItem(JsonObject d) {
     try {
-      int sellerId       = d.get("sellerId").getAsInt();
-      String name        = d.get("name").getAsString();
-      String desc        = d.has("description") ? d.get("description").getAsString() : "";
-      String category    = d.has("category")    ? d.get("category").getAsString()    : "";
-      double startPrice  = d.get("startPrice").getAsDouble();
-      String imageBase64 = d.has("imageBase64") ? d.get("imageBase64").getAsString() : "";
-      String extension   = d.has("extension")   ? d.get("extension").getAsString()   : "jpg";
-      return itemService.createItem(sellerId, name, desc, category, startPrice, imageBase64, extension);
+      int sellerId      = d.get("sellerId").getAsInt();
+      String name       = d.get("name").getAsString();
+      String desc       = d.has("description") ? d.get("description").getAsString() : "";
+      String category   = d.has("category") ? d.get("category").getAsString() : "";
+      double startPrice = d.get("startPrice").getAsDouble();
+      String extension  = d.has("extension") ? d.get("extension").getAsString() : "jpg";
+
+      //Xử lý danh sách ảnh
+      List<String> imageList = new ArrayList<>();
+
+      if (d.has("images") && d.get("images").isJsonArray()) {
+        JsonArray imagesJson = d.getAsJsonArray("images");
+        for (int i = 0; i < imagesJson.size(); i++) {
+          imageList.add(imagesJson.get(i).getAsString());
+        }
+      }
+      // Nếu Client vẫn gửi 1 chuỗi "imageBase64"
+      else if (d.has("imageBase64") && !d.get("imageBase64").getAsString().isEmpty()) {
+        imageList.add(d.get("imageBase64").getAsString());
+      }
+
+      // Truyền imageList (List) thay vì imageBase64 (String)
+      return itemService.createItem(sellerId, name, desc, category, startPrice, imageList, extension);
+
     } catch (Exception e) {
       return error("Lỗi tạo sản phẩm: " + e.getMessage());
     }

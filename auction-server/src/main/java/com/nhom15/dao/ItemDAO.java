@@ -17,23 +17,47 @@ public class ItemDAO {
    * Thêm sản phẩm mới
    */
   public int insertItem(int sellerId, String name, String description,
-                        String category, double startPrice, String imagePath) {
-    String sql =
+                        String category, double startPrice, String imagePath, List<String> subImagePaths) {
+    String sqlItem =
             "INSERT INTO item (seller_id, name, description, category, start_price, image_path) " +
                     "VALUES (?, ?, ?, ?, ?, ?)";
-    try (Connection conn = DBConnection.getConnection();
-         PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-      ps.setInt(1, sellerId);
-      ps.setString(2, name);
-      ps.setString(3, description);
-      ps.setString(4, category);
-      ps.setDouble(5, startPrice);
-      ps.setString(6, imagePath);
-      ps.executeUpdate();
-      try (ResultSet rs = ps.getGeneratedKeys()) {
-        if (rs.next()) {
-          return rs.getInt(1);
+
+    try (Connection conn = DBConnection.getConnection()) {
+      conn.setAutoCommit(false);
+
+      try (PreparedStatement psItem = conn.prepareStatement(sqlItem, Statement.RETURN_GENERATED_KEYS)) {
+        psItem.setInt(1, sellerId);
+        psItem.setString(2, name);
+        psItem.setString(3, description);
+        psItem.setString(4, category);
+        psItem.setDouble(5, startPrice);
+        psItem.setString(6, imagePath);
+        psItem.executeUpdate();
+
+        int newItemId = -1;
+        try (ResultSet rs = psItem.getGeneratedKeys()) {
+          if (rs.next()) {
+            newItemId = rs.getInt(1);
+          }
         }
+
+        if (newItemId != -1 && subImagePaths != null && !subImagePaths.isEmpty()) {
+          String sqlImages = "INSERT INTO item_images (item_id, path) VALUES (?, ?)";
+          try (PreparedStatement psImages = conn.prepareStatement(sqlImages)) {
+            for (String path : subImagePaths) {
+              psImages.setInt(1, newItemId);
+              psImages.setString(2, path);
+              psImages.addBatch();
+            }
+            psImages.executeBatch();
+          }
+        }
+
+        conn.commit();
+        return newItemId;
+      } catch (SQLException e) {
+        conn.rollback();
+        e.printStackTrace();
       }
     } catch (SQLException e) {
       e.printStackTrace();
