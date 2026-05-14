@@ -1,59 +1,48 @@
 package com.nhom15.client.controller;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.nhom15.client.command.GetAuctionDetailCommand;
+import com.nhom15.client.command.GetBidHistoryCommand;
+import com.nhom15.client.command.GetItemImageCommand;
+import com.nhom15.client.command.PlaceBidCommand;
+import com.nhom15.client.command.ServerCommand;
+import com.nhom15.client.network.AuctionRealtimeSubscriber;
+import com.nhom15.client.util.SessionManager;
+import com.nhom15.client.util.ViewManager;
+
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
+import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-/**
- * ╔══════════════════════════════════════════════════════════════════╗
- * ║  AuctionRoomController — Gemini Live Auction Room               ║
- * ║  Handles:                                                       ║
- * ║   • Real-time countdown timer (with Soft Close rule)           ║
- * ║   • Current bid display & update                               ║
- * ║   • Quick bid buttons (+$500 / +$1,000 / +$2,500)             ║
- * ║   • Custom bid input validation                                 ║
- * ║   • Live bid history ledger                                     ║
- * ║   • Animated background (floating gradient circles)            ║
- * ║   • Pulsing LIVE dot animation                                  ║
- * ╚══════════════════════════════════════════════════════════════════╝
- *
- *  fx:id map (must match AuctionRoom.fxml exactly)
- *  ─────────────────────────────────────────────────
- *  lblCountdown    — HH:MM:SS countdown label
- *  lblSoftClose    — soft-close caption label
- *  lblCurrentBid   — current highest bid amount
- *  lblBidStatus    — "Mức giá sàn đã đạt" status
- *  txtCustomBid    — free-text custom bid TextField
- *  btnQuickBid1/2/3— +$500 / +$1,000 / +$2,500
- *  btnConfirmBid   — primary CTA
- *  btnPlaceBid     — secondary CTA
- *  rowWinning      — green-highlighted winning row HBox
- *  dotPulse        — red Circle pulse indicator
- *  paneBackground  — animated bg Pane
- *  historyContainer— VBox that holds live bid rows (optional fx:id)
- */
 public class AuctionRoomController implements Initializable {
 
-  // ── Constants ───────────────────────────────────────────────────
-  private static final int    SOFT_CLOSE_SECONDS  = 30;   // restart timer after each new bid
-  private static final double BID_INCREMENT       = 500;  // minimum increment (USD)
-  private static final double INITIAL_TIMER_SECS  = 24;   // starting seconds on load
-  private static final double DEPOSIT_AMOUNT      = 1_000;
-  private static final Locale VN_LOCALE           = new Locale("vi", "VN");
+  private static final DateTimeFormatter DT_FMT =
+          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private static final int SOFT_CLOSE_SECONDS = 30;
 
-  // ── FXML injected nodes ─────────────────────────────────────────
+  // ── FXML nodes ──────────────────────────────────────────────────
   @FXML private Label      lblCountdown;
   @FXML private Label      lblSoftClose;
   @FXML private Label      lblCurrentBid;
@@ -67,152 +56,432 @@ public class AuctionRoomController implements Initializable {
   @FXML private HBox       rowWinning;
   @FXML private Circle     dotPulse;
   @FXML private Pane       paneBackground;
-
-  // Optional — VBox that wraps ALL bid history rows inside the card.
-  // If you give this fx:id in FXML, the controller will prepend new rows
-  // dynamically. If not wired, history rows remain static.
   @FXML private VBox       historyContainer;
+  @FXML private ImageView  imgProduct;
+  @FXML private Label      lblImgPlaceholder;
+  @FXML private Label      lblProductName;
+  @FXML private Label      lblProductDesc;
+  @FXML private Label      lblViewerCount;
+  @FXML private Button     btnBack;
+  @FXML private StackPane  timerPane;
 
   // ── State ────────────────────────────────────────────────────────
-  private double  currentBidUSD   = 15_800;
-  private double  remainingSeconds = INITIAL_TIMER_SECS;
-  private boolean userEligible    = true;   // deposit confirmed
+  private int            auctionId     = 0;
+  private double         currentBidUSD = 0;
+  private double         minStep       = 500;
+  private LocalDateTime  auctionEndTime = null;
 
-  // Timers & animations
-  private Timeline          countdownTimeline;
-  private Timeline          pulseTimeline;
-  private AnimationTimer    bgAnimationTimer;
+  private Runnable       onBack;
+  private Timeline       countdownTimeline;
+  private Timeline       pulseTimeline;
+  private Timeline       pollingTimeline;
+  private AnimationTimer bgAnimationTimer;
+  private MediaPlayer    gifPlayer;
+  private AuctionRealtimeSubscriber realtimeSubscriber;
 
-  // Bid history (newest first)
-  private final Deque<BidRecord> bidHistory = new ArrayDeque<>();
-
-  // Number formatter  →  $15,800 USD
   private final NumberFormat currencyFmt = NumberFormat.getNumberInstance(Locale.US);
 
   // ─────────────────────────────────────────────────────────────────
-  //  INITIALISE
+  //  INITIALIZE
   // ─────────────────────────────────────────────────────────────────
   @Override
   public void initialize(URL location, ResourceBundle resources) {
     currencyFmt.setGroupingUsed(true);
     currencyFmt.setMaximumFractionDigits(0);
-
-    // Seed history with the static rows already in FXML
-    seedBidHistory();
-
-    // Start all live features
-    startCountdown();
     startPulseDot();
     startBackgroundAnimation();
-
-    // Refresh UI
-    refreshBidDisplay();
-    refreshTimerLabel();
-
-    // Eligibility guard
-    setUserEligible(userEligible);
-
-    // Numeric-only filter on custom bid field
     attachNumericFilter();
+    playGifBackground();
   }
 
   // ─────────────────────────────────────────────────────────────────
-  //  COUNTDOWN TIMER
+  //  PUBLIC API
   // ─────────────────────────────────────────────────────────────────
 
-  /** Starts (or restarts) the real-time countdown. */
-  private void startCountdown() {
-    if (countdownTimeline != null) {
-      countdownTimeline.stop();
+  public void setAuctionId(int id) {
+    this.auctionId = id;
+    loadAuctionDetail();
+    loadBidHistory();
+    startPolling();
+    startRealtimeWatch(id);
+  }
+
+  public void setOnBack(Runnable onBack) {
+    this.onBack = onBack;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  GIF BACKGROUND — dùng MediaView vì JavaFX không animate GIF
+  //  trong -fx-background-image
+  // ─────────────────────────────────────────────────────────────────
+
+  private void playGifBackground() {
+    if (timerPane == null) return;
+    try {
+      URL gifUrl = getClass().getResource("/images/gif1.gif");
+      if (gifUrl == null) {
+        System.err.println("[AuctionRoom] gif1.gif không tìm thấy.");
+        return;
+      }
+      Media media = new Media(gifUrl.toExternalForm());
+      gifPlayer = new MediaPlayer(media);
+      gifPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+      gifPlayer.setMute(true);
+
+      MediaView mv = new MediaView(gifPlayer);
+      mv.setFitWidth(370);
+      mv.setFitHeight(116);
+      mv.setPreserveRatio(false);
+      mv.setMouseTransparent(true);
+
+      Rectangle clip = new Rectangle(370, 116);
+      clip.setArcWidth(36);
+      clip.setArcHeight(36);
+      mv.setClip(clip);
+
+      timerPane.getChildren().add(0, mv);
+      gifPlayer.play();
+    } catch (Exception e) {
+      System.err.println("[AuctionRoom] Lỗi khởi tạo GIF: " + e.getMessage());
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  LOAD FROM SERVER
+  // ─────────────────────────────────────────────────────────────────
+
+  private void loadAuctionDetail() {
+    new GetAuctionDetailCommand(auctionId).executeAsync(res -> {
+      if (!ServerCommand.isSuccess(res) || !res.has("auction")) return;
+      JsonObject a = res.getAsJsonObject("auction");
+
+      double price = dbl(a, "currentPrice", dbl(a, "startPrice", 0));
+      double step  = dbl(a, "minStep", dbl(a, "bidStep", 500));
+      String endStr = str(a, "endTime", null);
+
+      Platform.runLater(() -> {
+        currentBidUSD = price;
+        minStep = step;
+        refreshBidDisplay();
+        setText(lblProductName, str(a, "name", "Sản phẩm đấu giá"));
+        setText(lblProductDesc, str(a, "description", ""));
+        updateQuickBidLabels();
+        if (endStr != null) {
+          try {
+            auctionEndTime = LocalDateTime.parse(endStr, DT_FMT);
+            startCountdown();
+          } catch (Exception ex) {
+            System.err.println("[AuctionRoom] endTime parse lỗi: " + endStr);
+          }
+        }
+      });
+
+      String imageId = str(a, "imageId", str(a, "imagePath", str(a, "image", null)));
+      if (imageId != null && !imageId.isBlank()) loadProductImage(imageId);
+    });
+  }
+
+  private void loadProductImage(String imageId) {
+    new GetItemImageCommand(imageId).executeAsync(res -> {
+      Platform.runLater(() -> {
+        if (res == null || !ServerCommand.isSuccess(res) || !res.has("imageBase64")) return;
+        try {
+          String b64 = res.get("imageBase64").getAsString();
+          if (b64 == null || b64.isBlank()) return;
+          byte[] bytes = Base64.getDecoder().decode(b64.trim());
+          Image img = new Image(new ByteArrayInputStream(bytes));
+          if (!img.isError() && imgProduct != null) {
+            imgProduct.setImage(img);
+            imgProduct.setVisible(true);
+            if (lblImgPlaceholder != null) lblImgPlaceholder.setVisible(false);
+          }
+        } catch (Exception e) {
+          System.err.println("[AuctionRoom] Lỗi decode ảnh: " + e.getMessage());
+        }
+      });
+    });
+  }
+
+  private void loadBidHistory() {
+    if (auctionId == 0) return;
+    new GetBidHistoryCommand(auctionId).executeAsync(res -> {
+      if (res == null || !res.has("history")) return;
+      JsonArray history = res.getAsJsonArray("history");
+      Platform.runLater(() -> rebuildHistoryUI(history));
+    });
+  }
+
+  private void rebuildHistoryUI(JsonArray history) {
+    if (historyContainer == null) return;
+    // Xóa các bid row cũ, giữ 2 node đầu (card-header + col-header)
+    while (historyContainer.getChildren().size() > 2) {
+      historyContainer.getChildren().remove(2);
+    }
+    if (history == null || history.size() == 0) return;
+
+    List<JsonObject> items = new ArrayList<>();
+    for (int i = 0; i < history.size(); i++) items.add(history.get(i).getAsJsonObject());
+    Collections.reverse(items); // mới nhất lên đầu
+
+    String myUser = SessionManager.getUsername();
+    for (int i = 0; i < Math.min(items.size(), 8); i++) {
+      JsonObject bid = items.get(i);
+      double amount = dbl(bid, "amount", dbl(bid, "bidAmount", 0));
+      String user   = str(bid, "username", str(bid, "bidderUsername", "***"));
+      String time   = str(bid, "bidTime", str(bid, "createdAt", "--:--:--"));
+      String alias  = maskUsername(user, myUser);
+      String timeDisplay = time.length() >= 19 ? time.substring(11, 19) : time;
+      historyContainer.getChildren().add(buildBidRow(timeDisplay, alias, amount, i == 0));
     }
 
-    countdownTimeline = new Timeline(
-        new KeyFrame(Duration.seconds(1), e -> tickTimer())
-    );
+    // Đồng bộ giá cao nhất
+    if (!items.isEmpty()) {
+      double topPrice = dbl(items.get(0), "amount", dbl(items.get(0), "bidAmount", 0));
+      if (topPrice > currentBidUSD) {
+        currentBidUSD = topPrice;
+        refreshBidDisplay();
+      }
+    }
+  }
+
+  private String maskUsername(String username, String myUsername) {
+    if (username == null || username.length() < 2) return "***";
+    if (username.equals(myUsername)) return "Bạn";
+    return Character.toUpperCase(username.charAt(0))
+            + "***"
+            + username.charAt(username.length() - 1);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  COUNTDOWN (endTime từ server)
+  // ─────────────────────────────────────────────────────────────────
+
+  private void startCountdown() {
+    if (countdownTimeline != null) countdownTimeline.stop();
+    countdownTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> tickTimer()));
     countdownTimeline.setCycleCount(Timeline.INDEFINITE);
     countdownTimeline.play();
+    tickTimer();
   }
 
   private void tickTimer() {
-    if (remainingSeconds > 0) {
-      remainingSeconds--;
-      refreshTimerLabel();
-
-      // Flash timer red when ≤ 10 s remain
-      if (remainingSeconds <= 10) {
-        animateTimerWarning();
-      }
-    } else {
-      // Auction ended
-      onAuctionEnd();
-    }
+    if (auctionEndTime == null) return;
+    LocalDateTime now = LocalDateTime.now();
+    if (now.isAfter(auctionEndTime)) { onAuctionEnd(); return; }
+    long total   = ChronoUnit.SECONDS.between(now, auctionEndTime);
+    long hours   = total / 3600;
+    long minutes = (total % 3600) / 60;
+    long seconds = total % 60;
+    setText(lblCountdown, String.format("%02d:%02d:%02d", hours, minutes, seconds));
+    if (total <= 10) animateTimerWarning();
   }
 
-  /** Formats seconds → "HH:MM:SS" and updates the label. */
-  private void refreshTimerLabel() {
-    int total   = (int) remainingSeconds;
-    int hours   = total / 3600;
-    int minutes = (total % 3600) / 60;
-    int seconds = total % 60;
-    lblCountdown.setText(String.format("%02d:%02d:%02d", hours, minutes, seconds));
-  }
-
-  /**
-   * Soft-Close rule: if a new bid arrives within the last SOFT_CLOSE_SECONDS,
-   * reset the countdown to SOFT_CLOSE_SECONDS.
-   */
   private void applySoftClose() {
-    if (remainingSeconds < SOFT_CLOSE_SECONDS) {
-      remainingSeconds = SOFT_CLOSE_SECONDS;
-      lblSoftClose.setText("Luật Soft Close — Đã gia hạn thêm " + SOFT_CLOSE_SECONDS + " giây!");
+    if (auctionEndTime == null) return;
+    long remaining = ChronoUnit.SECONDS.between(LocalDateTime.now(), auctionEndTime);
+    if (remaining < SOFT_CLOSE_SECONDS) {
+      auctionEndTime = LocalDateTime.now().plusSeconds(SOFT_CLOSE_SECONDS);
+      setText(lblSoftClose, "Luật Soft Close — Đã gia hạn thêm " + SOFT_CLOSE_SECONDS + " giây!");
       animateSoftCloseNotice();
-
-      // Revert caption after 4 seconds
       PauseTransition revert = new PauseTransition(Duration.seconds(4));
-      revert.setOnFinished(e ->
-          lblSoftClose.setText("Luật Soft Close — Đếm ngược " + SOFT_CLOSE_SECONDS + " giây")
-      );
+      revert.setOnFinished(e -> setText(lblSoftClose, "Luật Soft Close — Đếm ngược 30 giây"));
       revert.play();
     }
   }
 
-  /** Brief flash/scale on the timer label when ≤ 10 s remain. */
   private void animateTimerWarning() {
+    if (lblCountdown == null) return;
     ScaleTransition st = new ScaleTransition(Duration.millis(200), lblCountdown);
-    st.setFromX(1.0); st.setToX(1.06);
-    st.setFromY(1.0); st.setToY(1.06);
-    st.setAutoReverse(true);
-    st.setCycleCount(2);
-    st.play();
+    st.setFromX(1.0); st.setToX(1.06); st.setFromY(1.0); st.setToY(1.06);
+    st.setAutoReverse(true); st.setCycleCount(2); st.play();
   }
 
   private void animateSoftCloseNotice() {
+    if (lblSoftClose == null) return;
     FadeTransition ft = new FadeTransition(Duration.millis(300), lblSoftClose);
-    ft.setFromValue(0.4); ft.setToValue(1.0);
-    ft.play();
+    ft.setFromValue(0.4); ft.setToValue(1.0); ft.play();
   }
 
   private void onAuctionEnd() {
-    countdownTimeline.stop();
-    lblCountdown.setText("00:00:00");
-    lblBidStatus.setText("⏹ Phiên đấu giá kết thúc");
-    lblBidStatus.setStyle("-fx-text-fill: #D96570; -fx-font-size: 12.5; -fx-font-weight: bold;");
+    if (countdownTimeline != null) countdownTimeline.stop();
+    if (pollingTimeline   != null) pollingTimeline.stop();
+    setText(lblCountdown, "00:00:00");
+    setText(lblBidStatus, "⏹ Phiên đấu giá kết thúc");
+    if (lblBidStatus != null)
+      lblBidStatus.setStyle("-fx-text-fill: #D96570; -fx-font-size: 12.5; -fx-font-weight: bold;");
     setButtonsDisabled(true);
-    showAlert("Phiên Đấu Giá Kết Thúc",
-        "Người chiến thắng với giá " + formatUSD(currentBidUSD) + "!\nCảm ơn bạn đã tham gia.");
   }
 
   // ─────────────────────────────────────────────────────────────────
-  //  PULSE DOT ANIMATION  (red circle ● blinks every 800 ms)
+  //  POLLING mỗi 5s
   // ─────────────────────────────────────────────────────────────────
+
+  private void startPolling() {
+    pollingTimeline = new Timeline(new KeyFrame(Duration.seconds(5), e -> poll()));
+    pollingTimeline.setCycleCount(Timeline.INDEFINITE);
+    pollingTimeline.play();
+  }
+
+  private void poll() {
+    if (auctionId == 0) return;
+    new GetAuctionDetailCommand(auctionId).executeAsync(res -> {
+      if (!ServerCommand.isSuccess(res) || !res.has("auction")) return;
+      JsonObject a = res.getAsJsonObject("auction");
+      double price = dbl(a, "currentPrice", 0);
+      int viewers  = (int) dbl(a, "viewerCount", dbl(a, "activeViewers", dbl(a, "viewers", 0)));
+
+      Platform.runLater(() -> {
+        if (price > currentBidUSD) {
+          currentBidUSD = price;
+          refreshBidDisplay();
+          animateBidUpdate();
+          applySoftClose();
+          loadBidHistory();
+        }
+        if (viewers > 0 && lblViewerCount != null)
+          lblViewerCount.setText("\uD83D\uDC65  " + viewers + " người đang xem");
+      });
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  REALTIME SUBSCRIBE
+  // ─────────────────────────────────────────────────────────────────
+
+  private void startRealtimeWatch(int id) {
+    try {
+      realtimeSubscriber = new AuctionRealtimeSubscriber();
+      realtimeSubscriber.start(id, update -> {
+        if (update == null) return;
+        double newPrice = dbl(update, "currentPrice", 0);
+        if (newPrice > 0 && newPrice > currentBidUSD) {
+          Platform.runLater(() -> {
+            currentBidUSD = newPrice;
+            refreshBidDisplay(); animateBidUpdate(); applySoftClose(); loadBidHistory();
+          });
+        }
+      });
+    } catch (Exception e) {
+      System.err.println("[AuctionRoom] Realtime lỗi: " + e.getMessage());
+    }
+  }
+
+  private void stopRealtimeWatch() {
+    if (realtimeSubscriber != null) {
+      try { realtimeSubscriber.stop(); } catch (Exception ignored) {}
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  BID HANDLERS
+  // ─────────────────────────────────────────────────────────────────
+
+  private void submitBid(double amount) {
+    if (!SessionManager.isLoggedIn()) {
+      showAlert("Chưa đăng nhập", "Bạn cần đăng nhập để đặt giá."); return;
+    }
+    double minNext = currentBidUSD + minStep;
+    if (amount < minNext) {
+      showAlert("Giá không hợp lệ",
+              String.format("Giá tối thiểu: %s (hiện tại %s + bước %s).",
+                      formatUSD(minNext), formatUSD(currentBidUSD), formatUSD(minStep)));
+      return;
+    }
+    new PlaceBidCommand(auctionId, SessionManager.getUserId(), amount).executeAsync(res -> {
+      Platform.runLater(() -> {
+        if (ServerCommand.isSuccess(res)) {
+          currentBidUSD = amount;
+          refreshBidDisplay(); applySoftClose(); animateBidUpdate(); loadBidHistory();
+          if (txtCustomBid != null) txtCustomBid.clear();
+        } else {
+          String msg = (res != null && res.has("message"))
+                  ? res.get("message").getAsString() : "Đặt giá thất bại.";
+          showAlert("Lỗi đặt giá", msg);
+        }
+      });
+    });
+  }
+
+  @FXML private void handleQuickBid1() { submitBid(currentBidUSD + minStep); }
+  @FXML private void handleQuickBid2() { submitBid(currentBidUSD + minStep * 2); }
+  @FXML private void handleQuickBid3() { submitBid(currentBidUSD + minStep * 5); }
+
+  @FXML private void handleConfirmBid() {
+    if (txtCustomBid == null) return;
+    String raw = txtCustomBid.getText().trim().replaceAll("[,$]", "");
+    if (raw.isEmpty()) { shakeNode(txtCustomBid); return; }
+    try { submitBid(Double.parseDouble(raw)); }
+    catch (NumberFormatException e) {
+      shakeNode(txtCustomBid); showAlert("Sai định dạng", "Chỉ nhập số (ví dụ: 500000).");
+    }
+  }
+
+  @FXML private void handlePlaceBid() { submitBid(currentBidUSD + minStep); }
+
+  @FXML private void handleBack() {
+    cleanup();
+    if (onBack != null) onBack.run();
+    else ViewManager.navigateTo(ViewManager.Views.HOME);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  DISPLAY
+  // ─────────────────────────────────────────────────────────────────
+
+  private void refreshBidDisplay() { setText(lblCurrentBid, formatUSD(currentBidUSD)); }
+
+  private void updateQuickBidLabels() {
+    if (btnQuickBid1 != null) btnQuickBid1.setText("+" + formatUSD(minStep));
+    if (btnQuickBid2 != null) btnQuickBid2.setText("+" + formatUSD(minStep * 2));
+    if (btnQuickBid3 != null) btnQuickBid3.setText("+" + formatUSD(minStep * 5));
+  }
+
+  private void animateBidUpdate() {
+    if (lblCurrentBid == null) return;
+    ScaleTransition st = new ScaleTransition(Duration.millis(120), lblCurrentBid);
+    st.setFromX(1.0); st.setToX(1.12); st.setFromY(1.0); st.setToY(1.12);
+    st.setAutoReverse(true); st.setCycleCount(2); st.play();
+    FadeTransition ft = new FadeTransition(Duration.millis(300), lblCurrentBid);
+    ft.setFromValue(0.5); ft.setToValue(1.0); ft.play();
+  }
+
+  private HBox buildBidRow(String time, String user, double amount, boolean isWinning) {
+    String clr = isWinning ? "#2E7D32" : "#606368";
+    String bg  = isWinning ? "-fx-background-color: #E8F5E9;" : "";
+    String fw  = isWinning ? "-fx-font-weight: bold;" : "";
+    double pad = isWinning ? 11 : 9;
+    HBox row = new HBox();
+    row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+    row.setStyle(bg);
+    row.setPadding(new Insets(pad, 18, pad, 18));
+    row.getChildren().addAll(
+            styledLabel(time,            clr, 12.5, 88,  fw),
+            styledLabel(user,            clr, 12.5, 100, fw),
+            styledLabel(formatUSD(amount), clr, 12.5, -1, fw)
+    );
+    if (isWinning) {
+      FadeTransition ft = new FadeTransition(Duration.millis(400), row);
+      ft.setFromValue(0); ft.setToValue(1); ft.play();
+    }
+    return row;
+  }
+
+  private Label styledLabel(String text, String color, double size, double w, String extra) {
+    Label lbl = new Label(text);
+    lbl.setStyle(String.format("-fx-text-fill: %s; -fx-font-size: %.1f; %s", color, size, extra));
+    if (w > 0) lbl.setPrefWidth(w);
+    return lbl;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  PULSE DOT
+  // ─────────────────────────────────────────────────────────────────
+
   private void startPulseDot() {
     if (dotPulse == null) return;
-
     pulseTimeline = new Timeline(
-        new KeyFrame(Duration.ZERO,
-            new KeyValue(dotPulse.opacityProperty(), 1.0)),
-        new KeyFrame(Duration.millis(800),
-            new KeyValue(dotPulse.opacityProperty(), 0.15))
+            new KeyFrame(Duration.ZERO,       new KeyValue(dotPulse.opacityProperty(), 1.0)),
+            new KeyFrame(Duration.millis(800), new KeyValue(dotPulse.opacityProperty(), 0.15))
     );
     pulseTimeline.setAutoReverse(true);
     pulseTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -220,56 +489,40 @@ public class AuctionRoomController implements Initializable {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  //  ANIMATED BACKGROUND  (floating translucent gradient circles)
+  //  ANIMATED BG
   // ─────────────────────────────────────────────────────────────────
-  private static final int   BG_CIRCLES = 6;
-  private final double[]     cx  = new double[BG_CIRCLES];
-  private final double[]     cy  = new double[BG_CIRCLES];
-  private final double[]     vx  = new double[BG_CIRCLES];
-  private final double[]     vy  = new double[BG_CIRCLES];
-  private final double[]     cr  = new double[BG_CIRCLES];
-  private final Circle[]     bgCircles = new Circle[BG_CIRCLES];
 
+  private static final int     BG_CIRCLES = 6;
+  private final double[]       cx = new double[BG_CIRCLES];
+  private final double[]       cy = new double[BG_CIRCLES];
+  private final double[]       vx = new double[BG_CIRCLES];
+  private final double[]       vy = new double[BG_CIRCLES];
+  private final double[]       cr = new double[BG_CIRCLES];
+  private final Circle[]  bgCircles = new Circle[BG_CIRCLES];
   private static final Color[] BG_COLORS = {
-      Color.web("#4285F4", 0.06),
-      Color.web("#9B72CB", 0.05),
-      Color.web("#D96570", 0.04),
-      Color.web("#4285F4", 0.05),
-      Color.web("#9B72CB", 0.06),
-      Color.web("#D96570", 0.05),
+          Color.web("#4285F4",0.06), Color.web("#9B72CB",0.05), Color.web("#D96570",0.04),
+          Color.web("#4285F4",0.05), Color.web("#9B72CB",0.06), Color.web("#D96570",0.05),
   };
 
   private void startBackgroundAnimation() {
     if (paneBackground == null) return;
-
     Random rng = new Random();
-    double W = 1280, H = 900;
-
     for (int i = 0; i < BG_CIRCLES; i++) {
       cr[i] = 120 + rng.nextDouble() * 180;
-      cx[i] = rng.nextDouble() * W;
-      cy[i] = rng.nextDouble() * H;
-      vx[i] = (rng.nextDouble() - 0.5) * 0.4;
-      vy[i] = (rng.nextDouble() - 0.5) * 0.4;
-
-      Circle c = new Circle(cx[i], cy[i], cr[i], BG_COLORS[i]);
-      bgCircles[i] = c;
-      paneBackground.getChildren().add(c);
+      cx[i] = rng.nextDouble() * 1280; cy[i] = rng.nextDouble() * 900;
+      vx[i] = (rng.nextDouble() - 0.5) * 0.4; vy[i] = (rng.nextDouble() - 0.5) * 0.4;
+      bgCircles[i] = new Circle(cx[i], cy[i], cr[i], BG_COLORS[i]);
+      paneBackground.getChildren().add(bgCircles[i]);
     }
-
     bgAnimationTimer = new AnimationTimer() {
-      @Override
-      public void handle(long now) {
+      @Override public void handle(long now) {
         double W = paneBackground.getWidth()  > 0 ? paneBackground.getWidth()  : 1280;
         double H = paneBackground.getHeight() > 0 ? paneBackground.getHeight() : 900;
         for (int i = 0; i < BG_CIRCLES; i++) {
-          cx[i] += vx[i];
-          cy[i] += vy[i];
-          // Bounce off edges
-          if (cx[i] - cr[i] < 0 || cx[i] + cr[i] > W) vx[i] = -vx[i];
-          if (cy[i] - cr[i] < 0 || cy[i] + cr[i] > H) vy[i] = -vy[i];
-          bgCircles[i].setCenterX(cx[i]);
-          bgCircles[i].setCenterY(cy[i]);
+          cx[i] += vx[i]; cy[i] += vy[i];
+          if (cx[i]-cr[i]<0 || cx[i]+cr[i]>W) vx[i]=-vx[i];
+          if (cy[i]-cr[i]<0 || cy[i]+cr[i]>H) vy[i]=-vy[i];
+          bgCircles[i].setCenterX(cx[i]); bgCircles[i].setCenterY(cy[i]);
         }
       }
     };
@@ -277,357 +530,63 @@ public class AuctionRoomController implements Initializable {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  //  BID LOGIC
+  //  CLEANUP
   // ─────────────────────────────────────────────────────────────────
 
-  /** Called by all bid paths after validation succeeds. */
-  private void submitBid(double amount) {
-    if (!userEligible) {
-      showAlert("Không đủ điều kiện",
-          "Bạn chưa đặt cọc $" + currencyFmt.format(DEPOSIT_AMOUNT) + " để tham gia đấu giá.");
-      return;
-    }
-
-    double minNextBid = currentBidUSD + BID_INCREMENT;
-    if (amount < minNextBid) {
-      showAlert("Giá không hợp lệ",
-          String.format("Giá đặt tối thiểu là %s (hiện tại %s + bước %s).",
-              formatUSD(minNextBid),
-              formatUSD(currentBidUSD),
-              formatUSD(BID_INCREMENT)));
-      return;
-    }
-
-    // Accept bid
-    double prevBid = currentBidUSD;
-    currentBidUSD = amount;
-
-    // Soft-Close rule
-    applySoftClose();
-
-    // Update display
-    refreshBidDisplay();
-
-    // Prepend to history ledger
-    String time = getCurrentTimeDisplay();
-    BidRecord record = new BidRecord(time, "B***n", amount);
-    bidHistory.addFirst(record);
-    prependBidRow(record, true);
-
-    // Animate the current-bid label
-    animateBidUpdate();
-
-    // Clear custom input
-    txtCustomBid.clear();
-
-    System.out.printf("[BID] %.0f → %.0f  (+%.0f)%n", prevBid, amount, amount - prevBid);
-  }
-
-  // ── Quick Bid Handlers ────────────────────────────────────────────
-
-  @FXML
-  private void handleQuickBid1() {
-    submitBid(currentBidUSD + BID_INCREMENT);          // +$500
-  }
-
-  @FXML
-  private void handleQuickBid2() {
-    submitBid(currentBidUSD + BID_INCREMENT * 2);      // +$1,000
-  }
-
-  @FXML
-  private void handleQuickBid3() {
-    submitBid(currentBidUSD + BID_INCREMENT * 5);      // +$2,500
-  }
-
-  // ── Confirm (custom input) ────────────────────────────────────────
-
-  @FXML
-  private void handleConfirmBid() {
-    String raw = txtCustomBid.getText().trim().replaceAll("[,$]", "");
-    if (raw.isEmpty()) {
-      shakeNode(txtCustomBid);
-      showAlert("Chưa nhập giá", "Vui lòng nhập số tiền đặt giá vào ô bên trên.");
-      return;
-    }
-    try {
-      double amount = Double.parseDouble(raw);
-      submitBid(amount);
-    } catch (NumberFormatException e) {
-      shakeNode(txtCustomBid);
-      showAlert("Định dạng không hợp lệ", "Vui lòng chỉ nhập số (ví dụ: 16500).");
-    }
-  }
-
-  // ── Place Bid (quick / secondary) ────────────────────────────────
-
-  @FXML
-  private void handlePlaceBid() {
-    // "Đặt giá ngay" defaults to 1× increment
-    submitBid(currentBidUSD + BID_INCREMENT);
+  public void cleanup() {
+    if (countdownTimeline != null) countdownTimeline.stop();
+    if (pulseTimeline     != null) pulseTimeline.stop();
+    if (pollingTimeline   != null) pollingTimeline.stop();
+    if (bgAnimationTimer  != null) bgAnimationTimer.stop();
+    if (gifPlayer         != null) gifPlayer.stop();
+    stopRealtimeWatch();
   }
 
   // ─────────────────────────────────────────────────────────────────
-  //  DISPLAY HELPERS
+  //  UTIL
   // ─────────────────────────────────────────────────────────────────
 
-  private void refreshBidDisplay() {
-    lblCurrentBid.setText(formatUSD(currentBidUSD));
-  }
-
-  /** Scale-up animation on the current bid label after a new bid. */
-  private void animateBidUpdate() {
-    ScaleTransition st = new ScaleTransition(Duration.millis(120), lblCurrentBid);
-    st.setFromX(1.0); st.setToX(1.12);
-    st.setFromY(1.0); st.setToY(1.12);
-    st.setAutoReverse(true);
-    st.setCycleCount(2);
-    st.play();
-
-    FadeTransition ft = new FadeTransition(Duration.millis(300), lblCurrentBid);
-    ft.setFromValue(0.5); ft.setToValue(1.0);
-    ft.play();
-  }
-
-  /**
-   * Dynamically prepends a new bid row to historyContainer (if wired).
-   * If historyContainer is null, history remains static (FXML rows only).
-   */
-  private void prependBidRow(BidRecord record, boolean isWinning) {
-    if (historyContainer == null) {
-      // Fallback: update the winning row labels in-place
-      updateWinningRowLabels(record);
-      return;
-    }
-
-    HBox row = buildBidRow(record, isWinning);
-
-    // Winning rows go right after the column-header row (index 1)
-    // Non-winning rows go after the winning row (index 2)
-    int insertIndex = isWinning ? 1 : 2;
-    if (insertIndex > historyContainer.getChildren().size()) {
-      insertIndex = historyContainer.getChildren().size();
-    }
-    historyContainer.getChildren().add(insertIndex, row);
-
-    // Keep ledger to 8 visible rows (remove oldest)
-    trimHistoryRows();
-
-    // Fade-in the new row
-    FadeTransition ft = new FadeTransition(Duration.millis(400), row);
-    ft.setFromValue(0); ft.setToValue(1);
-    ft.play();
-  }
-
-  /** Updates the static FXML rowWinning HBox labels with latest bid. */
-  private void updateWinningRowLabels(BidRecord record) {
-    if (rowWinning == null) return;
-    List<javafx.scene.Node> nodes = rowWinning.getChildren();
-    if (nodes.size() >= 3) {
-      ((Label) nodes.get(0)).setText(record.time());
-      ((Label) nodes.get(1)).setText(record.user());
-      ((Label) nodes.get(2)).setText(formatUSD(record.amount()));
-    }
-  }
-
-  /** Programmatically builds a bid history HBox row. */
-  private HBox buildBidRow(BidRecord record, boolean isWinning) {
-    String textColor   = isWinning ? "#2E7D32" : "#606368";
-    String bgColor     = isWinning ? "-fx-background-color: #E8F5E9;" : "";
-    String fontWeight  = isWinning ? "-fx-font-weight: bold;" : "";
-
-    HBox row = new HBox();
-    row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-    row.setStyle(bgColor);
-    row.setPadding(new Insets(isWinning ? 11 : 9, 18, isWinning ? 11 : 9, 18));
-
-    row.getChildren().addAll(
-        styledLabel(record.time(),            textColor, 12.5, 88,  fontWeight),
-        styledLabel(record.user(),            textColor, 12.5, 100, fontWeight),
-        styledLabel(formatUSD(record.amount()), textColor, 12.5, -1, fontWeight)
-    );
-    return row;
-  }
-
-  private Label styledLabel(String text, String color, double fontSize,
-      double prefW, String extra) {
-    Label lbl = new Label(text);
-    lbl.setStyle(String.format(
-        "-fx-text-fill: %s; -fx-font-size: %.1f; %s", color, fontSize, extra));
-    lbl.setFont(javafx.scene.text.Font.font(fontSize));
-    if (prefW > 0) lbl.setPrefWidth(prefW);
-    return lbl;
-  }
-
-  /**
-   * Keeps the history container to a maximum of 8 data rows
-   * (header + 8 bid rows + view-all button).
-   */
-  private void trimHistoryRows() {
-    if (historyContainer == null) return;
-    // Children layout: [cardHeader HBox] [colHeader HBox] [rows…] [viewAll Button]
-    // We want max 8 bid rows → total children ≤ 2 + 8 + 1 = 11
-    int max = 11;
-    while (historyContainer.getChildren().size() > max) {
-      // Remove second-to-last (before the "view all" button)
-      int lastRow = historyContainer.getChildren().size() - 2;
-      historyContainer.getChildren().remove(lastRow);
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  //  USER ELIGIBILITY
-  // ─────────────────────────────────────────────────────────────────
-
-  public void setUserEligible(boolean eligible) {
-    this.userEligible = eligible;
-    setButtonsDisabled(!eligible);
-    if (!eligible) {
-      lblBidStatus.setText("⚠ Chưa đặt cọc — không thể đặt giá");
-      lblBidStatus.setStyle("-fx-text-fill: #D96570; -fx-font-size: 12.5; -fx-font-weight: bold;");
-    }
-  }
-
-  private void setButtonsDisabled(boolean disable) {
-    btnConfirmBid.setDisable(disable);
-    btnPlaceBid.setDisable(disable);
-    btnQuickBid1.setDisable(disable);
-    btnQuickBid2.setDisable(disable);
-    btnQuickBid3.setDisable(disable);
-    txtCustomBid.setDisable(disable);
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  //  BID HISTORY SEED  (mirrors the static rows already in FXML)
-  // ─────────────────────────────────────────────────────────────────
-  private void seedBidHistory() {
-    bidHistory.addLast(new BidRecord("00:22:30", "N***A", 15_800));
-    bidHistory.addLast(new BidRecord("00:22:39", "N***B", 17_000));
-    bidHistory.addLast(new BidRecord("00:21:55", "T***C", 15_300));
-    bidHistory.addLast(new BidRecord("00:21:10", "M***D", 14_800));
-    bidHistory.addLast(new BidRecord("00:20:45", "P***E", 14_300));
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  //  NUMERIC INPUT FILTER  (TextField only accepts digits)
-  // ─────────────────────────────────────────────────────────────────
   private void attachNumericFilter() {
-    txtCustomBid.textProperty().addListener((obs, oldVal, newVal) -> {
-      if (!newVal.matches("[0-9]*")) {
-        txtCustomBid.setText(newVal.replaceAll("[^0-9]", ""));
-      }
+    if (txtCustomBid == null) return;
+    txtCustomBid.textProperty().addListener((obs, o, n) -> {
+      if (!n.matches("[0-9]*")) txtCustomBid.setText(n.replaceAll("[^0-9]", ""));
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  //  UTILITY
-  // ─────────────────────────────────────────────────────────────────
-
-  /** Formats a double as "$15,800 USD". */
   private String formatUSD(double amount) {
     return "$" + currencyFmt.format((long) amount) + " USD";
   }
 
-  /** Returns current time as "HH:MM:SS" string for bid history rows. */
-  private String getCurrentTimeDisplay() {
-    java.time.LocalTime now = java.time.LocalTime.now();
-    return String.format("%02d:%02d:%02d", now.getHour(), now.getMinute(), now.getSecond());
+  private void setButtonsDisabled(boolean d) {
+    if (btnConfirmBid != null) btnConfirmBid.setDisable(d);
+    if (btnPlaceBid   != null) btnPlaceBid.setDisable(d);
+    if (btnQuickBid1  != null) btnQuickBid1.setDisable(d);
+    if (btnQuickBid2  != null) btnQuickBid2.setDisable(d);
+    if (btnQuickBid3  != null) btnQuickBid3.setDisable(d);
+    if (txtCustomBid  != null) txtCustomBid.setDisable(d);
   }
 
-  /** Horizontal shake animation — signals invalid input. */
+  private void setText(Label lbl, String val) { if (lbl != null) lbl.setText(val); }
+
   private void shakeNode(javafx.scene.Node node) {
     TranslateTransition tt = new TranslateTransition(Duration.millis(60), node);
-    tt.setFromX(0);
-    tt.setByX(8);
-    tt.setCycleCount(6);
-    tt.setAutoReverse(true);
-    tt.setOnFinished(e -> node.setTranslateX(0));
-    tt.play();
+    tt.setByX(8); tt.setCycleCount(6); tt.setAutoReverse(true);
+    tt.setOnFinished(e -> node.setTranslateX(0)); tt.play();
   }
 
-  /** Simple information alert in Vietnamese. */
-  private void showAlert(String title, String message) {
+  private void showAlert(String title, String msg) {
     Platform.runLater(() -> {
-      Alert alert = new Alert(Alert.AlertType.INFORMATION);
-      alert.setTitle(title);
-      alert.setHeaderText(null);
-      alert.setContentText(message);
-
-      // Apply Gemini styling to the dialog
-      DialogPane dp = alert.getDialogPane();
-      dp.setStyle("-fx-background-color: white; -fx-font-size: 13;");
-
-      // Style the OK button
-      dp.getButtonTypes().stream()
-          .map(dp::lookupButton)
-          .forEach(btn -> btn.setStyle(
-              "-fx-background-color: #4285F4;" +
-                  "-fx-text-fill: white;" +
-                  "-fx-font-weight: bold;" +
-                  "-fx-background-radius: 20;"
-          ));
-
-      alert.showAndWait();
+      Alert a = new Alert(Alert.AlertType.INFORMATION);
+      a.setTitle(title); a.setHeaderText(null); a.setContentText(msg);
+      a.getDialogPane().setStyle("-fx-background-color: white; -fx-font-size: 13;");
+      a.showAndWait();
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  //  PUBLIC API  (called by network layer / server messages)
-  // ─────────────────────────────────────────────────────────────────
-
-  /**
-   * Called when a NEW BID arrives from the server (websocket / socket).
-   * Must be invoked on the JavaFX Application Thread
-   * (wrap with Platform.runLater if coming from a background thread).
-   *
-   * @param bidderAlias anonymised name (e.g. "K***Z")
-   * @param amount      new highest bid in USD
-   */
-  public void onServerBidReceived(String bidderAlias, double amount) {
-    Platform.runLater(() -> {
-      if (amount <= currentBidUSD) return;  // stale / duplicate
-
-      currentBidUSD = amount;
-      refreshBidDisplay();
-      applySoftClose();
-      animateBidUpdate();
-
-      String time = getCurrentTimeDisplay();
-      BidRecord record = new BidRecord(time, bidderAlias, amount);
-      bidHistory.addFirst(record);
-      prependBidRow(record, true);
-    });
+  private String str(JsonObject o, String key, String def) {
+    return (o!=null && o.has(key) && !o.get(key).isJsonNull()) ? o.get(key).getAsString() : def;
   }
-
-  /**
-   * Called by the server to force-set remaining seconds
-   * (e.g. after reconnect to sync with server clock).
-   */
-  public void syncTimerFromServer(double serverRemainingSeconds) {
-    Platform.runLater(() -> {
-      remainingSeconds = serverRemainingSeconds;
-      refreshTimerLabel();
-    });
+  private double dbl(JsonObject o, String key, double def) {
+    return (o!=null && o.has(key) && !o.get(key).isJsonNull()) ? o.get(key).getAsDouble() : def;
   }
-
-  /**
-   * Marks the user's deposit as confirmed (called after deposit API response).
-   */
-  public void confirmDeposit() {
-    Platform.runLater(() -> setUserEligible(true));
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  //  CLEANUP  (call from owning stage onCloseRequest)
-  // ─────────────────────────────────────────────────────────────────
-  public void shutdown() {
-    if (countdownTimeline  != null) countdownTimeline.stop();
-    if (pulseTimeline      != null) pulseTimeline.stop();
-    if (bgAnimationTimer   != null) bgAnimationTimer.stop();
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  //  INNER RECORD  — lightweight bid entry
-  // ─────────────────────────────────────────────────────────────────
-  private record BidRecord(String time, String user, double amount) {}
 }

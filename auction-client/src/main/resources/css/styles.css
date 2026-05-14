@@ -71,3 +71,14 @@
 .user-menu-dropdown .button:hover {
   -fx-background-color: #F5F5F5;
 }
+
+
+@font-face {
+    font-family: 'Montserrat';
+    src: url('../fonts/Montserrat-Light.otf');
+}
+
+/* Tạo class để dùng nhanh cho các Label, Button... */
+.font-montserrat {
+    -fx-font-family: 'Montserrat';
+}

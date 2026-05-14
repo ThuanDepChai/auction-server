@@ -41,8 +41,8 @@ public class AuctionListController {
   @FXML
   public void initialize() {
     cmbCategory.getItems().setAll(
-        "Tất cả danh mục", "Điện tử", "Thời trang",
-        "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao");
+            "Tất cả danh mục", "Điện tử", "Thời trang",
+            "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao");
     cmbCategory.setValue("Tất cả danh mục");
     loadAuctions();
   }
@@ -52,15 +52,15 @@ public class AuctionListController {
   public void loadAuctions() {
     showLoading();
     new GetActiveAuctionsCommand().executeAsync(
-        res -> {
-          if (ServerCommand.isSuccess(res) && res.has("auctions")) {
-            cachedAll = res.getAsJsonArray("auctions");
-            applyFilter();
-          } else {
-            showEmpty("Không thể tải danh sách đấu giá");
-          }
-        },
-        () -> showEmpty("Lỗi kết nối!")
+            res -> {
+              if (ServerCommand.isSuccess(res) && res.has("auctions")) {
+                cachedAll = res.getAsJsonArray("auctions");
+                applyFilter();
+              } else {
+                showEmpty("Không thể tải danh sách đấu giá");
+              }
+            },
+            () -> showEmpty("Lỗi kết nối!")
     );
   }
 
@@ -71,9 +71,9 @@ public class AuctionListController {
     for (int i = 0; i < cachedAll.size(); i++) {
       JsonObject a = cachedAll.get(i).getAsJsonObject();
       String status = a.has("status") ? a.get("status").getAsString() : "";
-        if ("ALL".equals(activeFilter) || activeFilter.equals(status)) {
-            filtered.add(a);
-        }
+      if ("ALL".equals(activeFilter) || activeFilter.equals(status)) {
+        filtered.add(a);
+      }
     }
     populateGrid(filtered);
     updateFilterButtons();
@@ -82,13 +82,13 @@ public class AuctionListController {
   @FXML
   private void handleFilter(ActionEvent e) {
     Button src = (Button) e.getSource();
-      if (src == btnFilterAll) {
-          activeFilter = "ALL";
-      } else if (src == btnFilterActive) {
-          activeFilter = "ACTIVE";
-      } else if (src == btnFilterEnded) {
-          activeFilter = "ENDED";
-      }
+    if (src == btnFilterAll) {
+      activeFilter = "ALL";
+    } else if (src == btnFilterActive) {
+      activeFilter = "ACTIVE";
+    } else if (src == btnFilterEnded) {
+      activeFilter = "ENDED";
+    }
     applyFilter();
   }
 
@@ -102,12 +102,12 @@ public class AuctionListController {
     for (int i = 0; i < cachedAll.size(); i++) {
       JsonObject a = cachedAll.get(i).getAsJsonObject();
       boolean matchName = keyword.isEmpty()
-          || a.has("name") && a.get("name").getAsString().toLowerCase().contains(keyword);
+              || a.has("name") && a.get("name").getAsString().toLowerCase().contains(keyword);
       boolean matchCat = allCat
-          || a.has("category") && a.get("category").getAsString().equalsIgnoreCase(category);
-        if (matchName && matchCat) {
-            filtered.add(a);
-        }
+              || a.has("category") && a.get("category").getAsString().equalsIgnoreCase(category);
+      if (matchName && matchCat) {
+        filtered.add(a);
+      }
     }
     populateGrid(filtered);
   }
@@ -127,14 +127,14 @@ public class AuctionListController {
 
   private void handleGoToBidding(int auctionId) {
     countdownTimers.forEach(Timeline::stop);
-    ViewManager.navigateTo(ViewManager.Views.BIDDING_ROOM,
-        "Phòng đấu giá #" + auctionId,
-        c -> {
-          if (c instanceof BiddingRoomController b) {
-            b.setAuctionId(auctionId);
-            b.setOnBack(this::loadAuctions);
-          }
-        });
+    ViewManager.navigateTo(ViewManager.Views.AUCTION_ROOM,
+            "Phòng đấu giá #" + auctionId,
+            c -> {
+              if (c instanceof AuctionRoomController b) {
+                b.setAuctionId(auctionId);
+                b.setOnBack(this::loadAuctions);
+              }
+            });
   }
 
   // ── Populate ─────────────────────────────────────────────────────────────
@@ -150,10 +150,10 @@ public class AuctionListController {
       return;
     }
     lblCount.setText(data.size() + " phiên");
-      for (int i = 0; i < data.size(); i++) {
-          flowAuctions.getChildren().add(CardFactory.buildAuctionCard(
+    for (int i = 0; i < data.size(); i++) {
+      flowAuctions.getChildren().add(CardFactory.buildAuctionCard(
               data.get(i).getAsJsonObject(), countdownTimers, this::handleGoToBidding));
-      }
+    }
   }
 
   private void updateFilterButtons() {
