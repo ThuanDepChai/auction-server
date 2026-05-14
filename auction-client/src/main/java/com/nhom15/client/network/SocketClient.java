@@ -10,11 +10,10 @@ import java.net.Socket;
 
 public class SocketClient {
 
-  // Đổi thành IP thực tế của Server. Dùng "localhost" nếu chạy cùng máy.
-  private static final String SERVER_IP = "26.159.224.110";
+  private static final String SERVER_IP = "viaduct.proxy.rlwy.net";
 
   // Cổng này phải khớp với cổng đang chạy ở AuctionServer
-  private static final int SERVER_PORT = 8888;
+  private static final int SERVER_PORT = 30802;
 
   // Timeout kết nối: 5 giây — tránh treo vô thời hạn khi server không trả lời TCP handshake
   private static final int CONNECT_TIMEOUT_MS = 5000;
