@@ -6,7 +6,6 @@ import com.nhom15.client.command.ServerCommand;
 import com.nhom15.client.util.SessionManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -15,39 +14,57 @@ import javafx.scene.control.TextField;
 import javafx.util.Duration;
 
 /**
- * ManualBidController — quản lý TAB ĐẶT GIÁ THỦ CÔNG:
- * - Nhập giá, validate, gọi PlaceBidCommand
- * - Nút quick-bid (+1/+3/+5/+10 bước)
- * - Slider kéo chọn mức giá
- * - Hiển thị lỗi / thành công
+ * ManualBidController — quản lý TAB ĐẶT GIÁ THỦ CÔNG.
  *
- * Callback onBidPlaced báo lên BiddingRoomController để cập nhật chart và history.
+ * FIX: Không dùng @FXML nữa. Nodes được inject qua setNodes().
+ * handlePlaceBid() đổi thành public để BiddingRoomController delegate được.
+ * initialize() được gọi thủ công từ BiddingRoomController sau setNodes().
  */
 public class ManualBidController {
 
-    // ── FXML refs ─────────────────────────────────────────────────────────
-    @FXML private TextField txtBidAmount;
-    @FXML private Label     lblMinBid;
-    @FXML private Label     lblBidError;
-    @FXML private Label     lblBidStatus;
-    @FXML private Button    btnPlaceBid;
-    @FXML private Button    btnQuick1;
-    @FXML private Button    btnQuick2;
-    @FXML private Button    btnQuick3;
-    @FXML private Button    btnQuick4;
-    @FXML private Slider    bidSlider;
-    @FXML private Label     lblSliderVal;
-    @FXML private CheckBox  chkConfirmBid;
+    private TextField txtBidAmount;
+    private Label     lblMinBid;
+    private Label     lblBidError;
+    private Label     lblBidStatus;
+    private Button    btnPlaceBid;
+    private Button    btnQuick1;
+    private Button    btnQuick2;
+    private Button    btnQuick3;
+    private Button    btnQuick4;
+    private Slider    bidSlider;
+    private Label     lblSliderVal;
+    private CheckBox  chkConfirmBid;
 
-    // ── Dependencies ───────────────────────────────────────────────────────
     private AuctionState state;
-
-    /** Callback: được gọi sau khi đặt giá thành công, truyền số tiền đã đặt. */
     private java.util.function.DoubleConsumer onBidPlaced;
 
-    // ── Init ──────────────────────────────────────────────────────────────
+    // ── Inject thủ công từ BiddingRoomController ──────────────────────────
 
-    @FXML
+    public void setNodes(
+            TextField txtBidAmount, Label lblMinBid,
+            Label lblBidError, Label lblBidStatus,
+            Button btnPlaceBid,
+            Button btnQuick1, Button btnQuick2,
+            Button btnQuick3, Button btnQuick4,
+            Slider bidSlider, Label lblSliderVal,
+            CheckBox chkConfirmBid) {
+
+        this.txtBidAmount  = txtBidAmount;
+        this.lblMinBid     = lblMinBid;
+        this.lblBidError   = lblBidError;
+        this.lblBidStatus  = lblBidStatus;
+        this.btnPlaceBid   = btnPlaceBid;
+        this.btnQuick1     = btnQuick1;
+        this.btnQuick2     = btnQuick2;
+        this.btnQuick3     = btnQuick3;
+        this.btnQuick4     = btnQuick4;
+        this.bidSlider     = bidSlider;
+        this.lblSliderVal  = lblSliderVal;
+        this.chkConfirmBid = chkConfirmBid;
+    }
+
+    // ── initialize() — gọi thủ công sau setNodes() ────────────────────────
+
     public void initialize() {
         bindLabelVisible(lblBidError);
         bindLabelVisible(lblBidStatus);
@@ -61,7 +78,6 @@ public class ManualBidController {
         refreshLabels();
     }
 
-    /** Gọi sau mỗi lần currentPrice / minStep thay đổi để cập nhật nhãn nút. */
     public void refreshLabels() {
         if (state == null || btnQuick1 == null) return;
         double p = state.getCurrentPrice(), s = state.getMinStep();
@@ -71,9 +87,7 @@ public class ManualBidController {
         if (btnQuick4 != null) btnQuick4.setText("+10 bước  " + formatShort(p + s * 10));
         if (lblMinBid != null)
             lblMinBid.setText("Tối thiểu: " + String.format("%,.0fđ", p + s) +
-                              "  (bước: " + String.format("%,.0f", s) + "đ)");
-
-        // Cập nhật slider range
+                    "  (bước: " + String.format("%,.0f", s) + "đ)");
         if (bidSlider != null) {
             bidSlider.setMin(p + s);
             bidSlider.setMax(p + s * 20);
@@ -84,15 +98,14 @@ public class ManualBidController {
         if (btnPlaceBid  != null) btnPlaceBid.setDisable(true);
         if (txtBidAmount != null) txtBidAmount.setDisable(true);
         if (btnQuick1    != null) { btnQuick1.setDisable(true); btnQuick2.setDisable(true);
-                                    btnQuick3.setDisable(true); }
+            btnQuick3.setDisable(true); }
         if (btnQuick4    != null) btnQuick4.setDisable(true);
         if (bidSlider    != null) bidSlider.setDisable(true);
     }
 
-    // ── FXML handlers ─────────────────────────────────────────────────────
+    // ── Handler — public để BiddingRoomController delegate ───────────────
 
-    @FXML
-    private void handlePlaceBid() {
+    public void handlePlaceBid() {
         if (!SessionManager.isBidder() && !SessionManager.isSeller()) {
             showError("⛔ Vui lòng đăng nhập để đặt giá!"); return;
         }
@@ -106,35 +119,25 @@ public class ManualBidController {
             showError(String.format("⚠️ Giá phải ít nhất %,.0fđ!", state.nextMinBid())); return;
         }
 
-        // Confirm check
-        if (chkConfirmBid != null && chkConfirmBid.isSelected()) {
-            // Đã có checkbox xác nhận, tiếp tục
-        }
-
         setLoading(true);
         new PlaceBidCommand(state.getAuctionId(), SessionManager.getUserId(), amount)
-            .executeAsync(
-                res -> {
-                    setLoading(false);
-                    if (ServerCommand.isSuccess(res)) {
-                        if (txtBidAmount != null) txtBidAmount.clear();
-                        showSuccess("✓ Đặt giá thành công!");
-                        if (onBidPlaced != null) onBidPlaced.accept(amount);
-                    } else {
-                        showError(ServerCommand.getMessage(res, "❌ Đặt giá thất bại!"));
-                    }
-                },
-                () -> {
-                    setLoading(false);
-                    showError("🔌 Lỗi kết nối đến server!");
-                }
-            );
+                .executeAsync(
+                        res -> {
+                            setLoading(false);
+                            if (ServerCommand.isSuccess(res)) {
+                                if (txtBidAmount != null) txtBidAmount.clear();
+                                showSuccess("✓ Đặt giá thành công!");
+                                if (onBidPlaced != null) onBidPlaced.accept(amount);
+                            } else {
+                                showError(ServerCommand.getMessage(res, "❌ Đặt giá thất bại!"));
+                            }
+                        },
+                        () -> {
+                            setLoading(false);
+                            showError("🔌 Lỗi kết nối đến server!");
+                        }
+                );
     }
-
-    @FXML private void handleQuick1() { fillQuick(1); }
-    @FXML private void handleQuick2() { fillQuick(3); }
-    @FXML private void handleQuick3() { fillQuick(5); }
-    @FXML private void handleQuick4() { fillQuick(10); }
 
     // ── Private helpers ───────────────────────────────────────────────────
 
@@ -158,7 +161,7 @@ public class ManualBidController {
     private void fillQuick(int mult) {
         if (state == null || txtBidAmount == null) return;
         txtBidAmount.setText(String.format("%.0f",
-            state.getCurrentPrice() + state.getMinStep() * mult));
+                state.getCurrentPrice() + state.getMinStep() * mult));
     }
 
     private void setLoading(boolean loading) {

@@ -2,9 +2,12 @@ package com.nhom15.client.controller;
 
 import com.google.gson.JsonArray;
 import com.nhom15.client.command.HomeCommand;
+import com.nhom15.client.components.ParticleBanner;
 import com.nhom15.client.util.CardFactory;
 import com.nhom15.client.util.SessionManager;
 import com.nhom15.client.util.ViewManager;
+import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.animation.Timeline;
@@ -19,8 +22,13 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.media.Media;
+
 
 public class HomeController {
 
@@ -35,8 +43,9 @@ public class HomeController {
   @FXML private TextField txtSearch;
   @FXML private ComboBox<String> cmbCategory;
   @FXML private ScrollPane mainScrollPane;
-
+  @FXML private AnchorPane bannerContainer;
   private final List<Timeline> countdownTimers = new ArrayList<>();
+  @FXML private MediaView bannerMediaView;
 
   // ── Khởi tạo ────────────────────────────────────────────────────────────
   @FXML
@@ -45,8 +54,43 @@ public class HomeController {
     setupCategories();
     setupClickOutsideToCloseDropdown();
     loadData();
+    setupVideoBanner();
   }
+  private void setupVideoBanner() {
+    try {
+      String videoPath = getClass().getResource("/video/videobanner1.mp4").toExternalForm();
+      Media media = new Media(videoPath);
+      MediaPlayer mediaPlayer = new MediaPlayer(media);
 
+      mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+      mediaPlayer.setVolume(0);
+
+      bannerMediaView.setMediaPlayer(mediaPlayer);
+      bannerMediaView.setPreserveRatio(true);
+
+      bannerMediaView.setManaged(false);
+      bannerMediaView.toBack();
+
+
+      bannerMediaView.fitWidthProperty().bind(bannerContainer.widthProperty());
+
+      bannerMediaView.layoutYProperty().bind(
+          bannerContainer.heightProperty().subtract(bannerMediaView.fitWidthProperty()).divide(2)
+      );
+
+      Rectangle clip = new Rectangle();
+      clip.widthProperty().bind(bannerContainer.widthProperty());
+      clip.heightProperty().bind(bannerContainer.heightProperty());
+      clip.setArcWidth(36);
+      clip.setArcHeight(36);
+      bannerContainer.setClip(clip);
+
+      mediaPlayer.play();
+
+    } catch (Exception e) {
+      System.err.println("Lỗi load video banner: " + e.getMessage());
+    }
+  }
   private void setupUserInfo() {
     if (!SessionManager.isLoggedIn()) {
       lblUsername.setText("Khách");
