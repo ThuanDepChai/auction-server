@@ -389,6 +389,71 @@ public class AuctionDAO {
         return result;
     }
 
+    // ── Anti-sniping helpers ─────────────────────────────────────────────────
+
+    /**
+     * Lấy min_step của phiên — dùng bởi AuctionManager khi kiểm tra auto-bid.
+     *
+     * @return min_step, hoặc 0 nếu không tìm thấy
+     */
+    public double getMinStep(int auctionId) {
+        String sql = "SELECT min_step FROM auction WHERE auction_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, auctionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble("min_step");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * Số giây còn lại cho đến khi phiên kết thúc.
+     *
+     * @return số giây còn lại (≥ 0), hoặc -1 nếu phiên không tồn tại / đã kết thúc
+     */
+    public long getSecondsUntilEnd(int auctionId) {
+        String sql = "SELECT TIMESTAMPDIFF(SECOND, NOW(), end_time) AS secs "
+                + "FROM auction WHERE auction_id = ? AND status = 'ACTIVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, auctionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    long secs = rs.getLong("secs");
+                    return secs < 0 ? -1 : secs;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Gia hạn thời gian kết thúc của phiên thêm {@code extraSeconds} giây.
+     * Chỉ gia hạn khi phiên vẫn còn ACTIVE.
+     *
+     * @return true nếu gia hạn thành công
+     */
+    public boolean extendAuctionTime(int auctionId, int extraSeconds) {
+        String sql = "UPDATE auction "
+                + "SET end_time = DATE_ADD(end_time, INTERVAL ? SECOND) "
+                + "WHERE auction_id = ? AND status = 'ACTIVE'";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, extraSeconds);
+            ps.setInt(2, auctionId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     /**
      * Kết thúc phiên đấu giá
      */

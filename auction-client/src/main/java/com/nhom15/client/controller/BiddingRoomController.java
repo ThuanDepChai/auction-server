@@ -191,17 +191,23 @@ public class BiddingRoomController {
         bidHistoryController.initialize();
 
         // 3. Setup với AuctionState + callbacks
-        manualBidController.setup(state, this::onBidPlacedSuccessfully);
-        autoBidController.setup(state);
-        bidHistoryController.setup(state);
-        priceCountdownController.setOnAuctionExpired(this::onAuctionEnded);
-
+        // poller phải được setup TRƯỚC manualBidController vì ManualBidController cần ref đến poller
         poller.setup(
                 state,
                 this::onPriceChanged,
                 this::onPollingUpdate,
                 this::onAuctionEnded
         );
+        // Anti-sniping: khi server gia hạn, cập nhật countdown ngay lập tức
+        poller.setOnEndTimeChanged(newEndTime -> {
+            priceCountdownController.startCountdown(newEndTime, this::onAuctionEnded);
+            priceCountdownController.showAntiSnipeAlert();
+        });
+
+        manualBidController.setup(state, this::onBidPlacedSuccessfully, poller);
+        autoBidController.setup(state);
+        bidHistoryController.setup(state);
+        priceCountdownController.setOnAuctionExpired(this::onAuctionEnded);
     }
 
     // ── Inject helpers ────────────────────────────────────────────────────
@@ -275,16 +281,18 @@ public class BiddingRoomController {
             JsonObject a = res.getAsJsonObject("auction");
 
             state.setCurrentPrice(dbl(a, "currentPrice", dbl(a, "startPrice", 0)));
-            state.setMinStep(dbl(a, "bidStep", 50_000));
+            // "minStep" là tên field server trả về — "bidStep" là tên cũ sai
+            state.setMinStep(dbl(a, "minStep", dbl(a, "bidStep", 50_000)));
+
+            String endTime = str(a, "endTime", null);
+            if (endTime != null) {
+                state.setEndTime(endTime); // đồng bộ vào state để polling so sánh được
+                priceCountdownController.startCountdown(endTime, this::onAuctionEnded);
+            }
 
             productPanelController.populate(a);
             priceCountdownController.updatePrice(state.getCurrentPrice(), 0);
             priceCountdownController.updateStatusBadge(str(a, "status", "ACTIVE"));
-
-            String endTime = str(a, "endTime", null);
-            if (endTime != null)
-                priceCountdownController.startCountdown(endTime, this::onAuctionEnded);
-
             manualBidController.refreshLabels();
         });
     }

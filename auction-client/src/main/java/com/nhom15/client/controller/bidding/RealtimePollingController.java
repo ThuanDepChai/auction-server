@@ -12,7 +12,10 @@ import javafx.util.Duration;
  * Định kỳ gọi GetAuctionDetailCommand mỗi 3 giây và thông báo
  * kết quả về BiddingRoomController qua callback.
  *
- * Không giữ tham chiếu đến bất kỳ UI node nào — hoàn toàn tách rời UI.
+ * <p>Ngoài ra hỗ trợ {@link #notifyBidResult} để BiddingRoomController
+ * báo kết quả bid tức thì (kèm newEndTime nếu anti-sniping đã gia hạn).
+ *
+ * <p>Không giữ tham chiếu đến bất kỳ UI node nào — hoàn toàn tách rời UI.
  */
 public class RealtimePollingController {
 
@@ -30,6 +33,12 @@ public class RealtimePollingController {
     /** Callback: gọi khi nhận được dữ liệu mới (leader, totalBids). */
     private UpdateListener onUpdate;
 
+    /**
+     * Callback: gọi khi end_time thay đổi (anti-sniping gia hạn).
+     * Truyền chuỗi endTime mới để UI cập nhật bộ đếm ngược.
+     */
+    private EndTimeChangedListener onEndTimeChanged;
+
     // ── Interfaces ────────────────────────────────────────────────────────
 
     @FunctionalInterface
@@ -40,6 +49,11 @@ public class RealtimePollingController {
     @FunctionalInterface
     public interface UpdateListener {
         void onUpdate(String leader, int totalBids);
+    }
+
+    @FunctionalInterface
+    public interface EndTimeChangedListener {
+        void onChanged(String newEndTime);
     }
 
     // ── Setup ─────────────────────────────────────────────────────────────
@@ -54,18 +68,51 @@ public class RealtimePollingController {
         this.onAuctionEnded = onAuctionEnded;
     }
 
+    public void setOnEndTimeChanged(EndTimeChangedListener listener) {
+        this.onEndTimeChanged = listener;
+    }
+
     // ── Start / Stop ──────────────────────────────────────────────────────
 
     public void start() {
         stop();
         poller = new Timeline(new KeyFrame(Duration.seconds(POLL_INTERVAL_SEC),
-            e -> poll()));
+                e -> poll()));
         poller.setCycleCount(Timeline.INDEFINITE);
         poller.play();
     }
 
     public void stop() {
         if (poller != null) { poller.stop(); poller = null; }
+    }
+
+    /**
+     * Gọi ngay sau khi PLACE_BID thành công — xử lý newEndTime (anti-sniping)
+     * và newPrice (có thể đã bị auto-bid đẩy lên) từ response của server.
+     *
+     * <p>Gọi từ ManualBidController / AutoBidController thông qua BiddingRoomController.
+     */
+    public void notifyBidResult(JsonObject serverResponse) {
+        if (serverResponse == null) return;
+
+        // Cập nhật giá mới nhất (server trả về sau khi auto-bid đã chạy xong)
+        if (serverResponse.has("currentPrice")) {
+            double serverPrice = serverResponse.get("currentPrice").getAsDouble();
+            if (serverPrice != state.getCurrentPrice()) {
+                double old = state.getCurrentPrice();
+                state.setCurrentPrice(serverPrice);
+                if (onPriceChanged != null) onPriceChanged.onChanged(serverPrice, old);
+            }
+        }
+
+        // Anti-sniping: server gia hạn → cập nhật countdown ngay, không chờ poll tiếp theo
+        if (serverResponse.has("newEndTime") && onEndTimeChanged != null) {
+            String newEndTime = serverResponse.get("newEndTime").getAsString();
+            if (!newEndTime.equals(state.getEndTime())) {
+                state.setEndTime(newEndTime);
+                onEndTimeChanged.onChanged(newEndTime);
+            }
+        }
     }
 
     // ── Private: Poll ─────────────────────────────────────────────────────
@@ -76,14 +123,23 @@ public class RealtimePollingController {
             JsonObject a = res.getAsJsonObject("auction");
 
             double newPrice = a.has("currentPrice")
-                ? a.get("currentPrice").getAsDouble()
-                : state.getCurrentPrice();
+                    ? a.get("currentPrice").getAsDouble()
+                    : state.getCurrentPrice();
             String status = str(a, "status", "ACTIVE");
 
             if (newPrice != state.getCurrentPrice()) {
                 double old = state.getCurrentPrice();
                 state.setCurrentPrice(newPrice);
                 if (onPriceChanged != null) onPriceChanged.onChanged(newPrice, old);
+            }
+
+            // Cập nhật end_time nếu server đã gia hạn (anti-sniping)
+            if (a.has("endTime") && onEndTimeChanged != null) {
+                String serverEndTime = a.get("endTime").getAsString();
+                if (!serverEndTime.equals(state.getEndTime())) {
+                    state.setEndTime(serverEndTime);
+                    onEndTimeChanged.onChanged(serverEndTime);
+                }
             }
 
             if ("ENDED".equals(status) || "CANCELLED".equals(status)) {
@@ -100,6 +156,6 @@ public class RealtimePollingController {
 
     private String str(JsonObject o, String key, String def) {
         return (o != null && o.has(key) && !o.get(key).isJsonNull())
-            ? o.get(key).getAsString() : def;
+                ? o.get(key).getAsString() : def;
     }
 }

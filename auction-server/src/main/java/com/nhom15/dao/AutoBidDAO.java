@@ -93,11 +93,15 @@ public class AutoBidDAO {
      * Lấy tất cả auto-bid đang active cho 1 phiên đấu giá.
      * Dùng bởi AuctionManager để trigger auto-bid sau mỗi lần có bid mới.
      *
-     * @return mảng { bidderId, maxBid, increment } cho mỗi record active
+     * <p>Thứ tự: maxBid DESC → đặt giá cao nhất được ưu tiên.
+     * Nếu maxBid bằng nhau → người đăng ký auto-bid trước (auto_bid_id ASC) được ưu tiên.
+     *
+     * @return danh sách { bidderId, maxBid, increment } theo thứ tự ưu tiên
      */
     public java.util.List<JsonObject> getActiveAutoBids(int auctionId) {
         String sql = "SELECT bidder_id, max_bid, increment_step FROM auto_bid "
-                + "WHERE auction_id = ? AND active = TRUE";
+                + "WHERE auction_id = ? AND active = TRUE "
+                + "ORDER BY max_bid DESC, auto_bid_id ASC";
         java.util.List<JsonObject> list = new java.util.ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

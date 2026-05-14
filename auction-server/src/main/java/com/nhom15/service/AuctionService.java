@@ -53,15 +53,26 @@ public class AuctionService {
    * Đặt giá — bắt buộc đi qua AuctionManager để đảm bảo concurrency an toàn.
    *
    * <p>Luồng: AuctionService → AuctionManager (ReentrantLock) → AuctionDAO (transaction + FOR UPDATE)
-   * <p>Exception được bắt và chuyển thành JSON response với message rõ ràng cho client.
+   *          → anti-sniping check → trigger auto-bid
+   * <p>Sau khi thành công, lấy lại end_time mới nhất từ DB (có thể đã bị gia hạn bởi anti-sniping)
+   * và đính kèm vào response để client cập nhật bộ đếm ngược.
    */
   public JsonObject placeBid(int auctionId, int bidderId, double amount) {
     try {
-      // Đi qua AuctionManager — có ReentrantLock bảo vệ, tránh race condition
-      return auctionManager.placeBid(auctionId, bidderId, amount);
+      JsonObject result = auctionManager.placeBid(auctionId, bidderId, amount);
+
+      // Lấy end_time mới nhất — có thể đã bị gia hạn bởi anti-sniping
+      JsonObject detail = auctionDAO.getAuctionById(auctionId);
+      if (detail != null && detail.has("endTime")) {
+        result.addProperty("newEndTime", detail.get("endTime").getAsString());
+      }
+      // Lấy currentPrice mới nhất từ DB (có thể đã bị auto-bid đẩy lên sau khi bid của bạn)
+      if (detail != null && detail.has("currentPrice")) {
+        result.addProperty("currentPrice", detail.get("currentPrice").getAsDouble());
+      }
+      return result;
 
     } catch (InvalidBidException e) {
-      // Giá không hợp lệ — thông báo rõ mức tối thiểu cho client
       JsonObject result = new JsonObject();
       result.addProperty("status", "FAIL");
       result.addProperty("message", e.getMessage());
@@ -69,7 +80,6 @@ public class AuctionService {
       return result;
 
     } catch (AuctionClosedException e) {
-      // Phiên đã đóng — thông báo trạng thái hiện tại
       JsonObject result = new JsonObject();
       result.addProperty("status", "FAIL");
       result.addProperty("message", e.getMessage());
@@ -77,7 +87,6 @@ public class AuctionService {
       return result;
 
     } catch (Exception e) {
-      // Lỗi hệ thống không mong muốn
       System.err.println("❌ [AuctionService] Lỗi placeBid: " + e.getMessage());
       JsonObject result = new JsonObject();
       result.addProperty("status", "ERROR");

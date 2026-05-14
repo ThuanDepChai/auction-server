@@ -33,7 +33,7 @@ public class AuctionServer {
   // RequestHandler dùng chung — thread-safe vì các handler không có state mutable
   private static final RequestHandler requestHandler = new RequestHandler();
 
-  static void main(String[] args) {
+  public static void main(String[] args) {
     // Tạo thư mục lưu avatar nếu chưa có
     File avatarDir = new File("avatars");
     if (!avatarDir.exists()) {
