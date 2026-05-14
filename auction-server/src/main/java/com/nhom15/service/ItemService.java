@@ -29,10 +29,13 @@ public class ItemService {
       try {
         String baseDir = System.getProperty("user.dir");
         File imgDir = new File(baseDir, "item_images");
-        imgDir.mkdirs();
+        if (!imgDir.exists()) {
+          imgDir.mkdirs();
+        }
 
         for (int i = 0; i < imageBase64List.size(); i++) {
           byte[] bytes = Base64.getDecoder().decode(imageBase64List.get(i));
+          // Thêm index i vào tên file để tránh trùng lặp khi lưu nhanh
           String fileName = "item_" + System.currentTimeMillis() + "_" + i + "." + extension;
           File imgFile = new File(imgDir, fileName);
           Files.write(imgFile.toPath(), bytes);
@@ -40,9 +43,9 @@ public class ItemService {
           String savedPath = "item_images/" + fileName;
 
           if (i == 0) {
-            mainImagePath = savedPath; // Ảnh đầu tiên làm ảnh đại diện
+            mainImagePath = savedPath; // Ảnh đầu tiên làm ảnh đại diện chính
           } else {
-            subImagePaths.add(savedPath); // Các ảnh còn lại lưu vào danh sách phụ
+            subImagePaths.add(savedPath); // Các ảnh còn lại là ảnh phụ
           }
         }
       } catch (Exception e) {
@@ -50,13 +53,13 @@ public class ItemService {
       }
     }
 
-    // Gọi hàm DAO mà ông vừa sửa ở bước trước
+    // Gọi hàm DAO đã nâng cấp để lưu vào 2 bảng item và item_images
     int itemId = itemDAO.insertItem(sellerId, name, description, category, startPrice, mainImagePath, subImagePaths);
 
     if (itemId > 0) {
       result.addProperty("status", "SUCCESS");
       result.addProperty("itemId", itemId);
-      result.addProperty("message", "Đăng sản phẩm thành công với " + imageBase64List.size() + " ảnh!");
+      result.addProperty("message", "Đăng sản phẩm thành công với " + (imageBase64List != null ? imageBase64List.size() : 0) + " ảnh!");
     } else {
       result.addProperty("status", "FAIL");
       result.addProperty("message", "Đăng sản phẩm thất bại!");
@@ -64,5 +67,32 @@ public class ItemService {
     return result;
   }
 
-  // ... Các hàm bên dưới giữ nguyên
+  /**
+   * Lấy sản phẩm nổi bật
+   */
+  public JsonArray getFeaturedItems() {
+    return itemDAO.getFeaturedItems(20);
+  }
+
+  /**
+   * Tìm kiếm sản phẩm
+   */
+  public JsonArray searchItems(String keyword, String category) {
+    return itemDAO.searchItems(keyword, category);
+  }
+
+  /**
+   * Lấy sản phẩm của seller
+   */
+  public JsonArray getItemsBySeller(int sellerId) {
+    return itemDAO.getItemsBySeller(sellerId);
+  }
+
+  public boolean deleteItem(int itemId) {
+    return itemDAO.deleteItem(itemId);
+  }
+
+  public boolean updateStatus(int itemId, String status) {
+    return itemDAO.updateStatus(itemId, status);
+  }
 }
