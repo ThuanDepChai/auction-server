@@ -56,15 +56,6 @@ public class ItemFactory {
         yield new Vehicle(id, name, price, year, mileage);
       }
 
-      case "SPORTS" -> {
-        Object rawType = attributes.get("sportType");
-        SportCategory sportType = (rawType instanceof SportCategory sc)
-            ? sc
-            : SportCategory.OTHER;  // fallback an toàn thay vì throw
-        String condition = (String) attributes.getOrDefault("condition", "");
-        yield new Sports(id, name, price, sportType, condition);
-      }
-
       default -> {
         System.err.println("[ItemFactory] Loại sản phẩm không hỗ trợ: " + type);
         yield null;
