@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="800.0" prefWidth="1200.0"
+  style="-fx-background-color: #F4F7FC;"
+  xmlns="http://javafx.com/javafx/21"
+  xmlns:fx="http://javafx.com/fxml/1"
+  fx:controller="com.nhom15.client.controller.AdminDashboardController">
+
+  <!-- ── SIDEBAR ── -->
+  <left>
+    <VBox prefWidth="220.0" spacing="5.0"
+      style="-fx-background-color: white; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 3);">
+      <padding>
+        <Insets bottom="20.0" left="0.0" right="0.0" top="0.0"/>
+      </padding>
+      <children>
+
+        <!-- Logo -->
+        <VBox alignment="CENTER" prefHeight="80.0"
+          style="-fx-background-color: linear-gradient(to right, #D96570, #9B72CB, #4285F4);">
+          <children>
+            <Label text="⚙ Admin Panel"
+              style="-fx-text-fill: white; -fx-font-weight: bold;">
+              <font><Font size="20.0"/></font>
+            </Label>
+            <Label fx:id="lblAdminName" text="Quản trị viên"
+              style="-fx-text-fill: rgba(255,255,255,0.8);">
+              <font><Font size="12.0"/></font>
+            </Label>
+          </children>
+        </VBox>
+
+        <VBox spacing="3.0">
+          <padding><Insets top="15.0"/></padding>
+          <children>
+
+            <Button fx:id="btnMenuDashboard" maxWidth="Infinity" mnemonicParsing="false"
+              onAction="#handleMenuDashboard"
+              style="-fx-background-color: linear-gradient(to right, #D96570, #9B72CB); -fx-text-fill: white; -fx-alignment: CENTER_LEFT; -fx-padding: 12 20 12 20; -fx-cursor: hand; -fx-font-weight: bold;"
+              text="📊  Tổng quan">
+              <font><Font size="13.0"/></font>
+            </Button>
+
+            <Button fx:id="btnMenuUsers" maxWidth="Infinity" mnemonicParsing="false"
+              onAction="#handleMenuUsers"
+              style="-fx-background-color: transparent; -fx-text-fill: #555555; -fx-alignment: CENTER_LEFT; -fx-padding: 12 20 12 20; -fx-cursor: hand;"
+              text="👥  Quản lý User">
+              <font><Font size="13.0"/></font>
+            </Button>
+
+            <Button fx:id="btnMenuAuctions" maxWidth="Infinity" mnemonicParsing="false"
+              onAction="#handleMenuAuctions"
+              style="-fx-background-color: transparent; -fx-text-fill: #555555; -fx-alignment: CENTER_LEFT; -fx-padding: 12 20 12 20; -fx-cursor: hand;"
+              text="🔨  Quản lý Đấu giá">
+              <font><Font size="13.0"/></font>
+            </Button>
+
+          </children>
+        </VBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <VBox spacing="3.0">
+          <children>
+            <Separator/>
+            <Button maxWidth="Infinity" mnemonicParsing="false"
+              onAction="#handleLogout"
+              style="-fx-background-color: transparent; -fx-text-fill: #D96570; -fx-alignment: CENTER_LEFT; -fx-padding: 12 20 12 20; -fx-cursor: hand;"
+              text="🚪  Đăng xuất">
+              <font><Font size="13.0"/></font>
+            </Button>
+          </children>
+        </VBox>
+
+      </children>
+    </VBox>
+  </left>
+
+  <!-- ── MAIN CONTENT ── -->
+  <center>
+    <VBox spacing="0.0">
+      <children>
+
+        <!-- Header -->
+        <HBox alignment="CENTER_LEFT" prefHeight="60.0" spacing="15.0"
+          style="-fx-background-color: white; -fx-border-color: #EEEEEE; -fx-border-width: 0 0 1 0;">
+          <padding><Insets left="30.0" right="30.0"/></padding>
+          <children>
+            <Label fx:id="lblPageTitle" text="Tổng quan"
+              style="-fx-font-weight: bold;" textFill="#222222">
+              <font><Font size="20.0"/></font>
+            </Label>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button mnemonicParsing="false" onAction="#handleRefresh"
+              style="-fx-background-color: #F4F7FC; -fx-background-radius: 20; -fx-cursor: hand; -fx-text-fill: #4285F4; -fx-font-weight: bold; -fx-padding: 8 20 8 20;"
+              text="🔄 Làm mới">
+              <font><Font size="12.0"/></font>
+            </Button>
+          </children>
+        </HBox>
+
+        <ScrollPane fx:id="mainScrollPane" fitToWidth="true" VBox.vgrow="ALWAYS"
+          style="-fx-background-color: transparent; -fx-background: transparent;">
+          <content>
+            <StackPane fx:id="contentStack">
+              <children>
+
+                <!-- ── PANEL: TỔNG QUAN ── -->
+                <VBox fx:id="panelDashboard" spacing="20.0">
+                  <padding><Insets bottom="30.0" left="30.0" right="30.0" top="25.0"/></padding>
+                  <children>
+
+                    <!-- Stats cards -->
+                    <HBox spacing="15.0">
+                      <children>
+
+                        <VBox alignment="CENTER_LEFT" spacing="5.0" HBox.hgrow="ALWAYS" prefHeight="100.0"
+                          style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                          <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                          <children>
+                            <Label text="👥 Tổng User" textFill="#888888">
+                              <font><Font size="12.0"/></font>
+                            </Label>
+                            <Label fx:id="lblTotalUsers" text="0"
+                              style="-fx-font-weight: bold; -fx-text-fill: #4285F4;">
+                              <font><Font size="32.0"/></font>
+                            </Label>
+                          </children>
+                        </VBox>
+
+                        <VBox alignment="CENTER_LEFT" spacing="5.0" HBox.hgrow="ALWAYS" prefHeight="100.0"
+                          style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                          <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                          <children>
+                            <Label text="🔨 Đang đấu giá" textFill="#888888">
+                              <font><Font size="12.0"/></font>
+                            </Label>
+                            <Label fx:id="lblActiveAuctions" text="0"
+                              style="-fx-font-weight: bold; -fx-text-fill: #9B72CB;">
+                              <font><Font size="32.0"/></font>
+                            </Label>
+                          </children>
+                        </VBox>
+
+                        <VBox alignment="CENTER_LEFT" spacing="5.0" HBox.hgrow="ALWAYS" prefHeight="100.0"
+                          style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                          <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                          <children>
+                            <Label text="📋 Tổng phiên ĐG" textFill="#888888">
+                              <font><Font size="12.0"/></font>
+                            </Label>
+                            <Label fx:id="lblTotalAuctions" text="0"
+                              style="-fx-font-weight: bold; -fx-text-fill: #D96570;">
+                              <font><Font size="32.0"/></font>
+                            </Label>
+                          </children>
+                        </VBox>
+
+                        <VBox alignment="CENTER_LEFT" spacing="5.0" HBox.hgrow="ALWAYS" prefHeight="100.0"
+                          style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                          <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                          <children>
+                            <Label text="📦 Tổng sản phẩm" textFill="#888888">
+                              <font><Font size="12.0"/></font>
+                            </Label>
+                            <Label fx:id="lblTotalItems" text="0"
+                              style="-fx-font-weight: bold; -fx-text-fill: #27AE60;">
+                              <font><Font size="32.0"/></font>
+                            </Label>
+                          </children>
+                        </VBox>
+
+                      </children>
+                    </HBox>
+
+                    <!-- Quick info -->
+                    <VBox spacing="12.0"
+                      style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                      <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                      <children>
+                        <Label text="Thông tin hệ thống"
+                          style="-fx-font-weight: bold;" textFill="#222222">
+                          <font><Font size="15.0"/></font>
+                        </Label>
+                        <Separator/>
+                        <Label text="✅ Server đang hoạt động bình thường" textFill="#27AE60">
+                          <font><Font size="13.0"/></font>
+                        </Label>
+                        <Label text="☁️ Database: TiDB Cloud" textFill="#555555">
+                          <font><Font size="13.0"/></font>
+                        </Label>
+                        <Label text="🚀 Server: Railway Cloud" textFill="#555555">
+                          <font><Font size="13.0"/></font>
+                        </Label>
+                      </children>
+                    </VBox>
+
+                  </children>
+                </VBox>
+
+                <!-- ── PANEL: QUẢN LÝ USER ── -->
+                <VBox fx:id="panelUsers" spacing="15.0" visible="false" managed="false">
+                  <padding><Insets bottom="30.0" left="30.0" right="30.0" top="25.0"/></padding>
+                  <children>
+
+                    <Label text="Danh sách người dùng"
+                      style="-fx-font-weight: bold;" textFill="#222222">
+                      <font><Font size="16.0"/></font>
+                    </Label>
+
+                    <VBox spacing="10.0"
+                      style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                      <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                      <children>
+
+                        <TableView fx:id="tableUsers" prefHeight="500.0">
+                          <columns>
+                            <TableColumn fx:id="colUserId" text="ID" prefWidth="50"/>
+                            <TableColumn fx:id="colUsername" text="Username" prefWidth="150"/>
+                            <TableColumn fx:id="colEmail" text="Email" prefWidth="200"/>
+                            <TableColumn fx:id="colRole" text="Role" prefWidth="100"/>
+                            <TableColumn fx:id="colBalance" text="Số dư" prefWidth="120"/>
+                            <TableColumn fx:id="colAction" text="Hành động" prefWidth="150"/>
+                          </columns>
+                        </TableView>
+
+                      </children>
+                    </VBox>
+
+                  </children>
+                </VBox>
+
+                <!-- ── PANEL: QUẢN LÝ ĐẤU GIÁ ── -->
+                <VBox fx:id="panelAuctions" spacing="15.0" visible="false" managed="false">
+                  <padding><Insets bottom="30.0" left="30.0" right="30.0" top="25.0"/></padding>
+                  <children>
+
+                    <Label text="Danh sách phiên đấu giá"
+                      style="-fx-font-weight: bold;" textFill="#222222">
+                      <font><Font size="16.0"/></font>
+                    </Label>
+
+                    <VBox spacing="10.0"
+                      style="-fx-background-color: white; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 10, 0, 0, 4);">
+                      <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/></padding>
+                      <children>
+
+                        <TableView fx:id="tableAuctions" prefHeight="500.0">
+                          <columns>
+                            <TableColumn fx:id="colAuctionId" text="ID" prefWidth="50"/>
+                            <TableColumn fx:id="colItemName" text="Sản phẩm" prefWidth="200"/>
+                            <TableColumn fx:id="colSellerName" text="Người bán" prefWidth="130"/>
+                            <TableColumn fx:id="colCurrentPrice" text="Giá hiện tại" prefWidth="130"/>
+                            <TableColumn fx:id="colStatus" text="Trạng thái" prefWidth="110"/>
+                            <TableColumn fx:id="colEndTime" text="Kết thúc" prefWidth="150"/>
+                            <TableColumn fx:id="colAuctionAction" text="Hành động" prefWidth="120"/>
+                          </columns>
+                        </TableView>
+
+                      </children>
+                    </VBox>
+
+                  </children>
+                </VBox>
+
+              </children>
+            </StackPane>
+          </content>
+        </ScrollPane>
+      </children>
+    </VBox>
+  </center>
+
+</BorderPane>
+

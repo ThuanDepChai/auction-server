@@ -10,6 +10,7 @@ public class RequestHandler {
 
     private final UserHandler    userHandler    = new UserHandler();
     private final AuctionHandler auctionHandler = new AuctionHandler();
+    private final AdminHandler adminHandler = new AdminHandler();
 
     public JsonObject handle(JsonObject request) {
         if (request == null || !request.has("action")) {
@@ -51,6 +52,12 @@ public class RequestHandler {
             case "SET_AUTO_BID",
                  "CANCEL_AUTO_BID",
                  "GET_AUTO_BID_STATUS" -> auctionHandler.handle(request);
+            // ADMIN:
+            case "ADMIN_GET_ALL_USERS",
+                 "ADMIN_BAN_USER",
+                "ADMIN_GET_ALL_AUCTIONS",
+                "ADMIN_CANCEL_AUCTION",
+                "ADMIN_GET_STATS"       -> adminHandler.handle(request);
 
             default -> error("Action không được hỗ trợ: " + action);
         };
