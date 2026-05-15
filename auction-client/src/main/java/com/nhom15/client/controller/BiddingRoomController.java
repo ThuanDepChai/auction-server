@@ -270,7 +270,7 @@ public class BiddingRoomController {
         if (lblRoomId != null) lblRoomId.setText("#" + id);
 
         loadDetailAndInit();
-        bidHistoryController.load();
+        bidHistoryController.loadSoon();
         autoBidController.loadStatus();
         poller.start();
         startRealtimeWatch(id);
@@ -309,12 +309,7 @@ public class BiddingRoomController {
     // ══════════════════════════════════════════════════════════════════════
 
     private void onBidPlacedSuccessfully(double amount) {
-        double old = state.getCurrentPrice();
-        state.setCurrentPrice(amount);
-        priceCountdownController.updatePrice(amount, old);
-        // Người dẫn đầu lấy từ server (notifyBidResult / poll), không gán nhầm người vừa đặt
-        bidHistoryController.addChartPoint(amount);
-        bidHistoryController.load();
+        bidHistoryController.loadSoon();
         manualBidController.refreshLabels();
     }
 
@@ -322,7 +317,7 @@ public class BiddingRoomController {
         priceCountdownController.updatePrice(newPrice, oldPrice);
         priceCountdownController.updateLastUpdateLabel();
         bidHistoryController.addChartPoint(newPrice);
-        bidHistoryController.load();
+        bidHistoryController.loadSoon();
         manualBidController.refreshLabels();
     }
 

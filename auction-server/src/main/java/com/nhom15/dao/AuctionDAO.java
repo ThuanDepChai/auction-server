@@ -199,6 +199,37 @@ public class AuctionDAO {
     /**
      * Đặt giá — cập nhật current_price nếu hợp lệ
      */
+    public JsonObject getRealtimeSnapshot(int auctionId) {
+        String sql = "SELECT a.current_price, a.end_time, a.status, "
+                + "w.username AS leadingBidder, "
+                + "(SELECT COUNT(*) FROM bid b WHERE b.auction_id = a.auction_id) AS totalBids "
+                + "FROM auction a "
+                + "LEFT JOIN user w ON a.winner_id = w.user_id "
+                + "WHERE a.auction_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, auctionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    JsonObject obj = new JsonObject();
+                    obj.addProperty("auctionId", auctionId);
+                    obj.addProperty("currentPrice", rs.getDouble("current_price"));
+                    obj.addProperty("endTime", rs.getString("end_time"));
+                    obj.addProperty("status", rs.getString("status"));
+                    String leader = rs.getString("leadingBidder");
+                    if (leader != null && !leader.isEmpty()) {
+                        obj.addProperty("leadingBidder", leader);
+                    }
+                    obj.addProperty("totalBids", rs.getInt("totalBids"));
+                    return obj;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public boolean placeBid(int auctionId, int bidderId, double amount) {
         String checkSql = "SELECT current_price, min_step, end_time, status FROM auction WHERE auction_id = ?";
         String updateSql = "UPDATE auction SET current_price = ?, winner_id = ? WHERE auction_id = ?";
@@ -266,16 +297,23 @@ public class AuctionDAO {
      * @throws com.nhom15.exception.AuctionClosedException nếu phiên không còn ACTIVE
      * @throws com.nhom15.exception.InvalidBidException    nếu amount < currentPrice + minStep
      */
-    public void placeBidOrThrow(int auctionId, int bidderId, double amount)
+    public JsonObject placeBidOrThrow(int auctionId, int bidderId, double amount,
+                                      int antiSnipeWindowSec, int antiSnipeExtensionSec)
             throws com.nhom15.exception.AuctionClosedException,
             com.nhom15.exception.InvalidBidException {
 
         String checkSql =
-                "SELECT current_price, min_step, status FROM auction WHERE auction_id = ? FOR UPDATE";
+                "SELECT current_price, min_step, status, end_time, "
+                        + "TIMESTAMPDIFF(SECOND, NOW(), end_time) AS seconds_left "
+                        + "FROM auction WHERE auction_id = ? FOR UPDATE";
         String updateSql =
                 "UPDATE auction SET current_price = ?, winner_id = ? WHERE auction_id = ?";
         String insertBid =
                 "INSERT INTO bid (auction_id, bidder_id, amount) VALUES (?, ?, ?)";
+        String extendSql =
+                "UPDATE auction SET end_time = DATE_ADD(end_time, INTERVAL ? SECOND) "
+                        + "WHERE auction_id = ? AND status = 'ACTIVE'";
+        String endTimeSql = "SELECT end_time FROM auction WHERE auction_id = ?";
 
         try (Connection conn = DBConnection.getConnection()) {
             conn.setAutoCommit(false);
@@ -283,6 +321,8 @@ public class AuctionDAO {
                 double curPrice;
                 double minStep;
                 String status;
+                String endTime;
+                long secondsLeft;
 
                 // FOR UPDATE — khoá dòng DB, ngăn concurrent read-modify-write
                 try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
@@ -294,6 +334,11 @@ public class AuctionDAO {
                         curPrice = rs.getDouble("current_price");
                         minStep = rs.getDouble("min_step");
                         status = rs.getString("status");
+                        endTime = rs.getString("end_time");
+                        secondsLeft = rs.getLong("seconds_left");
+                        if (rs.wasNull()) {
+                            secondsLeft = -1;
+                        }
                     }
                 }
 
@@ -326,7 +371,31 @@ public class AuctionDAO {
                     ps.executeUpdate();
                 }
 
+                if (secondsLeft >= 0 && secondsLeft <= antiSnipeWindowSec) {
+                    try (PreparedStatement ps = conn.prepareStatement(extendSql)) {
+                        ps.setInt(1, antiSnipeExtensionSec);
+                        ps.setInt(2, auctionId);
+                        ps.executeUpdate();
+                    }
+
+                    try (PreparedStatement ps = conn.prepareStatement(endTimeSql)) {
+                        ps.setInt(1, auctionId);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) {
+                                endTime = rs.getString("end_time");
+                            }
+                        }
+                    }
+                }
+
+                JsonObject result = new JsonObject();
+                result.addProperty("currentPrice", amount);
+                result.addProperty("minStep", minStep);
+                result.addProperty("endTime", endTime);
+                result.addProperty("status", status);
+
                 conn.commit();
+                return result;
 
             } catch (com.nhom15.exception.AuctionClosedException
                      | com.nhom15.exception.InvalidBidException e) {

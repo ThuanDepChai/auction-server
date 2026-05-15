@@ -195,9 +195,11 @@ public class RealtimePollingController {
             if (onAuctionEnded != null) onAuctionEnded.run();
         }
 
-        String leader    = str(a, "leadingBidder", "");
-        int    totalBids = a.has("totalBids") ? a.get("totalBids").getAsInt() : 0;
-        if (onUpdate != null) onUpdate.onUpdate(leader, totalBids);
+        if (onUpdate != null && (a.has("leadingBidder") || a.has("totalBids"))) {
+            String leader    = str(a, "leadingBidder", "");
+            int    totalBids = a.has("totalBids") ? a.get("totalBids").getAsInt() : 0;
+            onUpdate.onUpdate(leader, totalBids);
+        }
     }
 
     private String str(JsonObject o, String key, String def) {

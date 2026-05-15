@@ -50,9 +50,10 @@ public class DBConnection {
     // Driver — HikariCP tự phát hiện, nhưng khai báo rõ để tránh nhầm
     config.setDriverClassName("com.mysql.cj.jdbc.Driver");
 
-    // Kích thước pool: phù hợp với server nhỏ (nhiều client đồng thời)
-    config.setMaximumPoolSize(10);       // tối đa 10 connection song song
-    config.setMinimumIdle(2);            // giữ sẵn 2 connection khi rảnh
+    int maxPoolSize = Integer.getInteger("auction.db.maxPoolSize", 20);
+    int minIdle = Math.min(4, maxPoolSize);
+    config.setMaximumPoolSize(maxPoolSize);
+    config.setMinimumIdle(minIdle);
     config.setConnectionTimeout(10_000); // chờ tối đa 10s để mượn connection
     config.setIdleTimeout(300_000);      // connection rảnh 5 phút thì trả về pool
     config.setMaxLifetime(1_800_000);    // connection tối đa sống 30 phút rồi làm mới
@@ -64,7 +65,8 @@ public class DBConnection {
     config.setPoolName("AuctionPool");
 
     dataSource = new HikariDataSource(config);
-    System.out.println("✅ [DBConnection] HikariCP pool đã khởi động (maxPool=10)");
+    System.out.println("✅ [DBConnection] HikariCP pool đã khởi động (maxPool="
+        + maxPoolSize + ")");
 
     // Tự động migrate thêm cột extra_info nếu chưa có
     try (Connection conn = dataSource.getConnection();
