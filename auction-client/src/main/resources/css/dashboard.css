@@ -1,0 +1,97 @@
+.root {
+    -fx-background-color:
+        linear-gradient(to right, #8ec5fc, #e0c3fc);
+}
+
+/* SIDEBAR */
+
+.sidebar {
+    -fx-background-color: #0b1020;
+    -fx-padding: 30;
+}
+
+.logo {
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+/* MENU BUTTON */
+
+.menu-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cfd8ff;
+    -fx-font-size: 16px;
+    -fx-background-radius: 14;
+    -fx-padding: 14 20;
+
+    -fx-cursor: hand;
+}
+
+.menu-btn:hover {
+    -fx-background-color:
+        linear-gradient(to right, #6a5cff, #d66efd);
+
+    -fx-text-fill: white;
+}
+
+/* CONTENT */
+
+.content-area {
+    -fx-padding: 30;
+}
+
+.title {
+    -fx-font-size: 36px;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+/* CARD */
+
+.card {
+    -fx-background-color: rgba(20, 25, 50, 0.92);
+
+    -fx-background-radius: 24;
+
+    -fx-effect:
+        dropshadow(gaussian,
+        rgba(155,89,182,0.35),
+        25, 0.2, 0, 8);
+}
+
+/* BIG CHART */
+
+.chart-card {
+    -fx-pref-height: 350;
+}
+
+/* SMALL */
+
+.small-card {
+    -fx-pref-height: 220;
+}
+
+/* RIGHT PANEL */
+
+.right-panel {
+    -fx-padding: 30 30 30 0;
+}
+
+/* MAP */
+
+.map-card {
+    -fx-pref-height: 300;
+}
+
+/* USER */
+
+.user-card {
+    -fx-background-color: rgba(20,25,50,0.92);
+
+    -fx-background-radius: 18;
+
+    -fx-padding: 18;
+
+    -fx-alignment: center-left;
+}
