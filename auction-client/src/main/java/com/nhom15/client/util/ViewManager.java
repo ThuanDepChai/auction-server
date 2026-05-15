@@ -26,6 +26,7 @@ public final class ViewManager {
     public static final String AUCTION_LIST = "/view/auction_list.fxml";
     public static final String MY_ORDERS = "/view/my_orders.fxml";
     public static final String CART = "/view/cart.fxml";
+    public static final String ADMIN_DASHBOARD = "/view/admin_dashboard.fxml";
 
     private Views() {
     }

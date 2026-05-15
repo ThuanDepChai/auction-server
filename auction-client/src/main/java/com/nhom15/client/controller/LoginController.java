@@ -119,8 +119,11 @@ public class LoginController {
         UserDTO user = gson.fromJson(response.getAsJsonObject("user"), UserDTO.class);
 
         SessionManager.login(user);
-
-        ViewManager.navigateTo(ViewManager.Views.HOME);
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+          ViewManager.navigateTo(ViewManager.Views.ADMIN_DASHBOARD);
+        } else {
+          ViewManager.navigateTo(ViewManager.Views.HOME);
+        }
       } catch (Exception e) {
         showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Không thể đọc dữ liệu từ máy chủ!");
         System.err.println("[LoginController] Lỗi Parse JSON: " + e.getMessage());
