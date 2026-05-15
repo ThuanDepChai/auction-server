@@ -8,13 +8,11 @@ import com.nhom15.client.controller.seller.SellerDashboardState;
 import com.nhom15.client.controller.seller.SellerDashboardStats;
 import com.nhom15.client.service.SellerDashboardService;
 import com.nhom15.client.util.CardFactory;
+import com.nhom15.client.util.ImageUploadHelper;
 import com.nhom15.client.util.SessionManager;
 import com.nhom15.client.util.ViewManager;
-import java.io.File;
-import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
@@ -28,11 +26,9 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 import javafx.util.Duration;
 
 public class SellerDashboardController {
@@ -329,27 +325,16 @@ public class SellerDashboardController {
   }
 
   private void pickImage() {
-    FileChooser chooser = new FileChooser();
-    chooser.setTitle("Chọn ảnh sản phẩm");
-    chooser.getExtensionFilters()
-        .add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-    File file = chooser.showOpenDialog(txtItemName.getScene().getWindow());
-    if (file == null) {
-      return;
-    }
-    if (file.length() > 2 * 1024 * 1024) {
-      showAlert("Ảnh không được vượt quá 2MB!");
-      return;
-    }
-    try {
-      state.setSelectedImageBase64(Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
-      state.setSelectedImageExt(file.getName().toLowerCase().endsWith(".png") ? "png" : "jpg");
-      imgItemPreview.setImage(new Image(file.toURI().toString()));
+    lblAddItemStatus.setText("");
+    ImageUploadHelper.pickProductImage(txtItemName.getScene().getWindow(), selection -> {
+      state.setSelectedImageBase64(selection.base64());
+      state.setSelectedImageExt(selection.extension());
+      imgItemPreview.setImage(selection.previewImage());
       imgItemPreview.setVisible(true);
-    } catch (Exception e) {
-      showAlert("Không thể đọc file ảnh!");
-    }
+      showStatus(lblAddItemStatus, "Da chon anh (" + formatBytes(selection.finalSize()) + ")", true);
+    }, message -> showStatus(lblAddItemStatus, message, false));
   }
+
 
   @FXML
   private void handleAddItem(ActionEvent event) {
@@ -481,6 +466,13 @@ public class SellerDashboardController {
     label.setText(message);
     label.setTextFill(success ? javafx.scene.paint.Color.web("#4CAF50")
         : javafx.scene.paint.Color.web("#D96570"));
+  }
+
+  private String formatBytes(long bytes) {
+    if (bytes >= 1024 * 1024) {
+      return String.format("%.1f MB", bytes / 1024.0 / 1024.0);
+    }
+    return String.format("%.0f KB", bytes / 1024.0);
   }
 
   private void showAlert(String message) {
