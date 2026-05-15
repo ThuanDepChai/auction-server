@@ -430,6 +430,67 @@
                               </children>
                             </HBox>
 
+                            <!-- DYNAMIC FIELDS -->
+                            <StackPane>
+                              <!-- Thời trang -->
+                              <VBox fx:id="vboxExtraFashion" spacing="15.0" managed="false" visible="false">
+                                <HBox spacing="15.0">
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Hãng (Brand)" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtFashionBrand" prefHeight="42.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Size" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtFashionSize" prefHeight="42.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Màu sắc" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtFashionColor" prefHeight="42.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                </HBox>
+                              </VBox>
+                              <!-- Điện tử -->
+                              <VBox fx:id="vboxExtraElectronics" spacing="15.0" managed="false" visible="false">
+                                <VBox spacing="6.0">
+                                  <Label text="Hãng (Brand)" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                  <TextField fx:id="txtElecBrand" prefHeight="42.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                </VBox>
+                              </VBox>
+                              <!-- Xe cộ -->
+                              <VBox fx:id="vboxExtraVehicle" spacing="15.0" managed="false" visible="false">
+                                <HBox spacing="15.0">
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Năm SX" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtVehicleYear" prefHeight="42.0" promptText="VD: 2021" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Số km (Mileage)" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtVehicleMileage" prefHeight="42.0" promptText="VD: 15000" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                </HBox>
+                              </VBox>
+                              <!-- Nghệ thuật -->
+                              <VBox fx:id="vboxExtraArt" spacing="15.0" managed="false" visible="false">
+                                <VBox spacing="6.0">
+                                  <Label text="Tác giả / Nghệ sĩ" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                  <TextField fx:id="txtArtArtist" prefHeight="42.0" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                </VBox>
+                              </VBox>
+                              <!-- Thể thao -->
+                              <VBox fx:id="vboxExtraSports" spacing="15.0" managed="false" visible="false">
+                                <HBox spacing="15.0">
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Môn thể thao" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtSportType" prefHeight="42.0" promptText="VD: Bóng đá" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                  <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                                    <Label text="Tình trạng" textFill="#555555"><font><Font size="12.0"/></font></Label>
+                                    <TextField fx:id="txtSportCondition" prefHeight="42.0" promptText="VD: Mới 90%" style="-fx-background-color: #F4F7FC; -fx-background-radius: 8; -fx-padding: 0 15 0 15;"/>
+                                  </VBox>
+                                </HBox>
+                              </VBox>
+                            </StackPane>
+
                             <HBox alignment="CENTER_RIGHT" spacing="10.0">
                               <children>
                                 <Label fx:id="lblAddItemStatus" textFill="#4CAF50">

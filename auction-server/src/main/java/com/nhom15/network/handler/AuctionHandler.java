@@ -5,11 +5,16 @@ import com.google.gson.JsonObject;
 import com.nhom15.service.AuctionService;
 import com.nhom15.service.AutoBidService;
 import com.nhom15.service.ItemService;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import javax.imageio.ImageIO;
 
 /**
  * AuctionHandler — xử lý tất cả request liên quan đến đấu giá. Không chứa routing — chỉ chứa logic
@@ -167,6 +172,7 @@ public class AuctionHandler {
       String category   = d.has("category") ? d.get("category").getAsString() : "";
       double startPrice = d.get("startPrice").getAsDouble();
       String extension  = d.has("extension") ? d.get("extension").getAsString() : "jpg";
+      String extraInfo  = d.has("extraInfo") ? d.get("extraInfo").getAsString() : "";
 
       //Xử lý danh sách ảnh
       List<String> imageList = new ArrayList<>();
@@ -183,7 +189,7 @@ public class AuctionHandler {
       }
 
       // Truyền imageList (List) thay vì imageBase64 (String)
-      return itemService.createItem(sellerId, name, desc, category, startPrice, imageList, extension);
+      return itemService.createItem(sellerId, name, desc, category, startPrice, imageList, extension, extraInfo);
 
     } catch (Exception e) {
       return error("Lỗi tạo sản phẩm: " + e.getMessage());
@@ -249,10 +255,18 @@ public class AuctionHandler {
   /**
    * Trả Base64 của ảnh sản phẩm theo imagePath.
    *
-   * <p>FIX: imagePath trong DB hiện là đường dẫn TƯƠNG ĐỐI (ví dụ "item_images/item_123.jpg").
+   * FIX PERF — Thumbnail resize:
+   *  - Ảnh gốc có thể lên đến vài MB (3000×3000px). Gửi nguyên qua mạng
+   *    vừa tốn bandwidth vừa làm chận decode/render phía client.
+   *  - Nếu chiều dài/rộng đều không vượt MAX_DIM (720px) thì giữ nguyên.
+   *  - Nếu vượt: scale down proportionally, encode JPEG quality 0.85.
+   *    Kết quả: 3000px → 720px ≈ giảm 17x số pixel → file giảm khoảng 8–15x.
+   *
+   * imagePath trong DB là đường dẫn TƯƠNG ĐỐI (ví dụ "item_images/item_123.jpg").
    * Server ghép với working directory để tìm file thực tế.
-   * Trước đây lưu absolute path rồi lại ghép thêm baseDir → path sai.
    */
+  private static final int MAX_DIM = 720; // px — đủ rõ cho card UI, giảm bandwidth rõ rệt
+
   private JsonObject handleGetItemImage(JsonObject d) {
     JsonObject res = new JsonObject();
     try {
@@ -279,15 +293,61 @@ public class AuctionHandler {
         return res;
       }
 
-      byte[] bytes = Files.readAllBytes(f.toPath());
+      // FIX PERF: đọc ảnh, resize nếu quá lớn, encode JPEG
+      byte[] imageBytes = resizeIfNeeded(f);
       res.addProperty("status", "SUCCESS");
-      res.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
+      res.addProperty("imageBase64", Base64.getEncoder().encodeToString(imageBytes));
 
     } catch (Exception e) {
       res.addProperty("status", "ERROR");
       res.addProperty("message", "Lỗi đọc ảnh: " + e.getMessage());
     }
     return res;
+  }
+
+  /**
+   * Nếu ảnh đủ nhỏ (≤ MAX_DIM cả 2 chiều) → trả bytes gốc (không decode/re-encode).
+   * Nếu vượt → scale down rồi encode JPEG 0.85 quality.
+   */
+  private static byte[] resizeIfNeeded(File f) throws Exception {
+    BufferedImage orig = ImageIO.read(f);
+    if (orig == null) {
+      // Không parse được (file không phải ảnh chuNmM) → trả bytes gốc
+      return Files.readAllBytes(f.toPath());
+    }
+
+    int w = orig.getWidth();
+    int h = orig.getHeight();
+    if (w <= MAX_DIM && h <= MAX_DIM) {
+      // Ảnh đã nhỏ — không cần re-encode, giữ bytes gốc để bảo toàn chất lượng
+      return Files.readAllBytes(f.toPath());
+    }
+
+    // Tính tỉ lệ scale
+    double scale = (double) MAX_DIM / Math.max(w, h);
+    int nw = (int) (w * scale);
+    int nh = (int) (h * scale);
+
+    BufferedImage scaled = new BufferedImage(nw, nh, BufferedImage.TYPE_INT_RGB);
+    Graphics2D g = scaled.createGraphics();
+    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    g.setRenderingHint(RenderingHints.KEY_RENDERING,     RenderingHints.VALUE_RENDER_QUALITY);
+    g.drawImage(orig, 0, 0, nw, nh, null);
+    g.dispose();
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    // JPEG chất lượng 0.85 — không mất rõ đi trên card nhỏ nhưng nhỏ hơn nhiều
+    javax.imageio.ImageWriter writer = javax.imageio.ImageIO.getImageWritersByFormatName("jpeg").next();
+    javax.imageio.ImageWriteParam param = writer.getDefaultWriteParam();
+    param.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
+    param.setCompressionQuality(0.85f);
+    writer.setOutput(javax.imageio.ImageIO.createImageOutputStream(baos));
+    writer.write(null, new javax.imageio.IIOImage(scaled, null, null), param);
+    writer.dispose();
+
+    System.out.printf("[🖼️ Resize] %s: %dx%d → %dx%d, %.1fKB%n",
+        f.getName(), w, h, nw, nh, baos.size() / 1024.0);
+    return baos.toByteArray();
   }
 
   // ── Util ─────────────────────────────────────────────────────────────────

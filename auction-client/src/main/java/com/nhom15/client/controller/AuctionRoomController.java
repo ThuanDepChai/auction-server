@@ -14,6 +14,7 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
@@ -44,6 +45,7 @@ public class AuctionRoomController implements Initializable {
   @FXML private Label     lblImgPlaceholder;
   @FXML private Label     lblProductName;
   @FXML private Label     lblProductDesc;
+  @FXML private GridPane  gridSpecs;
 
   // ── FXML: Status ribbon ───────────────────────────────────────────────
   @FXML private Label lblViewerCount;
@@ -109,6 +111,7 @@ public class AuctionRoomController implements Initializable {
         imgProduct, lblImgPlaceholder, lblProductName,
         null, null, lblProductDesc,
         null, null, null, null, null, null);
+    productPanelCtrl.setGridSpecs(gridSpecs);
 
     // 2. Manual bid
     //    txtCustomBid → txtBidAmount (trường bên trong ManualBidController)

@@ -148,7 +148,7 @@ public class AuctionDAO {
      * Lấy các phiên đấu giá đang ACTIVE kèm thông tin item
      */
     public JsonArray getActiveAuctions(int limit) {
-        String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
+        String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, i.extra_info, " +
                 "u.username as seller_name FROM auction a " +
                 "JOIN item i ON a.item_id = i.item_id " +
                 "JOIN user u ON a.seller_id = u.user_id " +
@@ -173,7 +173,7 @@ public class AuctionDAO {
      * Lấy chi tiết 1 phiên đấu giá
      */
     public JsonObject getAuctionById(int auctionId) {
-        String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
+        String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, i.extra_info, " +
                 "u.username AS seller_name, " +
                 "w.username AS leadingBidder, " +
                 "(SELECT COUNT(*) FROM bid b WHERE b.auction_id = a.auction_id) AS totalBids " +
@@ -373,7 +373,7 @@ public class AuctionDAO {
      * Lấy auction theo seller
      */
     public JsonArray getAuctionsBySeller(int sellerId) {
-        String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, " +
+        String sql = "SELECT a.*, i.name, i.description, i.category, i.image_path, i.extra_info, " +
                 "u.username as seller_name FROM auction a " +
                 "JOIN item i ON a.item_id = i.item_id " +
                 "JOIN user u ON a.seller_id = u.user_id " +
@@ -485,6 +485,7 @@ public class AuctionDAO {
         obj.addProperty("description",
                 rs.getString("description") != null ? rs.getString("description") : "");
         obj.addProperty("category", rs.getString("category") != null ? rs.getString("category") : "");
+        obj.addProperty("extraInfo", rs.getString("extra_info") != null ? rs.getString("extra_info") : "");
         obj.addProperty("imagePath",
                 rs.getString("image_path") != null ? rs.getString("image_path") : "");
         obj.addProperty("startPrice", rs.getDouble("start_price"));

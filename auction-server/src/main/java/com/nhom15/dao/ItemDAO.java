@@ -17,10 +17,10 @@ public class ItemDAO {
    * Thêm sản phẩm mới
    */
   public int insertItem(int sellerId, String name, String description,
-                        String category, double startPrice, String imagePath, List<String> subImagePaths) {
+                        String category, double startPrice, String imagePath, List<String> subImagePaths, String extraInfo) {
     String sqlItem =
-            "INSERT INTO item (seller_id, name, description, category, start_price, image_path) " +
-                    "VALUES (?, ?, ?, ?, ?, ?)";
+            "INSERT INTO item (seller_id, name, description, category, start_price, image_path, extra_info) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     try (Connection conn = DBConnection.getConnection()) {
       conn.setAutoCommit(false);
@@ -32,6 +32,7 @@ public class ItemDAO {
         psItem.setString(4, category);
         psItem.setDouble(5, startPrice);
         psItem.setString(6, imagePath);
+        psItem.setString(7, extraInfo);
         psItem.executeUpdate();
 
         int newItemId = -1;
@@ -201,6 +202,7 @@ public class ItemDAO {
     obj.addProperty("startPrice", rs.getDouble("start_price"));
     obj.addProperty("imagePath",
             rs.getString("image_path") != null ? rs.getString("image_path") : "");
+    obj.addProperty("extraInfo", rs.getString("extra_info") != null ? rs.getString("extra_info") : "");
     obj.addProperty("status", rs.getString("status"));
     obj.addProperty("createdAt", rs.getString("created_at"));
     return obj;

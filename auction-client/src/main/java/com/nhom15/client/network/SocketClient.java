@@ -53,12 +53,19 @@ public class SocketClient {
   /**
    * Hàm này nhận vào một JsonObject (yêu cầu từ giao diện), gửi lên Server, và trả về JsonObject
    * (phản hồi từ Server).
+   *
+   * FIX PERF: Đặt TCP_NODELAY=true — tắt Nagle's algorithm.
+   * Nagle buffer các gói nhỏ và đợi ACK trước khi gửi, có thể gây thêm 40ms delay
+   * cho mỗi JSON request nhỏ (PLACE_BID, GET_AUCTION_DETAIL...). TCP_NODELAY
+   * đảm bảo dữ liệu được gửi ngay lập tức không chờ buffer.
    */
   public static JsonObject sendRequest(JsonObject request) {
     // Tạo socket thủ công để set timeout trước khi connect — try-with-resources đảm bảo đóng đúng
     try (Socket socket = new Socket()) {
       // Kết nối với timeout — nếu server không respond trong 5s, ném SocketTimeoutException
       socket.connect(new InetSocketAddress(getServerHost(), getServerPort()), CONNECT_TIMEOUT_MS);
+      // FIX PERF: tắt Nagle — gửi JSON nhỏ ngay lập tức, không đợi buffer
+      socket.setTcpNoDelay(true);
       // Timeout đọc — nếu server nhận nhưng không trả lời trong 15s, ném SocketTimeoutException
       socket.setSoTimeout(READ_TIMEOUT_MS);
 
