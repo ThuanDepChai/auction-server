@@ -140,7 +140,7 @@ public class SellerDashboardController {
   }
 
   private void showPanel(VBox target, String title, Button activeBtn) {
-    lblPageTitle.setText(title.replaceAll("[^a-zA-ZÀ-ỹ\\s]+", "").trim());
+    lblPageTitle.setText(title.replaceAll("[^\\p{L}\\p{Z}]+", "").trim());
     VBox[] panels = {panelOverview, panelItems, panelAddItem, panelAuctions, panelCreateAuction};
     for (VBox p : panels) {
       p.setVisible(false);
@@ -227,15 +227,24 @@ public class SellerDashboardController {
         return;
       }
       JsonArray items = response.getAsJsonArray("items");
+      // Khai báo map trong phạm vi callback (trước vòng lặp)
+      Map<String, Long> itemNameToPrice = new HashMap<>();
       for (int i = 0; i < items.size(); i++) {
         JsonObject item = items.get(i).getAsJsonObject();
         if ("AVAILABLE".equals(item.get("status").getAsString())) {
           String name = item.get("name").getAsString();
           cmbAuctionItem.getItems().add(name);
-          itemNameToId.put(name, item.get("itemId").getAsInt());
-          txtAuctionStartPrice.setText(String.valueOf((long) item.get("startPrice").getAsDouble()));
+          itemNameToId.put(name, item.get("itemId").getAsInt());itemNameToPrice.put(name, (long) item.get("startPrice").getAsDouble());
+          itemNameToPrice.put(name, (long) item.get("startPrice").getAsDouble());
         }
       }
+      // ✅ Gán listener SAU vòng lặp
+      cmbAuctionItem.setOnAction(e -> {
+        String selected = cmbAuctionItem.getValue();
+        if (selected != null && itemNameToPrice.containsKey(selected)) {
+          txtAuctionStartPrice.setText(String.valueOf(itemNameToPrice.get(selected)));
+        }
+      });
     });
   }
 
@@ -392,6 +401,9 @@ public class SellerDashboardController {
 
     String endTimeStr = "";
     try {
+      if (dateAuctionEnd.getValue() == null || txtAuctionEndTime.getText().trim().isEmpty()) {
+        throw new Exception("Chưa chọn ngày/giờ");
+      }
       endTimeStr = dateAuctionEnd.getValue().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " "
           + txtAuctionEndTime.getText().trim() + ":00";
       if (LocalDateTime.parse(endTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
@@ -437,10 +449,12 @@ public class SellerDashboardController {
     confirm.showAndWait().ifPresent(result -> {
       if (result == ButtonType.OK) {
         SellerCommand.deleteItem(itemId, res -> {
-          if (res != null) {
+          if (res != null && "SUCCESS".equals(res.get("status").getAsString())) {
             loadMyItems();
           } else {
-            showAlert("Xóa thất bại!");
+            String msg = (res != null && res.has("message"))
+                    ? res.get("message").getAsString() : "Xóa thất bại!";
+            showAlert(msg);
           }
         });
       }
@@ -449,7 +463,7 @@ public class SellerDashboardController {
 
   private void handleEndAuction(int auctionId) {
     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Kết thúc phiên đấu giá sớm?",
-        ButtonType.OK, ButtonType.CANCEL);
+            ButtonType.OK, ButtonType.CANCEL);
     confirm.setTitle("Kết thúc phiên");
     confirm.showAndWait().ifPresent(result -> {
       if (result == ButtonType.OK) {

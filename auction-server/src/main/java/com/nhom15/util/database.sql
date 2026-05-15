@@ -87,3 +87,13 @@ CREATE TABLE IF NOT EXISTS auto_bid
     FOREIGN KEY (auction_id) REFERENCES auction (auction_id),
     FOREIGN KEY (bidder_id)  REFERENCES user (user_id)
     );
+-- ============================================================
+-- 6. Bảng ITEM_IMAGES (Lưu nhiều ảnh cho một sản phẩm)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS item_images
+(
+    image_id   INT AUTO_INCREMENT PRIMARY KEY,
+    item_id    INT NOT NULL,
+    path       VARCHAR(255) NOT NULL,
+    FOREIGN KEY (item_id) REFERENCES item (item_id) ON DELETE CASCADE
+    );
