@@ -40,7 +40,7 @@ public class AuctionRoomController implements Initializable {
   private PriceCountdownController priceCountdown;
   private BidHistoryController bidHistory;
   private AutoBidController autoBid;
-
+  private Runnable onBack;
   private AuctionState state = new AuctionState();
 
   @Override
@@ -82,6 +82,9 @@ public class AuctionRoomController implements Initializable {
     state.setAuctionId(id);
     loadAuctionData(id);
   }
+  public void setOnBack(Runnable onBack) {
+    this.onBack = onBack;
+  }
 
   private void loadAuctionData(int id) {
     new GetAuctionDetailCommand(id).executeAsync(res -> {
@@ -120,10 +123,10 @@ public class AuctionRoomController implements Initializable {
 
   @FXML
   private void handleCloseRoom() {
-    // Logic đóng phòng
-    if (rootPane != null && rootPane.getScene() != null) {
-      rootPane.getScene().getWindow().hide();
+    if (onBack != null) {
+      onBack.run();
     }
+    com.nhom15.client.util.ViewManager.navigateTo(com.nhom15.client.util.ViewManager.Views.HOME);
   }
 
   // ── Helper Methods để tránh lỗi 'Cannot resolve symbol' ───────────────
