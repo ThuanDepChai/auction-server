@@ -21,6 +21,8 @@ import javafx.application.Platform;
  */
 public abstract class ServerCommand {
 
+  private static final boolean LATENCY_DEBUG = Boolean.getBoolean("auction.latency.debug");
+
   private static final ExecutorService COMMAND_EXECUTOR =
       Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicInteger idx = new AtomicInteger(0);
@@ -53,7 +55,17 @@ public abstract class ServerCommand {
   public void executeAsync(Consumer<JsonObject> onSuccess, Runnable onError) {
     JsonObject request = buildRequest();
     COMMAND_EXECUTOR.execute(() -> {
+      long startedAt = System.currentTimeMillis();
       JsonObject response = SocketClient.sendRequest(request);
+      long roundTripMs = System.currentTimeMillis() - startedAt;
+      if (LATENCY_DEBUG && request.has("action")
+          && "PLACE_BID".equals(request.get("action").getAsString())) {
+        String serverProcess = response != null && response.has("serverProcessMs")
+            ? response.get("serverProcessMs").getAsString()
+            : "?";
+        System.out.printf("[Latency] PLACE_BID clientRoundTrip=%dms serverProcess=%sms%n",
+            roundTripMs, serverProcess);
+      }
       Platform.runLater(() -> {
         if (response == null) {
           if (onError != null) {
