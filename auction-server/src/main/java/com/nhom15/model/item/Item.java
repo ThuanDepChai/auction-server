@@ -1,47 +1,61 @@
 package com.nhom15.model.item;
 
-import java.util.List;
-import java.util.ArrayList;
+import com.nhom15.model.Entity;
 
-public abstract class Item {
+/**
+ * Lớp cha trừu tượng cho tất cả sản phẩm đấu giá.
+ *
+ * <p><b>FIX — Đồng nhất ID qua Entity:</b><br>
+ * Code cũ khai báo {@code private final String id} riêng — không kế thừa từ {@link Entity}.
+ * Điều này vi phạm yêu cầu "dùng lớp cha Entity chứa ID để quản lý đồng nhất":
+ * <ul>
+ *   <li>ID trong DB là kiểu {@code INT} (item_id), nhưng model dùng {@code String}
+ *       → không ánh xạ được trực tiếp</li>
+ *   <li>ItemFactory nhận {@code String id} nhưng truyền vào từ DAO là {@code int}
+ *       → buộc phải ép kiểu thủ công, dễ lỗi</li>
+ *   <li>Không kế thừa {@code createdAt} / {@code updatedAt} từ Entity</li>
+ * </ul>
+ *
+ * <p>Fix: Item kế thừa Entity (int id, long createdAt, long updatedAt). Tất cả subclass
+ * và ItemFactory được cập nhật để truyền {@code int id}.
+ */
+public abstract class Item extends Entity {
 
-  private final String id;
   private final String name;
   private final double startingPrice;
-  private List<String> subImagePaths = new ArrayList<>(); // Danh sách chứa các ảnh phụ
+  private String description = "";
+  private String category    = "";
+  private String imagePath   = "";
 
-  public Item(String id, String name, double startingPrice) {
-    this.id = id;
-    this.name = name;
+  // ── Constructor ───────────────────────────────────────────────────────────
+
+  /**
+   * @param id           khoá chính từ DB (item_id)
+   * @param name         tên sản phẩm
+   * @param startingPrice giá khởi điểm
+   */
+  public Item(int id, String name, double startingPrice) {
+    this.id           = id;          // thuộc tính protected của Entity
+    this.name         = name;
     this.startingPrice = startingPrice;
   }
 
-  // --- Getter cho các thuộc tính final (không có Setter vì là final) ---
-  public String getId() {
-    return id;
-  }
+  // ── Abstract ──────────────────────────────────────────────────────────────
 
-  public String getName() {
-    return name;
-  }
-
-  public double getStartingPrice() {
-    return startingPrice;
-  }
-
-  // --- Getter và Setter cho danh sách ảnh phụ ---
-  public List<String> getSubImagePaths() {
-    return subImagePaths;
-  }
-
-  public void setSubImagePaths(List<String> subImagePaths) {
-    this.subImagePaths = subImagePaths;
-  }
-
-  // Phương thức hỗ trợ thêm nhanh 1 ảnh vào danh sách
-  public void addSubImagePath(String path) {
-    this.subImagePaths.add(path);
-  }
-
+  /** In thông tin đặc trưng của từng loại sản phẩm con. */
   public abstract void displayItemInfo();
+
+  // ── Getters (id thừa hưởng từ Entity) ───────────────────────────────────
+
+  public String getName()           { return name; }
+  public double getStartingPrice()  { return startingPrice; }
+  public String getDescription()    { return description; }
+  public String getCategory()       { return category; }
+  public String getImagePath()      { return imagePath; }
+
+  // ── Setters (metadata có thể thay đổi sau khi tạo) ───────────────────────
+
+  public void setDescription(String description) { this.description = description; }
+  public void setCategory(String category)       { this.category = category; }
+  public void setImagePath(String imagePath)     { this.imagePath = imagePath; }
 }

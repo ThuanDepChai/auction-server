@@ -8,22 +8,39 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+/**
+ * Client TCP — mọi request REST-style một kết nối ngắn.
+ *
+ * <p>Host/cổng có thể ghi đè khi chạy local (trùng với server đấu giá):
+ * {@code -Dauction.server.host=127.0.0.1 -Dauction.server.port=8888}
+ *
+ * <p><b>Lưu ý realtime:</b> SUBSCRIBE_AUCTION dùng kết nối dài tới cùng host/port. Nếu phía trước
+ * server có load balancer nhiều JVM, push có thể không tới mọi client — cần 1 replica hoặc sticky
+ * session, hoặc dùng poll (RealtimePollingController).
+ */
 public class SocketClient {
 
-  private static final String SERVER_IP = "viaduct.proxy.rlwy.net";
-
-  // Cổng này phải khớp với cổng đang chạy ở AuctionServer
-  private static final int SERVER_PORT = 30802;
+  private static final String DEFAULT_SERVER_IP = "viaduct.proxy.rlwy.net";
+  private static final int DEFAULT_SERVER_PORT = 30802;
 
   // Timeout kết nối: 5 giây — tránh treo vô thời hạn khi server không trả lời TCP handshake
   private static final int CONNECT_TIMEOUT_MS = 5000;
 
   public static String getServerHost() {
-    return SERVER_IP;
+    String h = System.getProperty("auction.server.host");
+    return (h != null && !h.isBlank()) ? h.trim() : DEFAULT_SERVER_IP;
   }
 
   public static int getServerPort() {
-    return SERVER_PORT;
+    String p = System.getProperty("auction.server.port");
+    if (p != null && !p.isBlank()) {
+      try {
+        return Integer.parseInt(p.trim());
+      } catch (NumberFormatException ignored) {
+        // fall through
+      }
+    }
+    return DEFAULT_SERVER_PORT;
   }
 
   public static int getConnectTimeoutMs() {
@@ -41,7 +58,7 @@ public class SocketClient {
     // Tạo socket thủ công để set timeout trước khi connect — try-with-resources đảm bảo đóng đúng
     try (Socket socket = new Socket()) {
       // Kết nối với timeout — nếu server không respond trong 5s, ném SocketTimeoutException
-      socket.connect(new InetSocketAddress(SERVER_IP, SERVER_PORT), CONNECT_TIMEOUT_MS);
+      socket.connect(new InetSocketAddress(getServerHost(), getServerPort()), CONNECT_TIMEOUT_MS);
       // Timeout đọc — nếu server nhận nhưng không trả lời trong 15s, ném SocketTimeoutException
       socket.setSoTimeout(READ_TIMEOUT_MS);
 

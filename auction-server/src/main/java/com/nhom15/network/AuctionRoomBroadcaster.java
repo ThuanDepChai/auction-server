@@ -45,6 +45,7 @@ public final class AuctionRoomBroadcaster {
     for (PrintWriter out : subs) {
       synchronized (out) {
         out.println(line);
+        out.flush();
         if (out.checkError()) {
           subs.remove(out);
         }

@@ -75,7 +75,7 @@ public class HomeController {
       bannerMediaView.fitWidthProperty().bind(bannerContainer.widthProperty());
 
       bannerMediaView.layoutYProperty().bind(
-          bannerContainer.heightProperty().subtract(bannerMediaView.fitWidthProperty()).divide(2)
+              bannerContainer.heightProperty().subtract(bannerMediaView.fitWidthProperty()).divide(2)
       );
 
       Rectangle clip = new Rectangle();
@@ -296,15 +296,15 @@ public class HomeController {
    * → auctionId mãi là 0 → server trả NOT_FOUND.
    *
    * Sửa: Cast trực tiếp sang class thật
-   * com.nhom15.client.controller.BiddingRoomController (cùng package).
+   * com.nhom15.client.controller.AuctionRoomController (cùng package).
    */
   private void handleGoToBidding(int auctionId) {
     countdownTimers.forEach(Timeline::stop);
-    ViewManager.navigateTo(ViewManager.Views.BIDDING_ROOM,
+    ViewManager.navigateTo(ViewManager.Views.AUCTION_ROOM,
             "Phòng đấu giá #" + auctionId,
             c -> {
               // FIX: Cast sang class thật thay vì inner interface stub
-              if (c instanceof com.nhom15.client.controller.BiddingRoomController b) {
+              if (c instanceof com.nhom15.client.controller.AuctionRoomController b) {
                 b.setAuctionId(auctionId);
               }
             });
