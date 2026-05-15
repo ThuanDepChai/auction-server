@@ -2,6 +2,10 @@ package com.nhom15.client.command;
 
 import com.google.gson.JsonObject;
 import com.nhom15.client.network.SocketClient;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import javafx.application.Platform;
 
@@ -16,6 +20,18 @@ import javafx.application.Platform;
  * (status FAIL)
  */
 public abstract class ServerCommand {
+
+  private static final ExecutorService COMMAND_EXECUTOR =
+      Executors.newCachedThreadPool(new ThreadFactory() {
+        private final AtomicInteger idx = new AtomicInteger(0);
+
+        @Override
+        public Thread newThread(Runnable r) {
+          Thread t = new Thread(r, "cmd-net-" + idx.getAndIncrement());
+          t.setDaemon(true);
+          return t;
+        }
+      });
 
   // ── Subclass implement ───────────────────────────────────────────────────
 
@@ -36,7 +52,7 @@ public abstract class ServerCommand {
    */
   public void executeAsync(Consumer<JsonObject> onSuccess, Runnable onError) {
     JsonObject request = buildRequest();
-    new Thread(() -> {
+    COMMAND_EXECUTOR.execute(() -> {
       JsonObject response = SocketClient.sendRequest(request);
       Platform.runLater(() -> {
         if (response == null) {
@@ -49,7 +65,7 @@ public abstract class ServerCommand {
           }
         }
       });
-    }, "cmd-" + getClass().getSimpleName()).start();
+    });
   }
 
   /**

@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.ComboBox;
@@ -61,8 +62,10 @@ public class BidHistoryController {
     private XYChart.Series<Number, Number> priceSeries;
     private long chartTick    = 0;
     private int  lastHistSize = 0;
-    /** Số bid biết được từ push envelope — tránh gọi mạng khi count không đổi. */
-    private final int  lastKnownBidCount = -1;
+    /** Debounce reload lịch sử để cập nhật giá trước, tải lịch sử sau. */
+    private boolean loadInFlight = false;
+    private boolean reloadQueued = false;
+    private PauseTransition reloadDebounce;
 
     // ── Inject ────────────────────────────────────────────────────────────
 
@@ -108,17 +111,42 @@ public class BidHistoryController {
     // ── Public API ────────────────────────────────────────────────────────
 
     public void load() {
-        new GetBidHistoryCommand(state.getAuctionId()).executeAsync(res -> {
-            if (res == null || !res.has("history")) return;
-            JsonArray h = res.getAsJsonArray("history");
-            populateList(h);
-            populateLeaderboard(h);     // FIX: cập nhật leaderboard sau mỗi load
-            if (h.size() != lastHistSize) {
-                lastHistSize = h.size();
-                rebuildChart(h);
-                updateChartStats(h);
-            }
-        });
+        if (state == null || state.getAuctionId() <= 0) {
+            return;
+        }
+        if (loadInFlight) {
+            reloadQueued = true;
+            return;
+        }
+
+        loadInFlight = true;
+        new GetBidHistoryCommand(state.getAuctionId()).executeAsync(
+            res -> {
+                loadInFlight = false;
+                if (res != null && res.has("history")) {
+                    JsonArray h = res.getAsJsonArray("history");
+                    populateList(h);
+                    populateLeaderboard(h);
+                    if (h.size() != lastHistSize) {
+                        lastHistSize = h.size();
+                        rebuildChart(h);
+                        updateChartStats(h);
+                    }
+                }
+                runQueuedReloadIfNeeded();
+            },
+            () -> {
+                loadInFlight = false;
+                runQueuedReloadIfNeeded();
+            });
+    }
+
+    public void loadSoon() {
+        if (reloadDebounce == null) {
+            reloadDebounce = new PauseTransition(Duration.millis(150));
+            reloadDebounce.setOnFinished(e -> load());
+        }
+        reloadDebounce.playFromStart();
     }
 
     public void addChartPoint(double price) {
@@ -130,6 +158,13 @@ public class BidHistoryController {
 
     public void handleRefreshBids() {
         load();
+    }
+
+    private void runQueuedReloadIfNeeded() {
+        if (reloadQueued) {
+            reloadQueued = false;
+            loadSoon();
+        }
     }
 
     // ── Private: List ─────────────────────────────────────────────────────

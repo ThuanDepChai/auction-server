@@ -95,14 +95,17 @@ public class AuctionManager {
     lock.lock();
     try {
       // 1. Persist bid vào DB (validate + INSERT + UPDATE current_price)
-      auctionDAO.placeBidOrThrow(auctionId, bidderId, amount);
+      JsonObject writeResult = auctionDAO.placeBidOrThrow(
+          auctionId, bidderId, amount, ANTI_SNIPE_WINDOW_SEC, ANTI_SNIPE_EXTENSION_SEC);
+      double minStep = writeResult.has("minStep")
+          ? writeResult.get("minStep").getAsDouble()
+          : auctionDAO.getMinStep(auctionId);
 
       // 2. Anti-sniping — gia hạn thời gian nếu bid gần cuối phiên
-      antiSnipingCheck(auctionId);
 
       // 3. Trigger auto-bid cho các bidder khác (nếu còn quota round)
       if (round < MAX_AUTO_BID_ROUNDS) {
-        triggerAutoBids(auctionId, bidderId, amount, round);
+        triggerAutoBids(auctionId, bidderId, amount, round, minStep);
       } else {
         System.out.println("⚠️ [AuctionManager] Auction #" + auctionId
             + " đạt giới hạn " + MAX_AUTO_BID_ROUNDS + " vòng auto-bid.");
@@ -119,7 +122,7 @@ public class AuctionManager {
       // auto-bid chain đã chạy xong — giá cuối, endTime, leadingBidder đều chính xác.
       // Việc này loại bỏ query DB thừa mà AuctionService từng phải gọi sau khi unlock.
       if (!isAutoBid) {
-        JsonObject snap = auctionDAO.getAuctionById(auctionId);
+        JsonObject snap = auctionDAO.getRealtimeSnapshot(auctionId);
         if (snap != null) {
           if (snap.has("currentPrice"))  result.addProperty("currentPrice",  snap.get("currentPrice").getAsDouble());
           if (snap.has("endTime"))       result.addProperty("endTime",        snap.get("endTime").getAsString());
@@ -144,7 +147,8 @@ public class AuctionManager {
    *
    * <p>Nếu auto-bid thành công → đệ quy để xem có auto-bid nào khác cần phản ứng không.
    */
-  private void triggerAutoBids(int auctionId, int lastBidderId, double currentPrice, int round) {
+  private void triggerAutoBids(int auctionId, int lastBidderId, double currentPrice, int round,
+      double minStep) {
     List<JsonObject> activeBids = autoBidDAO.getActiveAutoBids(auctionId);
     if (activeBids.isEmpty()) return;
 
@@ -177,14 +181,13 @@ public class AuctionManager {
     }
 
     // Đảm bảo đủ minStep (lấy từ DB qua DAO — tránh stale data)
-    double minStep = auctionDAO.getMinStep(auctionId);
     if (proposedBid < currentPrice + minStep) {
       // maxBid không đủ để vượt minStep → tắt auto-bid của bidder này
       autoBidDAO.cancelAutoBid(auctionId, autoBidderId);
       System.out.println("ℹ️ [AutoBid] Bidder #" + autoBidderId
           + " hết quota (maxBid < currentPrice + minStep) → đã tắt.");
       // Thử ứng viên auto-bid cao tiếp theo (trước đây dừng sớm nên hành vi sai)
-      triggerAutoBids(auctionId, lastBidderId, currentPrice, round);
+      triggerAutoBids(auctionId, lastBidderId, currentPrice, round, minStep);
       return;
     }
 

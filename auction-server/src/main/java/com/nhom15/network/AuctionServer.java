@@ -53,6 +53,8 @@ public class AuctionServer {
   private static final int CLIENT_SO_TIMEOUT_MS     = 10_000;  // 10 giây
   // FIX 1: timeout cho socket subscriber (kết nối dài, cần lớn hơn)
   private static final int SUBSCRIBER_SO_TIMEOUT_MS = 60_000;  // 60 giây
+  private static final boolean DEBUG_CONNECTIONS =
+      Boolean.getBoolean("auction.server.debugConnections");
 
   // Pool xử lý request ngắn — cố định 100 thread
   private static final int MAX_REQUEST_THREADS    = 100;
@@ -107,7 +109,9 @@ public class AuctionServer {
         clientSocket.setSoTimeout(CLIENT_SO_TIMEOUT_MS);
         clientSocket.setTcpNoDelay(true);
 
-        System.out.println("🔌 Client mới: " + clientSocket.getInetAddress());
+        if (DEBUG_CONNECTIONS) {
+          System.out.println("Client connected: " + clientSocket.getInetAddress());
+        }
         threadPool.submit(() -> handleClientConnection(clientSocket));
       }
 

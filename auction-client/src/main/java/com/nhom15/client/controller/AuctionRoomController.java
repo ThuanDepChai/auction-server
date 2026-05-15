@@ -261,7 +261,7 @@ public class AuctionRoomController implements Initializable {
     countdownCtrl.updateLastUpdateLabel();            // "Cập nhật: HH:mm:ss"
     historyCtrl.addChartPoint(newPrice);             // thêm điểm vào chart NGAY
     manualBidCtrl.refreshLabels();                    // cập nhật quick-bid text
-    historyCtrl.load();                              // reload lịch sử từ server
+    historyCtrl.loadSoon();                          // reload lịch sử sau khi giá đã lên UI
   }
 
   private void onAuctionEnded() {
