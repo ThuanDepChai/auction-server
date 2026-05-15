@@ -10,6 +10,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.function.Consumer;
+import javafx.application.Platform;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.scene.control.Button;
@@ -110,14 +111,22 @@ public class CardFactory {
     imgContainer.getChildren().add(placeholder);
     card.getChildren().add(imgContainer);
 
-    // Lazy-load ảnh bất đồng bộ — card hiển thị ngay, ảnh điền vào sau
+    // FIX: Kiểm tra ImageCache trước — tránh TCP request thừa cho ảnh đã tải
     if (imagePath != null && !imagePath.isEmpty()) {
-      new GetItemImageCommand(imagePath).executeAsync(res -> {
-        if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
-          applyBase64ToContainer(imgContainer, res.get("imageBase64").getAsString(),
-                  imgHeight, placeholder);
-        }
-      });
+      String cached = ImageCache.get(imagePath);
+      if (cached != null) {
+        // Ảnh đã có trong cache → apply ngay trên FX thread, không cần network
+        applyBase64ToContainer(imgContainer, cached, imgHeight, placeholder);
+      } else {
+        // Chưa có → tải từ server rồi lưu vào cache
+        new GetItemImageCommand(imagePath).executeAsync(res -> {
+          if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+            String b64 = res.get("imageBase64").getAsString();
+            ImageCache.put(imagePath, b64);  // lưu cache để lần sau dùng lại
+            applyBase64ToContainer(imgContainer, b64, imgHeight, placeholder);
+          }
+        });
+      }
     }
 
     return card;
@@ -143,6 +152,27 @@ public class CardFactory {
       iv.setPreserveRatio(true);
       imgContainer.getChildren().remove(placeholder);
       imgContainer.getChildren().add(iv);
+    } catch (Exception ignored) {
+      // Giữ placeholder nếu decode lỗi
+    }
+  }
+
+  /**
+   * Helper cho buildSellerItemCard: điền ảnh từ Base64 vào StackPane.
+   * Chạy trên FX thread (được gọi từ executeAsync callback hoặc Platform.runLater).
+   */
+  private static void applyImageToPane(StackPane imgPane, String base64,
+                                       double fitWidth, double fitHeight) {
+    try {
+      if (base64 == null || base64.isEmpty()) return;
+      byte[] bytes = Base64.getDecoder().decode(base64);
+      Image img = new Image(new ByteArrayInputStream(bytes));
+      if (img.isError()) return;
+      ImageView iv = new ImageView(img);
+      iv.setFitWidth(fitWidth);
+      iv.setFitHeight(fitHeight);
+      iv.setPreserveRatio(true);
+      imgPane.getChildren().setAll(iv);
     } catch (Exception ignored) {
       // Giữ placeholder nếu decode lỗi
     }
@@ -239,19 +269,19 @@ public class CardFactory {
     imgPane.getChildren().add(phLabel);
 
     if (!imagePath.isEmpty()) {
-      new GetItemImageCommand(imagePath).executeAsync(res -> {
-        if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
-          try {
-            byte[] bytes = Base64.getDecoder().decode(res.get("imageBase64").getAsString());
-            ImageView iv = new ImageView(new Image(new ByteArrayInputStream(bytes)));
-            iv.setFitWidth(200);
-            iv.setFitHeight(140);
-            iv.setPreserveRatio(true);
-            imgPane.getChildren().setAll(iv);
-          } catch (Exception ignored) {
+      String cached = ImageCache.get(imagePath);
+      if (cached != null) {
+        // Cache hit — apply ảnh ngay trên FX thread
+        Platform.runLater(() -> applyImageToPane(imgPane, cached, 200, 140));
+      } else {
+        new GetItemImageCommand(imagePath).executeAsync(res -> {
+          if (ServerCommand.isSuccess(res) && res.has("imageBase64")) {
+            String b64 = res.get("imageBase64").getAsString();
+            ImageCache.put(imagePath, b64);
+            applyImageToPane(imgPane, b64, 200, 140);
           }
-        }
-      });
+        });
+      }
     }
 
     VBox info = new VBox(4);

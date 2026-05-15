@@ -19,7 +19,7 @@ public class ItemService {
    */
   public JsonObject createItem(int sellerId, String name, String description,
                                String category, double startPrice,
-                               List<String> imageBase64List, String extension) {
+                               List<String> imageBase64List, String extension, String extraInfo) {
     JsonObject result = new JsonObject();
 
     String mainImagePath = "";
@@ -53,8 +53,8 @@ public class ItemService {
       }
     }
 
-    // Gọi hàm DAO đã nâng cấp để lưu vào 2 bảng item và item_images
-    int itemId = itemDAO.insertItem(sellerId, name, description, category, startPrice, mainImagePath, subImagePaths);
+    // Gọi hàm DAO đã nâng cấp để lưu vào bảng item
+    int itemId = itemDAO.insertItem(sellerId, name, description, category, startPrice, mainImagePath, subImagePaths, extraInfo);
 
     if (itemId > 0) {
       result.addProperty("status", "SUCCESS");

@@ -43,6 +43,20 @@ public class PriceCountdownController {
     private LocalDateTime auctionStartTime;
     private LocalDateTime auctionEndTime;
 
+    /**
+     * FIX Đếm ngược khác nhau giữa các client:
+     * 
+     * Khi server gửi AUCTION_UPDATE có trường "serverTime", client tính
+     *   clockOffsetSeconds = serverTime - localNow (có thể âm nếu client nhanh hơn server).
+     * tick() sử dụng  localNow + clockOffsetSeconds  thay vì localNow thuần để
+     * đảm bảo tất cả client đếu đếm ngược dựa trên đồng hồ server.
+     *
+     * Tại sao không chỉ duyên vào endTime?
+     * Nếu đồng hồ máy A sớm hơn server 3 giây, máy A thấy đếm ngược nừng hơn 3 giây.
+     * offsetSec bù lại chính xác phần lệch này.
+     */
+    private volatile long clockOffsetSeconds = 0;
+
     // ── Inject thủ công từ BiddingRoomController ──────────────────────────
 
     public void setNodes(
@@ -154,13 +168,31 @@ public class PriceCountdownController {
         this.onAuctionExpired = onExpiredCallback;
         try {
             auctionEndTime   = LocalDateTime.parse(endTimeStr, DT_FMT);
-            auctionStartTime = LocalDateTime.now();
+            auctionStartTime = LocalDateTime.now().plusSeconds(clockOffsetSeconds);
             countdownTimer   = new Timeline(new KeyFrame(Duration.seconds(1),
                     e -> tickCountdown(auctionEndTime)));
             countdownTimer.setCycleCount(Timeline.INDEFINITE);
             countdownTimer.play();
         } catch (Exception e) {
             if (lblCountdown != null) lblCountdown.setText("---");
+        }
+    }
+
+    /**
+     * Nhận "serverTime" từ AUCTION_UPDATE để cập nhật clock offset.
+     * Gọi từ RealtimePollingController.applyAuctionDetail() khi nhận push.
+     *
+     * @param serverTimeStr chuỗi "yyyy-MM-dd HH:mm:ss" lấy từ server
+     */
+    public void applyServerTime(String serverTimeStr) {
+        if (serverTimeStr == null || serverTimeStr.isBlank()) return;
+        try {
+            LocalDateTime serverNow = LocalDateTime.parse(serverTimeStr, DT_FMT);
+            LocalDateTime localNow  = LocalDateTime.now();
+            // delta dương: server đi trước client; delta âm: client đi trước server
+            clockOffsetSeconds = ChronoUnit.SECONDS.between(localNow, serverNow);
+        } catch (Exception ignored) {
+            // server gửi sai format — giữ offset cũ
         }
     }
 
@@ -217,7 +249,8 @@ public class PriceCountdownController {
     // ── Private ───────────────────────────────────────────────────────────
 
     private void tickCountdown(LocalDateTime endTime) {
-        LocalDateTime now = LocalDateTime.now();
+        // FIX: dùng đồng hồ local + offset để đồng bộ với server
+        LocalDateTime now = LocalDateTime.now().plusSeconds(clockOffsetSeconds);
         if (now.isAfter(endTime)) {
             if (lblCountdown != null) {
                 lblCountdown.setText("⏰ Đã kết thúc");

@@ -65,6 +65,20 @@ public class DBConnection {
 
     dataSource = new HikariDataSource(config);
     System.out.println("✅ [DBConnection] HikariCP pool đã khởi động (maxPool=10)");
+
+    // Tự động migrate thêm cột extra_info nếu chưa có
+    try (Connection conn = dataSource.getConnection();
+         java.sql.Statement stmt = conn.createStatement()) {
+        stmt.executeUpdate("ALTER TABLE item ADD COLUMN extra_info TEXT DEFAULT NULL");
+        System.out.println("✅ [DBConnection] Đã tự động thêm cột extra_info vào bảng item.");
+    } catch (SQLException e) {
+        // Lỗi này bình thường nếu cột đã tồn tại (Duplicate column name)
+        if (e.getMessage() != null && e.getMessage().contains("Duplicate column name")) {
+            System.out.println("ℹ️ [DBConnection] Cột extra_info đã tồn tại.");
+        } else {
+            System.err.println("⚠️ [DBConnection] Không thể alter table item (extra_info): " + e.getMessage());
+        }
+    }
   }
 
   // Ngăn khởi tạo instance bên ngoài

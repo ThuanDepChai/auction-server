@@ -60,6 +60,14 @@ public class SellerDashboardController {
   @FXML
   private ImageView imgItemPreview;
 
+  // ── Extra Info Fields ───────────────────────────────────────────────────
+  @FXML
+  private VBox vboxExtraFashion, vboxExtraElectronics, vboxExtraVehicle, vboxExtraArt, vboxExtraSports;
+  @FXML
+  private TextField txtFashionBrand, txtFashionSize, txtFashionColor, txtElecBrand;
+  @FXML
+  private TextField txtVehicleYear, txtVehicleMileage, txtArtArtist, txtSportType, txtSportCondition;
+
   // ── My Items & My Auctions ───────────────────────────────────────────────
   @FXML
   private FlowPane flowMyItems;
@@ -94,7 +102,23 @@ public class SellerDashboardController {
     }
 
     cmbItemCategory.getItems()
-        .addAll("Điện tử", "Thời trang", "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Thể thao", "Khác");
+        .addAll("Xe cộ", "Điện tử", "Thời trang", "Nghệ thuật", "Thể thao", "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Khác");
+
+    cmbItemCategory.valueProperty().addListener((obs, oldVal, newVal) -> {
+      vboxExtraFashion.setVisible(false); vboxExtraFashion.setManaged(false);
+      vboxExtraElectronics.setVisible(false); vboxExtraElectronics.setManaged(false);
+      vboxExtraVehicle.setVisible(false); vboxExtraVehicle.setManaged(false);
+      vboxExtraArt.setVisible(false); vboxExtraArt.setManaged(false);
+      vboxExtraSports.setVisible(false); vboxExtraSports.setManaged(false);
+      if (newVal == null) return;
+      switch (newVal) {
+        case "Thời trang" -> { vboxExtraFashion.setVisible(true); vboxExtraFashion.setManaged(true); }
+        case "Điện tử" -> { vboxExtraElectronics.setVisible(true); vboxExtraElectronics.setManaged(true); }
+        case "Xe cộ" -> { vboxExtraVehicle.setVisible(true); vboxExtraVehicle.setManaged(true); }
+        case "Nghệ thuật" -> { vboxExtraArt.setVisible(true); vboxExtraArt.setManaged(true); }
+        case "Thể thao" -> { vboxExtraSports.setVisible(true); vboxExtraSports.setManaged(true); }
+      }
+    });
 
     startClock();
     loadOverview();
@@ -347,6 +371,24 @@ public class SellerDashboardController {
     data.addProperty("imageBase64", selectedImageBase64);
     data.addProperty("extension", selectedImageExt);
 
+    JsonObject extraInfoObj = new JsonObject();
+    if ("Thời trang".equals(cat)) {
+      extraInfoObj.addProperty("brand", txtFashionBrand.getText().trim());
+      extraInfoObj.addProperty("size", txtFashionSize.getText().trim());
+      extraInfoObj.addProperty("color", txtFashionColor.getText().trim());
+    } else if ("Điện tử".equals(cat)) {
+      extraInfoObj.addProperty("brand", txtElecBrand.getText().trim());
+    } else if ("Xe cộ".equals(cat)) {
+      try { extraInfoObj.addProperty("year", Integer.parseInt(txtVehicleYear.getText().trim())); } catch (Exception ignored){}
+      try { extraInfoObj.addProperty("mileage", Double.parseDouble(txtVehicleMileage.getText().trim())); } catch (Exception ignored){}
+    } else if ("Nghệ thuật".equals(cat)) {
+      extraInfoObj.addProperty("artist", txtArtArtist.getText().trim());
+    } else if ("Thể thao".equals(cat)) {
+      extraInfoObj.addProperty("sportType", txtSportType.getText().trim());
+      extraInfoObj.addProperty("condition", txtSportCondition.getText().trim());
+    }
+    data.addProperty("extraInfo", extraInfoObj.toString());
+
     SellerCommand.createItem(data, response -> {
       if (response != null && "SUCCESS".equals(response.get("status").getAsString())) {
         showStatus(lblAddItemStatus, "✓ Đăng sản phẩm thành công!", true);
@@ -356,6 +398,11 @@ public class SellerDashboardController {
         txtItemStartPrice.clear();
         imgItemPreview.setVisible(false);
         selectedImageBase64 = "";
+
+        // Clear extra fields
+        txtFashionBrand.clear(); txtFashionSize.clear(); txtFashionColor.clear();
+        txtElecBrand.clear(); txtVehicleYear.clear(); txtVehicleMileage.clear();
+        txtArtArtist.clear(); txtSportType.clear(); txtSportCondition.clear();
       } else {
         showStatus(lblAddItemStatus, "Thất bại!", false);
       }

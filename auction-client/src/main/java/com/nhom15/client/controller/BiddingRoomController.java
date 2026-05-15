@@ -200,6 +200,9 @@ public class BiddingRoomController {
                 this::onPollingUpdate,
                 this::onAuctionEnded
         );
+        // FIX: Kết nối priceCountdownController để poller gọi applyServerTime()
+        // mỗi khi nhận AUCTION_UPDATE — đồng bộ clock offset giữa tất cả client
+        poller.setPriceCountdownController(priceCountdownController);
         // Anti-sniping: khi server gia hạn, cập nhật countdown ngay lập tức
         poller.setOnEndTimeChanged(newEndTime -> {
             priceCountdownController.startCountdown(newEndTime, this::onAuctionEnded);

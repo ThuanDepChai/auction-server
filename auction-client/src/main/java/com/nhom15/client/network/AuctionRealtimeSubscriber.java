@@ -22,9 +22,15 @@ import javafx.application.Platform;
  */
 public final class AuctionRealtimeSubscriber {
 
-  private static final int READ_TIMEOUT_MS = 30_000;
-  private static final int INITIAL_RECONNECT_MS = 900;
-  private static final int MAX_RECONNECT_MS = 12_000;
+  private static final int READ_TIMEOUT_MS     = 30_000;
+  /**
+   * FIX PERF: Giảm từ 900ms → 200ms.
+   * 900ms là thời gian chờ reconnect khi mất kết nối SUBSCRIBE — nếu subscriber
+   * bị ngắt giữa chừng và phải reconnect, client sẽ bị miss update trong ~900ms.
+   * 200ms đủ để tránh reconnect storm nhưng nhanh hơn rõ rệt.
+   */
+  private static final int INITIAL_RECONNECT_MS = 200;
+  private static final int MAX_RECONNECT_MS     = 12_000;
 
   private final Object lifecycleLock = new Object();
   private volatile Socket activeSocket;

@@ -237,43 +237,12 @@
                   <Separator style="-fx-opacity: 0.4;" />
 
                   <!-- Specs 2x2 grid -->
-                  <GridPane hgap="10.0" vgap="10.0">
+                  <GridPane fx:id="gridSpecs" hgap="10.0" vgap="10.0">
                     <columnConstraints>
                       <ColumnConstraints percentWidth="50.0" />
                       <ColumnConstraints percentWidth="50.0" />
                     </columnConstraints>
-                    <rowConstraints>
-                      <RowConstraints />
-                      <RowConstraints />
-                    </rowConstraints>
-                    <VBox spacing="3.0" style="-fx-background-color:#F4F7FC;-fx-background-radius:10;"
-                      GridPane.columnIndex="0" GridPane.rowIndex="0">
-                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
-                      <Label style="-fx-text-fill:#888888;-fx-font-size:11;" text="Thương hiệu"/>
-                      <Label style="-fx-text-fill:#202124;-fx-font-weight:bold;-fx-font-size:14;"
-                        text="Patek Philippe"/>
-                    </VBox>
-                    <VBox spacing="3.0" style="-fx-background-color:#F4F7FC;-fx-background-radius:10;"
-                      GridPane.columnIndex="1" GridPane.rowIndex="0">
-                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
-                      <Label style="-fx-text-fill:#888888;-fx-font-size:11;" text="Model"/>
-                      <Label style="-fx-text-fill:#202124;-fx-font-weight:bold;-fx-font-size:14;"
-                        text="Calatrava 5119J"/>
-                    </VBox>
-                    <VBox spacing="3.0" style="-fx-background-color:#F4F7FC;-fx-background-radius:10;"
-                      GridPane.columnIndex="0" GridPane.rowIndex="1">
-                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
-                      <Label style="-fx-text-fill:#888888;-fx-font-size:11;" text="Năm sản xuất"/>
-                      <Label style="-fx-text-fill:#202124;-fx-font-weight:bold;-fx-font-size:14;"
-                        text="2008"/>
-                    </VBox>
-                    <VBox spacing="3.0" style="-fx-background-color:#F4F7FC;-fx-background-radius:10;"
-                      GridPane.columnIndex="1" GridPane.rowIndex="1">
-                      <padding><Insets bottom="11.0" left="13.0" right="13.0" top="11.0" /></padding>
-                      <Label style="-fx-text-fill:#888888;-fx-font-size:11;" text="Tình trạng"/>
-                      <Label style="-fx-text-fill:#202124;-fx-font-weight:bold;-fx-font-size:14;"
-                        text="Xuất sắc ★★★★★"/>
-                    </VBox>
+                    <!-- Children will be generated dynamically by ProductPanelController -->
                   </GridPane>
                 </VBox>
               </VBox>

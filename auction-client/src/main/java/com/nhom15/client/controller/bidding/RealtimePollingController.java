@@ -36,6 +36,12 @@ public class RealtimePollingController {
      */
     private EndTimeChangedListener onEndTimeChanged;
 
+    /**
+     * FIX: Tham chiếu đến PriceCountdownController để gọi applyServerTime()
+     * mỗi khi nhận AUCTION_UPDATE từ server — đồng bộ clock offset.
+     */
+    private PriceCountdownController priceCountdownController;
+
     // ── Interfaces ────────────────────────────────────────────────────────
 
     @FunctionalInterface
@@ -63,6 +69,14 @@ public class RealtimePollingController {
         this.onPriceChanged = onPriceChanged;
         this.onUpdate       = onUpdate;
         this.onAuctionEnded = onAuctionEnded;
+    }
+
+    /**
+     * Đăng ký PriceCountdownController để nhận serverTime sync.
+     * Gọi từ BiddingRoomController.initialize() sau khi các sub-controller đã được tạo.
+     */
+    public void setPriceCountdownController(PriceCountdownController pcc) {
+        this.priceCountdownController = pcc;
     }
 
     public void setOnEndTimeChanged(EndTimeChangedListener listener) {
@@ -148,6 +162,12 @@ public class RealtimePollingController {
     private void applyAuctionDetail(JsonObject a) {
         if (a == null) {
             return;
+        }
+
+        // FIX: đồng bộ clock offset ngay khi nhận serverTime từ push
+        if (a.has("serverTime") && priceCountdownController != null) {
+            priceCountdownController.applyServerTime(
+                    a.get("serverTime").getAsString());
         }
 
         double newPrice = a.has("currentPrice")

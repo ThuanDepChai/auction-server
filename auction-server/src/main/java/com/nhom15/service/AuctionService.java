@@ -7,8 +7,12 @@ import com.nhom15.exception.AuctionClosedException;
 import com.nhom15.exception.InvalidBidException;
 import com.nhom15.network.AuctionManager;
 import com.nhom15.network.AuctionRoomBroadcaster;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AuctionService {
 
@@ -16,15 +20,29 @@ public class AuctionService {
   private final AuctionManager auctionManager = AuctionManager.getInstance();
 
   /**
-   * FIX: Executor riêng cho broadcast — 1 daemon thread đủ dùng.
-   * Tách khỏi requestPool để request thread trả về response cho bidder ngay,
-   * không phải block chờ socket write đến từng subscriber.
+   * FIX PERF: CachedThreadPool thay vì SingleThreadExecutor.
+   *
+   * Lý do lag ~1 giây trước đây:
+   *  - SingleThreadExecutor chỉ có 1 thread xử lý broadcast tuần tự.
+   *  - Mỗi subscriber được ghi qua out.println() (blocking TCP write).
+   *  - Nếu bất kỳ subscriber nào có TCP send buffer đầy (mạng chậm / proxy),
+   *    out.println() bị block → toàn bộ broadcast chain bị trễ cho đến khi
+   *    buffer được tiêu thụ — có thể mất 200ms–1s tùy RTT của client đó.
+   *  - Với SingleThreadExecutor, độ trễ này cộng dồn qua từng subscriber.
+   *
+   * Fix: CachedThreadPool → mỗi lần broadcastAsync() submit 1 task độc lập,
+   * các phòng đấu giá khác nhau không chờ nhau.
+   * Đồng thời AuctionRoomBroadcaster.broadcast() được tách thành per-subscriber
+   * tasks để không subscriber nào block subscriber khác.
    */
   private static final ExecutorService BROADCAST_EXECUTOR =
-      Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "auction-broadcast");
-        t.setDaemon(true);
-        return t;
+      Executors.newCachedThreadPool(new ThreadFactory() {
+        private final AtomicInteger idx = new AtomicInteger(0);
+        @Override public Thread newThread(Runnable r) {
+          Thread t = new Thread(r, "auction-bcast-" + idx.getAndIncrement());
+          t.setDaemon(true);
+          return t;
+        }
       });
 
   /**
@@ -142,7 +160,19 @@ public class AuctionService {
     });
   }
 
-  /** Đóng gói { "action":"AUCTION_UPDATE", "data":{...} } từ snapshot. */
+  /**
+   * Đóng gói { "action":"AUCTION_UPDATE", "data":{...} } từ snapshot.
+   *
+   * FIX: Thêm trường "serverTime" = thời điểm gửi theo đồng hồ server.
+   * Client dùng serverTime để tính clock offset (delta = serverTime - localNow)
+   * và trừng phần delta khi tính second remaining:
+   *   secondsLeft = ChronoUnit.SECONDS.between(LocalDateTime.now().plusSeconds(offsetSec), endTime)
+   * Điều này đảm bảo mọi client đếu đếm ngược đồng bộ theo đồng hồ server,
+   * dù đồng hồ máy client lệch vài giây hay khác múi giờ.
+   */
+  private static final DateTimeFormatter DT_FMT =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
   private static JsonObject buildEnvelope(int auctionId, JsonObject src) {
     JsonObject data = new JsonObject();
     data.addProperty("auctionId", auctionId);
@@ -151,6 +181,8 @@ public class AuctionService {
     copyStr(src, data, "status");
     copyStr(src, data, "leadingBidder");
     copyInt(src, data, "totalBids");
+    // FIX: thêm thời gian server để client có thể tính clock-offset
+    data.addProperty("serverTime", LocalDateTime.now().format(DT_FMT));
 
     JsonObject envelope = new JsonObject();
     envelope.addProperty("action", "AUCTION_UPDATE");
