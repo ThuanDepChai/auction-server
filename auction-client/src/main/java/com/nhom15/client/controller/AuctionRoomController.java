@@ -30,6 +30,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 
 import java.io.ByteArrayInputStream;
 import java.net.URL;
@@ -88,9 +89,12 @@ public class AuctionRoomController implements Initializable {
   private MediaPlayer    gifPlayer;
   private final AuctionRealtimeSubscriber realtimeSubscriber = new AuctionRealtimeSubscriber();
   private XYChart.Series<Number, Number> priceChartSeries;
-  private Timeline                 chartTimeline;
-  private int                      chartXSeq = 0;
-
+  private Timeline                 chartTimeline;           // kept for cleanup, never started
+  /** Thời điểm điểm chart đầu tiên được thêm → mốc Ox = 0 giây. */
+  private LocalDateTime            auctionChartStartTime = null;
+  /** Giá cuối cùng đã vẽ — để deduplicate và không vẽ lại khi giá không đổi. */
+  private double                   lastChartPrice = Double.NaN;
+  private int chartXSeq = 0;
   private final NumberFormat currencyFmt = NumberFormat.getNumberInstance(Locale.US);
 
   // ─────────────────────────────────────────────────────────────────
@@ -114,7 +118,8 @@ public class AuctionRoomController implements Initializable {
   public void setAuctionId(int id) {
     stopRealtimeWatch();
     stopPriceChartTimeline();
-    chartXSeq = 0;
+    auctionChartStartTime = null;
+    lastChartPrice        = Double.NaN;
     if (priceChartSeries != null) {
       priceChartSeries.getData().clear();
     }
@@ -588,13 +593,26 @@ public class AuctionRoomController implements Initializable {
     }
     chartPriceLive.setAnimated(false);
     chartPriceLive.setLegendVisible(false);
-    chartPriceLive.setCreateSymbols(true);
+    // FIX: false thay vì true — tắt tạo Symbol node (Circle gradient) tại mỗi điểm.
+    // Mặc định true khiến mỗi appendPriceChartPoint() tạo node CSS gradient →
+    // block FX thread ~1s → tất cả push/poll từ client khác xếp hàng chờ.
+    chartPriceLive.setCreateSymbols(false);
     priceChartSeries = new XYChart.Series<>();
     priceChartSeries.setName("Giá");
     chartPriceLive.getData().clear();
     chartPriceLive.getData().add(priceChartSeries);
     if (axisChartX != null) {
       axisChartX.setForceZeroInRange(false);
+      // Trục Ox hiển thị "mm:ss" (hoặc "h:mm:ss") tính từ bid đầu tiên
+      axisChartX.setTickLabelFormatter(new StringConverter<Number>() {
+        @Override public String toString(Number v) {
+          long sec = Math.max(0, v.longValue());
+          long h = sec / 3600, m = (sec % 3600) / 60, s = sec % 60;
+          if (h > 0) return String.format("%d:%02d:%02d", h, m, s);
+          return String.format("%d:%02d", m, s);
+        }
+        @Override public Number fromString(String s) { return 0; }
+      });
     }
     if (axisChartY != null) {
       axisChartY.setForceZeroInRange(false);
@@ -606,12 +624,11 @@ public class AuctionRoomController implements Initializable {
     if (priceChartSeries == null || chartPriceLive == null || auctionId == 0) {
       return;
     }
-    if (!priceChartSeries.getData().isEmpty()) {
-      startPriceChartTimeline();
-      return;
+    // Chỉ thêm điểm khởi đầu; chart sau đó tự cập nhật qua appendPriceChartPoint()
+    // được gọi khi push / poll phát hiện giá mới. KHÔNG dùng chartTimeline 1s nữa.
+    if (priceChartSeries.getData().isEmpty()) {
+      appendPriceChartPoint(currentBidUSD);
     }
-    appendPriceChartPoint(currentBidUSD);
-    startPriceChartTimeline();
   }
 
   private void startPriceChartTimeline() {
@@ -640,14 +657,27 @@ public class AuctionRoomController implements Initializable {
     if (priceChartSeries == null || chartPriceLive == null || auctionId == 0) {
       return;
     }
+
+    // Tăng sequence (có thể dùng AtomicInteger nếu cần an toàn tuyệt đối đa luồng)
     chartXSeq++;
-    priceChartSeries.getData().add(new XYChart.Data<>(chartXSeq, y));
-    while (priceChartSeries.getData().size() > MAX_CHART_POINTS) {
-      priceChartSeries.getData().remove(0);
-    }
-    if (lblChartLastUpdate != null) {
-      lblChartLastUpdate.setText(LocalDateTime.now().format(CHART_TIME_FMT));
-    }
+    final int currentX = chartXSeq; // Lưu lại giá trị cho luồng UI
+    final String updateTime = LocalDateTime.now().format(CHART_TIME_FMT);
+
+    // Đẩy việc cập nhật UI vào JavaFX Application Thread
+    Platform.runLater(() -> {
+      // Thêm điểm mới
+      priceChartSeries.getData().add(new XYChart.Data<>(currentX, y));
+
+      // Xóa các điểm cũ nếu vượt quá giới hạn
+      while (priceChartSeries.getData().size() > MAX_CHART_POINTS) {
+        priceChartSeries.getData().remove(0);
+      }
+
+      // Cập nhật nhãn thời gian
+      if (lblChartLastUpdate != null) {
+        lblChartLastUpdate.setText(updateTime);
+      }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────
