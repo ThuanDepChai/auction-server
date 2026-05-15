@@ -109,7 +109,7 @@ public class RealtimePollingController {
         // Cập nhật giá mới nhất (server trả về sau khi auto-bid đã chạy xong)
         if (serverResponse.has("currentPrice")) {
             double serverPrice = serverResponse.get("currentPrice").getAsDouble();
-            if (serverPrice != state.getCurrentPrice()) {
+            if (serverPrice > state.getCurrentPrice()) {
                 double old = state.getCurrentPrice();
                 state.setCurrentPrice(serverPrice);
                 if (onPriceChanged != null) onPriceChanged.onChanged(serverPrice, old);
@@ -174,8 +174,11 @@ public class RealtimePollingController {
                 ? a.get("currentPrice").getAsDouble()
                 : state.getCurrentPrice();
         String status = str(a, "status", "ACTIVE");
+        if (a.has("currentPrice") && newPrice < state.getCurrentPrice()) {
+            return;
+        }
 
-        if (newPrice != state.getCurrentPrice()) {
+        if (newPrice > state.getCurrentPrice()) {
             double old = state.getCurrentPrice();
             state.setCurrentPrice(newPrice);
             if (onPriceChanged != null) onPriceChanged.onChanged(newPrice, old);

@@ -100,36 +100,42 @@ public class AuctionManager {
       double minStep = writeResult.has("minStep")
           ? writeResult.get("minStep").getAsDouble()
           : auctionDAO.getMinStep(auctionId);
+      JsonObject finalWriteResult = writeResult;
 
       // 2. Anti-sniping — gia hạn thời gian nếu bid gần cuối phiên
 
       // 3. Trigger auto-bid cho các bidder khác (nếu còn quota round)
       if (round < MAX_AUTO_BID_ROUNDS) {
-        triggerAutoBids(auctionId, bidderId, amount, round, minStep);
+        JsonObject autoResult = triggerAutoBids(auctionId, bidderId, amount, round, minStep);
+        if (autoResult != null) {
+          finalWriteResult = autoResult;
+        }
       } else {
         System.out.println("⚠️ [AuctionManager] Auction #" + auctionId
             + " đạt giới hạn " + MAX_AUTO_BID_ROUNDS + " vòng auto-bid.");
       }
 
       // 4. Trả kết quả
+      double finalPrice = finalWriteResult.has("currentPrice")
+          ? finalWriteResult.get("currentPrice").getAsDouble()
+          : amount;
+
       JsonObject result = new JsonObject();
       result.addProperty("status", "SUCCESS");
       result.addProperty("message", isAutoBid ? "Auto-bid thành công!" : "Đặt giá thành công!");
-      result.addProperty("newPrice", amount);
+      result.addProperty("newPrice", finalPrice);
+      result.addProperty("currentPrice", finalPrice);
       result.addProperty("isAutoBid", isAutoBid);
+      if (finalWriteResult.has("endTime")) {
+        result.addProperty("endTime", finalWriteResult.get("endTime").getAsString());
+      }
+      if (finalWriteResult.has("status")) {
+        result.addProperty("auctionStatus", finalWriteResult.get("status").getAsString());
+      }
 
       // FIX: Chỉ lấy snapshot đầy đủ ở round gốc (round=0), SAU KHI toàn bộ
       // auto-bid chain đã chạy xong — giá cuối, endTime, leadingBidder đều chính xác.
       // Việc này loại bỏ query DB thừa mà AuctionService từng phải gọi sau khi unlock.
-      if (!isAutoBid) {
-        JsonObject snap = auctionDAO.getRealtimeSnapshot(auctionId);
-        if (snap != null) {
-          if (snap.has("currentPrice"))  result.addProperty("currentPrice",  snap.get("currentPrice").getAsDouble());
-          if (snap.has("endTime"))       result.addProperty("endTime",        snap.get("endTime").getAsString());
-          if (snap.has("leadingBidder")) result.addProperty("leadingBidder",  snap.get("leadingBidder").getAsString());
-          if (snap.has("totalBids"))     result.addProperty("totalBids",      snap.get("totalBids").getAsInt());
-        }
-      }
       return result;
 
     } finally {
@@ -147,10 +153,10 @@ public class AuctionManager {
    *
    * <p>Nếu auto-bid thành công → đệ quy để xem có auto-bid nào khác cần phản ứng không.
    */
-  private void triggerAutoBids(int auctionId, int lastBidderId, double currentPrice, int round,
+  private JsonObject triggerAutoBids(int auctionId, int lastBidderId, double currentPrice, int round,
       double minStep) {
     List<JsonObject> activeBids = autoBidDAO.getActiveAutoBids(auctionId);
-    if (activeBids.isEmpty()) return;
+    if (activeBids.isEmpty()) return null;
 
     // Chọn auto-bid ứng viên cao nhất (không phải người vừa đặt)
     JsonObject best = null;
@@ -169,7 +175,7 @@ public class AuctionManager {
       }
     }
 
-    if (best == null) return; // không có auto-bid nào đủ điều kiện
+    if (best == null) return null; // không có auto-bid nào đủ điều kiện
 
     int    autoBidderId = best.get("bidderId").getAsInt();
     double increment    = best.get("increment").getAsDouble();
@@ -187,18 +193,18 @@ public class AuctionManager {
       System.out.println("ℹ️ [AutoBid] Bidder #" + autoBidderId
           + " hết quota (maxBid < currentPrice + minStep) → đã tắt.");
       // Thử ứng viên auto-bid cao tiếp theo (trước đây dừng sớm nên hành vi sai)
-      triggerAutoBids(auctionId, lastBidderId, currentPrice, round, minStep);
-      return;
+      return triggerAutoBids(auctionId, lastBidderId, currentPrice, round, minStep);
     }
 
     // Thực hiện auto-bid (reentrant vào cùng lock)
     try {
       System.out.printf("🤖 [AutoBid] Round %d — Bidder #%d đặt tự động %.0f cho Auction #%d%n",
           round + 1, autoBidderId, proposedBid, auctionId);
-      placeBidInternal(auctionId, autoBidderId, proposedBid, true, round + 1);
+      return placeBidInternal(auctionId, autoBidderId, proposedBid, true, round + 1);
     } catch (InvalidBidException | AuctionClosedException e) {
       // Phiên vừa đóng giữa chừng hoặc giá bị vượt — dừng lại, không lỗi
       System.out.println("ℹ️ [AutoBid] Dừng: " + e.getMessage());
+      return null;
     }
   }
 

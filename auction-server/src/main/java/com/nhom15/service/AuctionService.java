@@ -18,6 +18,7 @@ public class AuctionService {
 
   private final AuctionDAO auctionDAO = new AuctionDAO();
   private final AuctionManager auctionManager = AuctionManager.getInstance();
+  private static final boolean LATENCY_DEBUG = Boolean.getBoolean("auction.latency.debug");
 
   /**
    * FIX PERF: CachedThreadPool thay vì SingleThreadExecutor.
@@ -84,7 +85,14 @@ public class AuctionService {
   public JsonObject placeBid(int auctionId, int bidderId, double amount) {
     try {
       // Trả về: status, newPrice, currentPrice, endTime, leadingBidder, totalBids
+      long startedAt = System.currentTimeMillis();
       JsonObject result = auctionManager.placeBid(auctionId, bidderId, amount);
+      long serverProcessMs = System.currentTimeMillis() - startedAt;
+      result.addProperty("serverProcessMs", serverProcessMs);
+      if (LATENCY_DEBUG) {
+        System.out.printf("[Latency] PLACE_BID auction=%d bidder=%d serverProcess=%dms%n",
+            auctionId, bidderId, serverProcessMs);
+      }
 
       // Map endTime → newEndTime cho client cập nhật bộ đếm ngược anti-sniping
       if (result.has("endTime") && !result.has("newEndTime")) {
@@ -93,6 +101,7 @@ public class AuctionService {
 
       // FIX 2: Broadcast ASYNC
       broadcastAsync(auctionId, result);
+      broadcastSnapshotAsync(auctionId);
 
       return result;
 
@@ -160,6 +169,19 @@ public class AuctionService {
     });
   }
 
+  private void broadcastSnapshotAsync(int auctionId) {
+    BROADCAST_EXECUTOR.submit(() -> {
+      try {
+        JsonObject detail = auctionDAO.getRealtimeSnapshot(auctionId);
+        if (detail != null) {
+          AuctionRoomBroadcaster.INSTANCE.broadcast(auctionId, buildEnvelope(auctionId, detail));
+        }
+      } catch (Exception ex) {
+        System.err.println("âš ï¸ [Broadcast snapshot] auction #" + auctionId + ": " + ex.getMessage());
+      }
+    });
+  }
+
   /**
    * Đóng gói { "action":"AUCTION_UPDATE", "data":{...} } từ snapshot.
    *
@@ -178,7 +200,11 @@ public class AuctionService {
     data.addProperty("auctionId", auctionId);
     copyDbl(src, data, "currentPrice");
     copyStr(src, data, "endTime");
-    copyStr(src, data, "status");
+    if (src.has("auctionStatus") && !src.get("auctionStatus").isJsonNull()) {
+      data.addProperty("status", src.get("auctionStatus").getAsString());
+    } else {
+      copyStr(src, data, "status");
+    }
     copyStr(src, data, "leadingBidder");
     copyInt(src, data, "totalBids");
     // FIX: thêm thời gian server để client có thể tính clock-offset

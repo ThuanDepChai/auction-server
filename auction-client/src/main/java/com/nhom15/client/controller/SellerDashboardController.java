@@ -1,8 +1,12 @@
 package com.nhom15.client.controller;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.nhom15.client.command.SellerCommand;
+import com.nhom15.client.command.ServerCommand;
+import com.nhom15.client.controller.seller.SellerDashboardForms;
+import com.nhom15.client.controller.seller.SellerDashboardRenderer;
+import com.nhom15.client.controller.seller.SellerDashboardState;
+import com.nhom15.client.controller.seller.SellerDashboardStats;
+import com.nhom15.client.service.SellerDashboardService;
 import com.nhom15.client.util.CardFactory;
 import com.nhom15.client.util.SessionManager;
 import com.nhom15.client.util.ViewManager;
@@ -11,12 +15,11 @@ import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.chart.LineChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -34,21 +37,24 @@ import javafx.util.Duration;
 
 public class SellerDashboardController {
 
-  // ── Sidebar & Panels ─────────────────────────────────────────────────────
   @FXML
   private Label lblSellerName, lblPageTitle, lblDateTime;
   @FXML
-  private Button btnMenuOverview, btnMenuItems, btnMenuAddItem, btnMenuAuctions, btnMenuCreateAuction;
+  private Button btnMenuOverview, btnMenuItems, btnMenuAddItem, btnMenuAuctions, btnMenuCreateAuction,
+      btnMenuOrders, btnMenuFinance, btnMenuAnalytics, btnMenuSettings;
   @FXML
-  private VBox panelOverview, panelItems, panelAddItem, panelAuctions, panelCreateAuction;
+  private VBox panelOverview, panelItems, panelAddItem, panelAuctions, panelCreateAuction,
+      panelOrders, panelFinance, panelAnalytics, panelSettings;
 
-  // ── Overview ─────────────────────────────────────────────────────────────
   @FXML
-  private Label lblTotalItems, lblActiveAuctions, lblTotalSold, lblTotalRevenue;
+  private Label lblTotalItems, lblActiveAuctions, lblTotalSold, lblTotalRevenue, lblNotifications;
+  @FXML
+  private ComboBox<String> cmbRevenueTimeframe;
+  @FXML
+  private LineChart<String, Number> chartRevenue;
   @FXML
   private VBox vboxRecentAuctions;
 
-  // ── Add Item ─────────────────────────────────────────────────────────────
   @FXML
   private TextField txtItemName, txtItemStartPrice;
   @FXML
@@ -60,21 +66,23 @@ public class SellerDashboardController {
   @FXML
   private ImageView imgItemPreview;
 
-  // ── Extra Info Fields ───────────────────────────────────────────────────
   @FXML
   private VBox vboxExtraFashion, vboxExtraElectronics, vboxExtraVehicle, vboxExtraArt, vboxExtraSports;
   @FXML
-  private TextField txtFashionBrand, txtFashionSize, txtFashionColor, txtElecBrand;
+  private TextField txtFashionBrand, txtFashionSize, txtFashionColor, txtElecBrand, txtElecSpecs;
   @FXML
-  private TextField txtVehicleYear, txtVehicleMileage, txtArtArtist, txtSportType, txtSportCondition;
+  private TextField txtVehicleBrand, txtVehicleYear, txtVehicleMileage, txtArtArtist, txtArtYear,
+      txtSportType, txtSportCondition;
 
-  // ── My Items & My Auctions ───────────────────────────────────────────────
   @FXML
   private FlowPane flowMyItems;
   @FXML
   private VBox vboxMyAuctions;
+  @FXML
+  private ComboBox<String> cmbFilterItems, cmbFilterAuctions;
+  @FXML
+  private Button btnAuctionActive, btnAuctionUpcoming, btnAuctionEnded, btnAuctionDraft;
 
-  // ── Create Auction ───────────────────────────────────────────────────────
   @FXML
   private ComboBox<String> cmbAuctionItem;
   @FXML
@@ -82,214 +90,234 @@ public class SellerDashboardController {
   @FXML
   private DatePicker dateAuctionEnd;
   @FXML
-  private Label lblAuctionItemError, lblAuctionPriceError, lblAuctionStepError, lblAuctionTimeError, lblCreateAuctionStatus;
+  private Label lblAuctionItemError, lblAuctionPriceError, lblAuctionStepError, lblAuctionTimeError,
+      lblCreateAuctionStatus;
 
-  // ── Internal ─────────────────────────────────────────────────────────────
-  private String selectedImageBase64 = "";
-  private String selectedImageExt = "jpg";
-  private final Map<String, Integer> itemNameToId = new HashMap<>();
+  @FXML
+  private VBox vboxOrders, vboxTransactions;
+  @FXML
+  private Label lblWalletBalance;
+
+  private final SellerDashboardService service = new SellerDashboardService();
+  private final SellerDashboardRenderer renderer = new SellerDashboardRenderer();
+  private final SellerDashboardState state = new SellerDashboardState();
   private Timeline clockTimeline;
 
   @FXML
   public void initialize() {
     lblSellerName.setText(SessionManager.getUsername());
-
-    // Bind errors
-    Label[] errors = {lblItemNameError, lblItemCategoryError, lblItemPriceError,
-        lblAuctionItemError, lblAuctionPriceError, lblAuctionStepError, lblAuctionTimeError};
-    for (Label err : errors) {
-      err.managedProperty().bind(err.visibleProperty());
-    }
-
-    cmbItemCategory.getItems()
-        .addAll("Xe cộ", "Điện tử", "Thời trang", "Nghệ thuật", "Thể thao", "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Khác");
-
-    cmbItemCategory.valueProperty().addListener((obs, oldVal, newVal) -> {
-      vboxExtraFashion.setVisible(false); vboxExtraFashion.setManaged(false);
-      vboxExtraElectronics.setVisible(false); vboxExtraElectronics.setManaged(false);
-      vboxExtraVehicle.setVisible(false); vboxExtraVehicle.setManaged(false);
-      vboxExtraArt.setVisible(false); vboxExtraArt.setManaged(false);
-      vboxExtraSports.setVisible(false); vboxExtraSports.setManaged(false);
-      if (newVal == null) return;
-      switch (newVal) {
-        case "Thời trang" -> { vboxExtraFashion.setVisible(true); vboxExtraFashion.setManaged(true); }
-        case "Điện tử" -> { vboxExtraElectronics.setVisible(true); vboxExtraElectronics.setManaged(true); }
-        case "Xe cộ" -> { vboxExtraVehicle.setVisible(true); vboxExtraVehicle.setManaged(true); }
-        case "Nghệ thuật" -> { vboxExtraArt.setVisible(true); vboxExtraArt.setManaged(true); }
-        case "Thể thao" -> { vboxExtraSports.setVisible(true); vboxExtraSports.setManaged(true); }
-      }
-    });
-
+    bindForms();
+    configureControls();
     startClock();
     loadOverview();
+  }
+
+  private void bindForms() {
+    SellerDashboardForms.bindErrorLabels(
+        lblItemNameError, lblItemCategoryError, lblItemPriceError,
+        lblAuctionItemError, lblAuctionPriceError, lblAuctionStepError, lblAuctionTimeError);
+    SellerDashboardForms.configureCategoryExtras(
+        cmbItemCategory, vboxExtraFashion, vboxExtraElectronics, vboxExtraVehicle, vboxExtraArt,
+        vboxExtraSports);
+  }
+
+  private void configureControls() {
+    cmbItemCategory.getItems().addAll(
+        "Xe cộ", "Điện tử", "Thời trang", "Nghệ thuật", "Thể thao",
+        "Nhà cửa & Sân vườn", "Đồ sưu tầm", "Khác");
+    renderer.configureComboBoxes(
+        cmbRevenueTimeframe,
+        cmbFilterItems,
+        cmbFilterAuctions,
+        () -> {
+          state.setAuctionFilter(renderer.auctionFilterFromLabel(cmbFilterAuctions.getValue()));
+          renderAuctions();
+        },
+        () -> renderer.renderRevenueChart(chartRevenue, state.auctions()));
   }
 
   private void startClock() {
     clockTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e ->
         lblDateTime.setText(
-            LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy  HH:mm:ss")))
-    ));
+            LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy  HH:mm:ss")))));
     clockTimeline.setCycleCount(Timeline.INDEFINITE);
     clockTimeline.play();
   }
 
-  // ── Menu Navigation ──────────────────────────────────────────────────────
   @FXML
-  private void handleMenuOverview(ActionEvent e) {
-    showPanel(panelOverview, "📊  Tổng quan", btnMenuOverview);
+  private void handleMenuOverview(ActionEvent event) {
+    showPanel(panelOverview, "Tổng quan", btnMenuOverview);
     loadOverview();
   }
 
   @FXML
-  private void handleMenuItems(ActionEvent e) {
-    showPanel(panelItems, "📦  Sản phẩm của tôi", btnMenuItems);
+  private void handleMenuItems(ActionEvent event) {
+    showPanel(panelItems, "Sản phẩm của tôi", btnMenuItems);
     loadMyItems();
   }
 
   @FXML
-  private void handleMenuAddItem(ActionEvent e) {
-    showPanel(panelAddItem, "➕  Đăng sản phẩm", btnMenuAddItem);
+  private void handleMenuAddItem(ActionEvent event) {
+    showPanel(panelAddItem, "Đăng sản phẩm", btnMenuAddItem);
   }
 
   @FXML
-  private void handleMenuAuctions(ActionEvent e) {
-    showPanel(panelAuctions, "🔨  Phiên đấu giá", btnMenuAuctions);
+  private void handleMenuAuctions(ActionEvent event) {
+    showPanel(panelAuctions, "Phiên đấu giá", btnMenuAuctions);
     loadMyAuctions();
   }
 
   @FXML
-  private void handleMenuCreateAuction(ActionEvent e) {
-    showPanel(panelCreateAuction, "⚡  Tạo phiên đấu giá", btnMenuCreateAuction);
+  private void handleMenuCreateAuction(ActionEvent event) {
+    showPanel(panelCreateAuction, "Tạo phiên đấu giá", btnMenuCreateAuction);
     loadItemsForAuction();
   }
 
-  private void showPanel(VBox target, String title, Button activeBtn) {
-    lblPageTitle.setText(title.replaceAll("[^\\p{L}\\p{Z}]+", "").trim());
-    VBox[] panels = {panelOverview, panelItems, panelAddItem, panelAuctions, panelCreateAuction};
-    for (VBox p : panels) {
-      p.setVisible(false);
-      p.setManaged(false);
-    }
-    target.setVisible(true);
-    target.setManaged(true);
-
-    String normal = "-fx-background-color: transparent; -fx-text-fill: #555555; -fx-alignment: CENTER_LEFT; -fx-padding: 12 20 12 20; -fx-cursor: hand;";
-    String active = "-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-text-fill: white; -fx-alignment: CENTER_LEFT; -fx-padding: 12 20 12 20; -fx-cursor: hand; -fx-font-weight: bold;";
-    Button[] btns = {btnMenuOverview, btnMenuItems, btnMenuAddItem, btnMenuAuctions,
-        btnMenuCreateAuction};
-    for (Button b : btns) {
-      b.setStyle(b == activeBtn ? active : normal);
-    }
+  @FXML
+  private void handleMenuOrders(ActionEvent event) {
+    showPanel(panelOrders, "Đơn hàng", btnMenuOrders);
+    loadOrders();
   }
 
-  // ── Data Loading Logic ───────────────────────────────────────────────────
+  @FXML
+  private void handleMenuFinance(ActionEvent event) {
+    showPanel(panelFinance, "Tài chính", btnMenuFinance);
+    loadFinance();
+  }
+
+  @FXML
+  private void handleMenuAnalytics(ActionEvent event) {
+    showPanel(panelAnalytics, "Phân tích", btnMenuAnalytics);
+    renderer.renderRevenueChart(chartRevenue, state.auctions());
+  }
+
+  @FXML
+  private void handleMenuSettings(ActionEvent event) {
+    showPanel(panelSettings, "Cài đặt", btnMenuSettings);
+  }
+
+  private void showPanel(VBox target, String title, Button activeButton) {
+    renderer.showPanel(lblPageTitle, target, title, activeButton, panels(), menuButtons());
+  }
+
   private void loadOverview() {
     int sellerId = SessionManager.getUserId();
-
-    SellerCommand.getMyItems(sellerId, resItems -> {
-      int total = 0, sold = 0;
-      if (resItems != null && "SUCCESS".equals(resItems.get("status").getAsString())) {
-        JsonArray items = resItems.getAsJsonArray("items");
-        total = items.size();
-        for (int i = 0; i < items.size(); i++) {
-          if ("SOLD".equals(items.get(i).getAsJsonObject().get("status").getAsString())) {
-            sold++;
-          }
-        }
-      }
-      lblTotalItems.setText(String.valueOf(total));
-      lblTotalSold.setText(String.valueOf(sold));
-      lblTotalRevenue.setText("---");
+    service.fetchItems(sellerId, items -> {
+      state.setItems(items);
+      lblTotalItems.setText(String.valueOf(items.size()));
+      lblTotalSold.setText(String.valueOf(SellerDashboardStats.soldItemCount(items)));
+    }, () -> {
+      lblTotalItems.setText("0");
+      lblTotalSold.setText("0");
     });
 
-    SellerCommand.getMyAuctions(sellerId, resAuctions -> {
-      int active = 0;
-      vboxRecentAuctions.getChildren().clear();
-      if (resAuctions != null && "SUCCESS".equals(resAuctions.get("status").getAsString())) {
-        JsonArray auctions = resAuctions.getAsJsonArray("auctions");
-        for (int i = 0; i < auctions.size(); i++) {
-          JsonObject auc = auctions.get(i).getAsJsonObject();
-          if ("ACTIVE".equals(auc.get("status").getAsString())) {
-            active++;
-          }
-          if (i < 5) {
-            vboxRecentAuctions.getChildren()
-                .add(CardFactory.buildSellerAuctionRow(auc, this::handleEndAuction));
-          }
-        }
-        if (auctions.size() == 0) {
-          vboxRecentAuctions.getChildren()
-              .add(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào"));
-        }
-      }
-      lblActiveAuctions.setText(String.valueOf(active));
+    service.fetchAuctions(sellerId, auctions -> {
+      state.setAuctions(auctions);
+      lblActiveAuctions.setText(String.valueOf(SellerDashboardStats.activeAuctionCount(auctions)));
+      lblTotalRevenue.setText(SellerDashboardStats.formatMoney(SellerDashboardStats.revenue(auctions)));
+      int endingSoon = SellerDashboardStats.endingSoonCount(auctions);
+      lblNotifications.setText(endingSoon > 0
+          ? "Bạn có " + endingSoon + " phiên đấu giá sắp kết thúc trong 24 giờ tới"
+          : "Không có thông báo khẩn cấp mới");
+      renderer.renderRecentAuctions(vboxRecentAuctions, auctions, this::handleEndAuction);
+      renderer.renderRevenueChart(chartRevenue, auctions);
+    }, () -> {
+      lblActiveAuctions.setText("0");
+      lblTotalRevenue.setText("0 d");
+      vboxRecentAuctions.getChildren().setAll(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào"));
     });
   }
 
   private void loadMyItems() {
-    SellerCommand.getMyItems(SessionManager.getUserId(), response -> {
-      flowMyItems.getChildren().clear();
-      if (response == null || !"SUCCESS".equals(response.get("status").getAsString())
-          || response.getAsJsonArray("items").size() == 0) {
-        flowMyItems.getChildren().add(CardFactory.buildEmptyLabel("Chưa có sản phẩm nào"));
-        return;
-      }
-      JsonArray items = response.getAsJsonArray("items");
-      for (int i = 0; i < items.size(); i++) {
-        flowMyItems.getChildren().add(
-            CardFactory.buildSellerItemCard(items.get(i).getAsJsonObject(),
-                this::handleDeleteItem));
-      }
-    });
+    service.fetchItems(SessionManager.getUserId(), items -> {
+      state.setItems(items);
+      renderer.renderItems(flowMyItems, items, this::handleDeleteItem);
+    }, () -> flowMyItems.getChildren().setAll(CardFactory.buildEmptyLabel("Chưa có sản phẩm nào")));
   }
 
   private void loadItemsForAuction() {
-    SellerCommand.getMyItems(SessionManager.getUserId(), response -> {
+    service.fetchItems(SessionManager.getUserId(), items -> {
+      state.setItems(items);
+      indexAvailableItemsForAuction();
+    }, () -> {
       cmbAuctionItem.getItems().clear();
-      itemNameToId.clear();
-      if (response == null || !"SUCCESS".equals(response.get("status").getAsString())) {
-        return;
+      state.clearAuctionItemIndex();
+    });
+  }
+
+  private void indexAvailableItemsForAuction() {
+    cmbAuctionItem.getItems().clear();
+    state.clearAuctionItemIndex();
+    for (int i = 0; i < state.items().size(); i++) {
+      JsonObject item = state.items().get(i).getAsJsonObject();
+      if (!"AVAILABLE".equals(SellerDashboardStats.getString(item, "status", ""))) {
+        continue;
       }
-      JsonArray items = response.getAsJsonArray("items");
-      // Khai báo map trong phạm vi callback (trước vòng lặp)
-      Map<String, Long> itemNameToPrice = new HashMap<>();
-      for (int i = 0; i < items.size(); i++) {
-        JsonObject item = items.get(i).getAsJsonObject();
-        if ("AVAILABLE".equals(item.get("status").getAsString())) {
-          String name = item.get("name").getAsString();
-          cmbAuctionItem.getItems().add(name);
-          itemNameToId.put(name, item.get("itemId").getAsInt());itemNameToPrice.put(name, (long) item.get("startPrice").getAsDouble());
-          itemNameToPrice.put(name, (long) item.get("startPrice").getAsDouble());
-        }
+      String name = SellerDashboardStats.getString(item, "name", "");
+      cmbAuctionItem.getItems().add(name);
+      state.itemNameToId().put(name, (int) SellerDashboardStats.getDouble(item, "itemId", -1));
+      state.itemNameToPrice().put(name, (long) SellerDashboardStats.getDouble(item, "startPrice", 0));
+    }
+    cmbAuctionItem.setOnAction(e -> {
+      String selected = cmbAuctionItem.getValue();
+      if (selected != null && state.itemNameToPrice().containsKey(selected)) {
+        txtAuctionStartPrice.setText(String.valueOf(state.itemNameToPrice().get(selected)));
       }
-      // ✅ Gán listener SAU vòng lặp
-      cmbAuctionItem.setOnAction(e -> {
-        String selected = cmbAuctionItem.getValue();
-        if (selected != null && itemNameToPrice.containsKey(selected)) {
-          txtAuctionStartPrice.setText(String.valueOf(itemNameToPrice.get(selected)));
-        }
-      });
     });
   }
 
   private void loadMyAuctions() {
-    SellerCommand.getMyAuctions(SessionManager.getUserId(), response -> {
-      vboxMyAuctions.getChildren().clear();
-      if (response == null || !"SUCCESS".equals(response.get("status").getAsString())
-          || response.getAsJsonArray("auctions").size() == 0) {
-        vboxMyAuctions.getChildren().add(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào"));
-        return;
-      }
-      JsonArray auctions = response.getAsJsonArray("auctions");
-      for (int i = 0; i < auctions.size(); i++) {
-        vboxMyAuctions.getChildren().add(
-            CardFactory.buildSellerAuctionRow(auctions.get(i).getAsJsonObject(),
-                this::handleEndAuction));
-      }
-    });
+    service.fetchAuctions(SessionManager.getUserId(), auctions -> {
+      state.setAuctions(auctions);
+      renderAuctions();
+    }, () -> vboxMyAuctions.getChildren().setAll(CardFactory.buildEmptyLabel("Chưa có phiên đấu giá nào")));
   }
 
-  // ── Actions ──────────────────────────────────────────────────────────────
+  private void loadOrders() {
+    service.fetchAuctions(SessionManager.getUserId(), auctions -> {
+      state.setAuctions(auctions);
+      renderer.renderOrders(vboxOrders, auctions);
+    }, () -> vboxOrders.getChildren().setAll(CardFactory.buildEmptyLabel("Chưa có đơn hàng nào cần xử lý")));
+  }
+
+  private void loadFinance() {
+    service.fetchAuctions(SessionManager.getUserId(), auctions -> {
+      state.setAuctions(auctions);
+      renderer.renderFinance(lblWalletBalance, vboxTransactions, auctions);
+    }, () -> renderer.renderFinance(lblWalletBalance, vboxTransactions, state.auctions()));
+  }
+
+  private void renderAuctions() {
+    renderer.renderAuctions(vboxMyAuctions, state.auctions(), state.auctionFilter(), this::handleEndAuction);
+  }
+
+  @FXML
+  private void filterActiveAuctions(ActionEvent event) {
+    setAuctionFilter("ACTIVE", btnAuctionActive);
+  }
+
+  @FXML
+  private void filterUpcomingAuctions(ActionEvent event) {
+    setAuctionFilter("UPCOMING", btnAuctionUpcoming);
+  }
+
+  @FXML
+  private void filterEndedAuctions(ActionEvent event) {
+    setAuctionFilter("ENDED", btnAuctionEnded);
+  }
+
+  @FXML
+  private void filterDraftAuctions(ActionEvent event) {
+    setAuctionFilter("DRAFT", btnAuctionDraft);
+  }
+
+  private void setAuctionFilter(String filter, Button activeButton) {
+    state.setAuctionFilter(filter);
+    renderer.selectAuctionFilterButton(
+        activeButton, btnAuctionActive, btnAuctionUpcoming, btnAuctionEnded, btnAuctionDraft);
+    renderAuctions();
+  }
+
   @FXML
   private void handlePickItemImage(javafx.scene.input.MouseEvent event) {
     pickImage();
@@ -301,11 +329,11 @@ public class SellerDashboardController {
   }
 
   private void pickImage() {
-    FileChooser fc = new FileChooser();
-    fc.setTitle("Chọn ảnh sản phẩm");
-    fc.getExtensionFilters()
+    FileChooser chooser = new FileChooser();
+    chooser.setTitle("Chọn ảnh sản phẩm");
+    chooser.getExtensionFilters()
         .add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
-    File file = fc.showOpenDialog(txtItemName.getScene().getWindow());
+    File file = chooser.showOpenDialog(txtItemName.getScene().getWindow());
     if (file == null) {
       return;
     }
@@ -313,11 +341,9 @@ public class SellerDashboardController {
       showAlert("Ảnh không được vượt quá 2MB!");
       return;
     }
-
     try {
-      byte[] bytes = Files.readAllBytes(file.toPath());
-      selectedImageBase64 = Base64.getEncoder().encodeToString(bytes);
-      selectedImageExt = file.getName().toLowerCase().endsWith(".png") ? "png" : "jpg";
+      state.setSelectedImageBase64(Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
+      state.setSelectedImageExt(file.getName().toLowerCase().endsWith(".png") ? "png" : "jpg");
       imgItemPreview.setImage(new Image(file.toURI().toString()));
       imgItemPreview.setVisible(true);
     } catch (Exception e) {
@@ -327,181 +353,55 @@ public class SellerDashboardController {
 
   @FXML
   private void handleAddItem(ActionEvent event) {
-    lblItemNameError.setVisible(false);
-    lblItemCategoryError.setVisible(false);
-    lblItemPriceError.setVisible(false);
-    lblAddItemStatus.setText("");
-    boolean hasError = false;
-
-    String name = txtItemName.getText().trim(), desc = txtItemDescription.getText()
-        .trim(), cat = cmbItemCategory.getValue();
-    if (name.isEmpty()) {
-      lblItemNameError.setText("Vui lòng nhập tên!");
-      lblItemNameError.setVisible(true);
-      hasError = true;
-    }
-    if (cat == null) {
-      lblItemCategoryError.setText("Vui lòng chọn danh mục!");
-      lblItemCategoryError.setVisible(true);
-      hasError = true;
-    }
-
-    double price = 0;
-    try {
-      price = Double.parseDouble(txtItemStartPrice.getText().trim().replaceAll("[^0-9]", ""));
-      if (price <= 0) {
-        throw new Exception();
-      }
-    } catch (Exception e) {
-      lblItemPriceError.setText("Giá không hợp lệ!");
-      lblItemPriceError.setVisible(true);
-      hasError = true;
-    }
-
-    if (hasError) {
+    JsonObject payload = SellerDashboardForms.buildItemPayload(
+        itemForm(), SessionManager.getUserId(), state.selectedImageBase64(), state.selectedImageExt());
+    if (payload == null) {
       return;
     }
-
-    JsonObject data = new JsonObject();
-    data.addProperty("sellerId", SessionManager.getUserId());
-    data.addProperty("name", name);
-    data.addProperty("description", desc);
-    data.addProperty("category", cat);
-    data.addProperty("startPrice", price);
-    data.addProperty("imageBase64", selectedImageBase64);
-    data.addProperty("extension", selectedImageExt);
-
-    JsonObject extraInfoObj = new JsonObject();
-    if ("Thời trang".equals(cat)) {
-      extraInfoObj.addProperty("brand", txtFashionBrand.getText().trim());
-      extraInfoObj.addProperty("size", txtFashionSize.getText().trim());
-      extraInfoObj.addProperty("color", txtFashionColor.getText().trim());
-    } else if ("Điện tử".equals(cat)) {
-      extraInfoObj.addProperty("brand", txtElecBrand.getText().trim());
-    } else if ("Xe cộ".equals(cat)) {
-      try { extraInfoObj.addProperty("year", Integer.parseInt(txtVehicleYear.getText().trim())); } catch (Exception ignored){}
-      try { extraInfoObj.addProperty("mileage", Double.parseDouble(txtVehicleMileage.getText().trim())); } catch (Exception ignored){}
-    } else if ("Nghệ thuật".equals(cat)) {
-      extraInfoObj.addProperty("artist", txtArtArtist.getText().trim());
-    } else if ("Thể thao".equals(cat)) {
-      extraInfoObj.addProperty("sportType", txtSportType.getText().trim());
-      extraInfoObj.addProperty("condition", txtSportCondition.getText().trim());
-    }
-    data.addProperty("extraInfo", extraInfoObj.toString());
-
-    SellerCommand.createItem(data, response -> {
-      if (response != null && "SUCCESS".equals(response.get("status").getAsString())) {
-        showStatus(lblAddItemStatus, "✓ Đăng sản phẩm thành công!", true);
-        txtItemName.clear();
-        txtItemDescription.clear();
-        cmbItemCategory.setValue(null);
-        txtItemStartPrice.clear();
+    service.createItem(payload, response -> {
+      if (ServerCommand.isSuccess(response)) {
+        showStatus(lblAddItemStatus, "Dang san pham thanh cong!", true);
+        SellerDashboardForms.clearItemForm(itemForm());
         imgItemPreview.setVisible(false);
-        selectedImageBase64 = "";
-
-        // Clear extra fields
-        txtFashionBrand.clear(); txtFashionSize.clear(); txtFashionColor.clear();
-        txtElecBrand.clear(); txtVehicleYear.clear(); txtVehicleMileage.clear();
-        txtArtArtist.clear(); txtSportType.clear(); txtSportCondition.clear();
+        state.setSelectedImageBase64("");
+        loadMyItems();
       } else {
-        showStatus(lblAddItemStatus, "Thất bại!", false);
+        showStatus(lblAddItemStatus, ServerCommand.getMessage(response, "Dang san pham that bai!"), false);
       }
     });
   }
 
   @FXML
   private void handleCreateAuction(ActionEvent event) {
-    lblAuctionItemError.setVisible(false);
-    lblAuctionPriceError.setVisible(false);
-    lblAuctionStepError.setVisible(false);
-    lblAuctionTimeError.setVisible(false);
-    lblCreateAuctionStatus.setText("");
-    boolean hasError = false;
-
-    String itemName = cmbAuctionItem.getValue();
-    if (itemName == null) {
-      lblAuctionItemError.setText("Chọn sản phẩm!");
-      lblAuctionItemError.setVisible(true);
-      hasError = true;
-    }
-
-    double startPrice = 0, minStep = 0;
-    try {
-      startPrice = Double.parseDouble(
-          txtAuctionStartPrice.getText().trim().replaceAll("[^0-9]", ""));
-      if (startPrice <= 0) {
-        throw new Exception();
-      }
-    } catch (Exception e) {
-      lblAuctionPriceError.setVisible(true);
-      hasError = true;
-    }
-    try {
-      minStep = Double.parseDouble(txtAuctionMinStep.getText().trim().replaceAll("[^0-9]", ""));
-      if (minStep <= 0) {
-        throw new Exception();
-      }
-    } catch (Exception e) {
-      lblAuctionStepError.setVisible(true);
-      hasError = true;
-    }
-
-    String endTimeStr = "";
-    try {
-      if (dateAuctionEnd.getValue() == null || txtAuctionEndTime.getText().trim().isEmpty()) {
-        throw new Exception("Chưa chọn ngày/giờ");
-      }
-      endTimeStr = dateAuctionEnd.getValue().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " "
-          + txtAuctionEndTime.getText().trim() + ":00";
-      if (LocalDateTime.parse(endTimeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-          .isBefore(LocalDateTime.now())) {
-        throw new Exception();
-      }
-    } catch (Exception e) {
-      lblAuctionTimeError.setVisible(true);
-      hasError = true;
-    }
-
-    if (hasError) {
+    JsonObject payload = SellerDashboardForms.buildAuctionPayload(
+        auctionForm(), SessionManager.getUserId(), state.itemNameToId());
+    if (payload == null) {
       return;
     }
-
-    JsonObject data = new JsonObject();
-    data.addProperty("itemId", itemNameToId.get(itemName));
-    data.addProperty("sellerId", SessionManager.getUserId());
-    data.addProperty("startPrice", startPrice);
-    data.addProperty("minStep", minStep);
-    data.addProperty("endTime", endTimeStr);
-
-    SellerCommand.createAuction(data, response -> {
-      if (response != null && "SUCCESS".equals(response.get("status").getAsString())) {
-        showStatus(lblCreateAuctionStatus, "✓ Tạo phiên đấu giá thành công!", true);
-        cmbAuctionItem.setValue(null);
-        txtAuctionStartPrice.clear();
-        txtAuctionMinStep.clear();
-        dateAuctionEnd.setValue(null);
-        txtAuctionEndTime.clear();
+    service.createAuction(payload, response -> {
+      if (ServerCommand.isSuccess(response)) {
+        showStatus(lblCreateAuctionStatus, "Tao phien dau gia thanh cong!", true);
+        SellerDashboardForms.clearAuctionForm(auctionForm());
         loadItemsForAuction();
       } else {
-        showStatus(lblCreateAuctionStatus, "Thất bại!", false);
+        showStatus(lblCreateAuctionStatus,
+            ServerCommand.getMessage(response, "Tao phien dau gia that bai!"), false);
       }
     });
   }
 
   private void handleDeleteItem(int itemId) {
-    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Hành động này không thể hoàn tác.",
-        ButtonType.OK, ButtonType.CANCEL);
+    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+        "Hành động này không thể hoàn tác.", ButtonType.OK, ButtonType.CANCEL);
     confirm.setTitle("Xác nhận xóa");
     confirm.setHeaderText("Bạn chắc chắn muốn xóa sản phẩm này?");
     confirm.showAndWait().ifPresent(result -> {
       if (result == ButtonType.OK) {
-        SellerCommand.deleteItem(itemId, res -> {
-          if (res != null && "SUCCESS".equals(res.get("status").getAsString())) {
+        service.deleteItem(itemId, response -> {
+          if (ServerCommand.isSuccess(response)) {
             loadMyItems();
           } else {
-            String msg = (res != null && res.has("message"))
-                    ? res.get("message").getAsString() : "Xóa thất bại!";
-            showAlert(msg);
+            showAlert(ServerCommand.getMessage(response, "Xóa thất bại!"));
           }
         });
       }
@@ -509,45 +409,81 @@ public class SellerDashboardController {
   }
 
   private void handleEndAuction(int auctionId) {
-    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Kết thúc phiên đấu giá sớm?",
-            ButtonType.OK, ButtonType.CANCEL);
+    Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+        "Kết thúc phiên đấu giá sớm?", ButtonType.OK, ButtonType.CANCEL);
     confirm.setTitle("Kết thúc phiên");
     confirm.showAndWait().ifPresent(result -> {
       if (result == ButtonType.OK) {
-        SellerCommand.endAuction(auctionId, res -> {
-          if (res != null) {
+        service.endAuction(auctionId, response -> {
+          if (ServerCommand.isSuccess(response)) {
             loadMyAuctions();
             loadOverview();
           } else {
-            showAlert("Thất bại!");
+            showAlert(ServerCommand.getMessage(response, "Kết thúc phiên thất bại!"));
           }
         });
       }
     });
   }
 
-  // ── Routing ──────────────────────────────────────────────────────────────
   @FXML
   private void handleGoHome(ActionEvent event) {
-    clockTimeline.stop();
+    stopClock();
     ViewManager.navigateTo(ViewManager.Views.HOME);
   }
 
   @FXML
   private void handleLogout(ActionEvent event) {
-    clockTimeline.stop();
+    stopClock();
     SessionManager.logout();
     ViewManager.navigateTo(ViewManager.Views.LOGIN);
   }
 
-  // ── Utils ────────────────────────────────────────────────────────────────
-  private void showStatus(Label lbl, String msg, boolean success) {
-    lbl.setText(msg);
-    lbl.setTextFill(success ? javafx.scene.paint.Color.web("#4CAF50")
+  private void stopClock() {
+    if (clockTimeline != null) {
+      clockTimeline.stop();
+    }
+  }
+
+  private VBox[] panels() {
+    return new VBox[] {
+        panelOverview, panelItems, panelAddItem, panelAuctions, panelCreateAuction,
+        panelOrders, panelFinance, panelAnalytics, panelSettings
+    };
+  }
+
+  private Button[] menuButtons() {
+    return new Button[] {
+        btnMenuOverview, btnMenuItems, btnMenuAddItem, btnMenuAuctions, btnMenuCreateAuction,
+        btnMenuOrders, btnMenuFinance, btnMenuAnalytics, btnMenuSettings
+    };
+  }
+
+  private SellerDashboardForms.ItemForm itemForm() {
+    return new SellerDashboardForms.ItemForm(
+        txtItemName, txtItemDescription, cmbItemCategory, txtItemStartPrice,
+        lblItemNameError, lblItemCategoryError, lblItemPriceError, lblAddItemStatus,
+        txtFashionBrand, txtFashionSize, txtFashionColor,
+        txtElecBrand, txtElecSpecs,
+        txtVehicleBrand, txtVehicleYear, txtVehicleMileage,
+        txtArtArtist, txtArtYear,
+        txtSportType, txtSportCondition);
+  }
+
+  private SellerDashboardForms.AuctionForm auctionForm() {
+    return new SellerDashboardForms.AuctionForm(
+        cmbAuctionItem, txtAuctionStartPrice, txtAuctionMinStep, dateAuctionEnd, txtAuctionEndTime,
+        lblAuctionItemError, lblAuctionPriceError, lblAuctionStepError, lblAuctionTimeError,
+        lblCreateAuctionStatus);
+  }
+
+  private void showStatus(Label label, String message, boolean success) {
+    label.setText(message);
+    label.setTextFill(success ? javafx.scene.paint.Color.web("#4CAF50")
         : javafx.scene.paint.Color.web("#D96570"));
   }
 
-  private void showAlert(String msg) {
-    new Alert(Alert.AlertType.INFORMATION, msg).showAndWait();
+  private void showAlert(String message) {
+    new Alert(Alert.AlertType.INFORMATION, message).showAndWait();
   }
 }
