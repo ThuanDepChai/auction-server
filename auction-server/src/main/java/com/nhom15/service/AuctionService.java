@@ -7,24 +7,33 @@ import com.nhom15.exception.AuctionClosedException;
 import com.nhom15.exception.InvalidBidException;
 import com.nhom15.network.AuctionManager;
 import com.nhom15.network.AuctionRoomBroadcaster;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AuctionService {
 
   private final AuctionDAO auctionDAO = new AuctionDAO();
-  // Singleton — dùng chung toàn server, quản lý lock per auction
   private final AuctionManager auctionManager = AuctionManager.getInstance();
 
   /**
+   * FIX: Executor riêng cho broadcast — 1 daemon thread đủ dùng.
+   * Tách khỏi requestPool để request thread trả về response cho bidder ngay,
+   * không phải block chờ socket write đến từng subscriber.
+   */
+  private static final ExecutorService BROADCAST_EXECUTOR =
+      Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "auction-broadcast");
+        t.setDaemon(true);
+        return t;
+      });
+
+  /**
    * Tạo phiên đấu giá — ATOMIC: đổi item status + tạo auction trong cùng 1 transaction DB.
-   * Nếu tạo auction thất bại, item KHÔNG bị đổi sang IN_AUCTION.
    */
   public JsonObject createAuction(int itemId, int sellerId, double startPrice,
-                                  double minStep, String endTime) {
+      double minStep, String endTime) {
     JsonObject result = new JsonObject();
-
-    // Gọi atomic method — 1 transaction duy nhất bao gồm cả 2 bước
     int auctionId = auctionDAO.createAuctionAtomic(itemId, sellerId, startPrice, minStep, endTime);
-
     if (auctionId > 0) {
       result.addProperty("status", "SUCCESS");
       result.addProperty("auctionId", auctionId);
@@ -36,135 +45,128 @@ public class AuctionService {
     return result;
   }
 
-  /**
-   * Lấy các phiên đang active — trả imagePath, client tự load ảnh qua GET_AVATAR nếu cần.
-   */
   public JsonArray getActiveAuctions() {
     return auctionDAO.getActiveAuctions(20);
   }
 
-  /**
-   * Chi tiết 1 phiên — trả imagePath, không nhúng Base64 vào JSON.
-   */
   public JsonObject getAuctionDetail(int auctionId) {
     return auctionDAO.getAuctionById(auctionId);
   }
 
   /**
-   * Đặt giá — bắt buộc đi qua AuctionManager để đảm bảo concurrency an toàn.
+   * Đặt giá — đi qua AuctionManager để đảm bảo concurrency an toàn.
    *
-   * <p>Luồng: AuctionService → AuctionManager (ReentrantLock) → AuctionDAO (transaction + FOR UPDATE)
-   *          → anti-sniping check → trigger auto-bid
-   * <p>Sau khi thành công, lấy lại end_time mới nhất từ DB (có thể đã bị gia hạn bởi anti-sniping)
-   * và đính kèm vào response để client cập nhật bộ đếm ngược.
+   * <p>FIX 1 — Bỏ query DB thừa: AuctionManager.placeBid() giờ trả về snapshot đầy đủ
+   * (currentPrice, endTime, leadingBidder, totalBids) lấy TRONG LOCK sau khi toàn bộ
+   * auto-bid chain chạy xong. AuctionService không cần gọi getAuctionById() nữa.
+   *
+   * <p>FIX 2 — Broadcast async: request thread submit envelope lên BROADCAST_EXECUTOR rồi
+   * trả về response ngay, không block chờ socket write đến từng subscriber.
    */
   public JsonObject placeBid(int auctionId, int bidderId, double amount) {
     try {
+      // Trả về: status, newPrice, currentPrice, endTime, leadingBidder, totalBids
       JsonObject result = auctionManager.placeBid(auctionId, bidderId, amount);
 
-      // Lấy end_time mới nhất — có thể đã bị gia hạn bởi anti-sniping
-      JsonObject detail = auctionDAO.getAuctionById(auctionId);
-      if (detail != null && detail.has("endTime")) {
-        result.addProperty("newEndTime", detail.get("endTime").getAsString());
+      // Map endTime → newEndTime cho client cập nhật bộ đếm ngược anti-sniping
+      if (result.has("endTime") && !result.has("newEndTime")) {
+        result.addProperty("newEndTime", result.get("endTime").getAsString());
       }
-      // Lấy currentPrice mới nhất từ DB (có thể đã bị auto-bid đẩy lên sau khi bid của bạn)
-      if (detail != null && detail.has("currentPrice")) {
-        result.addProperty("currentPrice", detail.get("currentPrice").getAsDouble());
-      }
-      if (detail != null && detail.has("leadingBidder")) {
-        result.addProperty("leadingBidder", detail.get("leadingBidder").getAsString());
-      }
-      if (detail != null && detail.has("totalBids")) {
-        result.addProperty("totalBids", detail.get("totalBids").getAsInt());
-      }
-      broadcastFromDetail(auctionId, detail);
+
+      // FIX 2: Broadcast ASYNC
+      broadcastAsync(auctionId, result);
+
       return result;
 
     } catch (InvalidBidException e) {
-      JsonObject result = new JsonObject();
-      result.addProperty("status", "FAIL");
-      result.addProperty("message", e.getMessage());
-      result.addProperty("minRequired", e.getMinRequired());
-      return result;
-
+      JsonObject r = new JsonObject();
+      r.addProperty("status", "FAIL");
+      r.addProperty("message", e.getMessage());
+      r.addProperty("minRequired", e.getMinRequired());
+      return r;
     } catch (AuctionClosedException e) {
-      JsonObject result = new JsonObject();
-      result.addProperty("status", "FAIL");
-      result.addProperty("message", e.getMessage());
-      result.addProperty("auctionStatus", e.getCurrentStatus());
-      return result;
-
+      JsonObject r = new JsonObject();
+      r.addProperty("status", "FAIL");
+      r.addProperty("message", e.getMessage());
+      r.addProperty("auctionStatus", e.getCurrentStatus());
+      return r;
     } catch (Exception e) {
       System.err.println("❌ [AuctionService] Lỗi placeBid: " + e.getMessage());
-      JsonObject result = new JsonObject();
-      result.addProperty("status", "ERROR");
-      result.addProperty("message", "Lỗi hệ thống, vui lòng thử lại!");
-      return result;
+      JsonObject r = new JsonObject();
+      r.addProperty("status", "ERROR");
+      r.addProperty("message", "Lỗi hệ thống, vui lòng thử lại!");
+      return r;
     }
   }
 
-  /**
-   * Lịch sử đặt giá
-   */
   public JsonArray getBidHistory(int auctionId) {
     return auctionDAO.getBidHistory(auctionId);
   }
 
-  /**
-   * Auction của seller
-   */
   public JsonArray getAuctionsBySeller(int sellerId) {
     return auctionDAO.getAuctionsBySeller(sellerId);
   }
 
   /**
-   * Kết thúc phiên — ATOMIC: đổi auction status + item status trong cùng 1 transaction DB.
-   * Sau đó dọn lock của phiên để tránh memory leak.
+   * Kết thúc phiên — ATOMIC. Broadcast trạng thái ENDED async.
    */
   public boolean endAuction(int auctionId) {
-    // Lấy itemId trước khi đóng để truyền vào atomic method
     JsonObject auction = auctionDAO.getAuctionById(auctionId);
-    if (auction == null) {
-      return false;
-    }
+    if (auction == null) return false;
     int itemId = auction.get("itemId").getAsInt();
 
-    // Gọi atomic method — 1 transaction duy nhất bao gồm cả 2 bước
     boolean ok = auctionDAO.endAuctionAtomic(auctionId, itemId);
     if (ok) {
-      // Dọn lock — tránh memory leak khi có nhiều phiên
       auctionManager.removeLock(auctionId);
       JsonObject detail = auctionDAO.getAuctionById(auctionId);
-      broadcastFromDetail(auctionId, detail);
+      if (detail != null) {
+        broadcastAsync(auctionId, detail);
+      }
     }
     return ok;
   }
 
-  /** Đẩy snapshot phiên tới mọi client đang SUBSCRIBE (cùng cổng TCP). */
-  private void broadcastFromDetail(int auctionId, JsonObject detail) {
-    if (detail == null) {
-      return;
-    }
+  // ── Broadcast helpers ─────────────────────────────────────────────────────
+
+  /**
+   * Submit broadcast lên executor riêng. Request thread được giải phóng ngay lập tức.
+   */
+  private void broadcastAsync(int auctionId, JsonObject snapshot) {
+    JsonObject envelope = buildEnvelope(auctionId, snapshot);
+    BROADCAST_EXECUTOR.submit(() -> {
+      try {
+        AuctionRoomBroadcaster.INSTANCE.broadcast(auctionId, envelope);
+      } catch (Exception ex) {
+        System.err.println("⚠️ [Broadcast] auction #" + auctionId + ": " + ex.getMessage());
+      }
+    });
+  }
+
+  /** Đóng gói { "action":"AUCTION_UPDATE", "data":{...} } từ snapshot. */
+  private static JsonObject buildEnvelope(int auctionId, JsonObject src) {
     JsonObject data = new JsonObject();
     data.addProperty("auctionId", auctionId);
-    if (detail.has("currentPrice")) {
-      data.addProperty("currentPrice", detail.get("currentPrice").getAsDouble());
-    }
-    if (detail.has("endTime")) {
-      data.addProperty("endTime", detail.get("endTime").getAsString());
-    }
-    if (detail.has("status")) {
-      data.addProperty("status", detail.get("status").getAsString());
-    }
-    if (detail.has("leadingBidder")) {
-      data.addProperty("leadingBidder", detail.get("leadingBidder").getAsString());
-    }
-    if (detail.has("totalBids")) {
-      data.addProperty("totalBids", detail.get("totalBids").getAsInt());
-    }
+    copyDbl(src, data, "currentPrice");
+    copyStr(src, data, "endTime");
+    copyStr(src, data, "status");
+    copyStr(src, data, "leadingBidder");
+    copyInt(src, data, "totalBids");
+
     JsonObject envelope = new JsonObject();
     envelope.addProperty("action", "AUCTION_UPDATE");
     envelope.add("data", data);
-    AuctionRoomBroadcaster.INSTANCE.broadcast(auctionId, envelope);
+    return envelope;
+  }
+
+  private static void copyDbl(JsonObject s, JsonObject d, String k) {
+    if (s.has(k) && !s.get(k).isJsonNull()) d.addProperty(k, s.get(k).getAsDouble());
+  }
+
+  private static void copyStr(JsonObject s, JsonObject d, String k) {
+    if (s.has(k) && !s.get(k).isJsonNull()) d.addProperty(k, s.get(k).getAsString());
+  }
+
+  private static void copyInt(JsonObject s, JsonObject d, String k) {
+    if (s.has(k) && !s.get(k).isJsonNull()) d.addProperty(k, s.get(k).getAsInt());
   }
 }

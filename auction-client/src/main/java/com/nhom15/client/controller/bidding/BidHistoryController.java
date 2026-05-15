@@ -61,18 +61,20 @@ public class BidHistoryController {
     private XYChart.Series<Number, Number> priceSeries;
     private long chartTick    = 0;
     private int  lastHistSize = 0;
+    /** Số bid biết được từ push envelope — tránh gọi mạng khi count không đổi. */
+    private final int  lastKnownBidCount = -1;
 
     // ── Inject ────────────────────────────────────────────────────────────
 
     public void setNodes(
-            VBox vboxBidHistory, ScrollPane scrollHistory,
-            Label lblHistoryCount, TextField txtHistorySearch,
-            ComboBox<String> cmbHistoryFilter,
-            LineChart<Number, Number> priceChart,
-            NumberAxis xAxis, NumberAxis yAxis,
-            Label lblChartMax, Label lblChartMin,
-            Label lblChartAvg, Label lblChartVolatility,
-            ComboBox<String> cmbChartType, ToggleButton toggleSmoothChart) {
+        VBox vboxBidHistory, ScrollPane scrollHistory,
+        Label lblHistoryCount, TextField txtHistorySearch,
+        ComboBox<String> cmbHistoryFilter,
+        LineChart<Number, Number> priceChart,
+        NumberAxis xAxis, NumberAxis yAxis,
+        Label lblChartMax, Label lblChartMin,
+        Label lblChartAvg, Label lblChartVolatility,
+        ComboBox<String> cmbChartType, ToggleButton toggleSmoothChart) {
 
         this.vboxBidHistory    = vboxBidHistory;
         this.scrollHistory     = scrollHistory;
@@ -144,10 +146,10 @@ public class BidHistoryController {
         if (lblHistoryCount != null) lblHistoryCount.setText(String.valueOf(history.size()));
 
         String filter = cmbHistoryFilter != null
-                ? (cmbHistoryFilter.getValue() != null ? cmbHistoryFilter.getValue() : "Tất cả")
-                : "Tất cả";
+            ? (cmbHistoryFilter.getValue() != null ? cmbHistoryFilter.getValue() : "Tất cả")
+            : "Tất cả";
         String search = txtHistorySearch != null
-                ? txtHistorySearch.getText().trim().toLowerCase() : "";
+            ? txtHistorySearch.getText().trim().toLowerCase() : "";
 
         String me = SessionManager.getUsername();
 
@@ -157,7 +159,7 @@ public class BidHistoryController {
 
             // Filter
             if ("Của tôi".equals(filter)) {
-                if (me == null || !bidUser.equals(me)) continue;
+                if (!bidUser.equals(me)) continue;
             } else if ("Auto-Bid".equals(filter)) {
                 if (!bid.has("isAutoBid") || !bid.get("isAutoBid").getAsBoolean()) continue;
             } else if ("Top 5".equals(filter) && i >= 5) {
@@ -186,7 +188,7 @@ public class BidHistoryController {
         row.setAlignment(Pos.CENTER_LEFT);
 
         String bidUser = str(bid, "username", "");
-        boolean isMine = (me != null && bidUser.equals(me));
+        boolean isMine = (bidUser.equals(me));
 
         if (isTop) {
             row.getStyleClass().add("bid-row-top");
@@ -201,21 +203,21 @@ public class BidHistoryController {
 
         Label lblUser = new Label(maskUsername(bidUser, isMine));
         lblUser.setStyle("-fx-font-weight:bold;-fx-font-size:13px;" +
-                (isTop  ? "-fx-text-fill:#E65100;" :
-                        isMine ? "-fx-text-fill:#1D4ED8;" : "-fx-text-fill:#333;"));
+            (isTop  ? "-fx-text-fill:#E65100;" :
+                isMine ? "-fx-text-fill:#1D4ED8;" : "-fx-text-fill:#333;"));
 
         row.getChildren().addAll(lblRank, lblUser);
 
         if (isMine) {
             Label you = new Label(" Bạn ");
             you.setStyle("-fx-background-color:#4285F4;-fx-text-fill:white;" +
-                    "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
+                "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
             row.getChildren().add(you);
         }
         if (bid.has("isAutoBid") && bid.get("isAutoBid").getAsBoolean()) {
             Label auto = new Label(" 🤖 Auto ");
             auto.setStyle("-fx-background-color:#9C27B0;-fx-text-fill:white;" +
-                    "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
+                "-fx-background-radius:4;-fx-font-size:9px;-fx-padding:1 4;");
             row.getChildren().add(auto);
         }
 
@@ -266,15 +268,15 @@ public class BidHistoryController {
         String me = SessionManager.getUsername();
         String[] medals = {"🥇", "🥈", "🥉", "4.", "5."};
         String[] styleClasses = {
-                "leader-row-1", "leader-row-2", "leader-row-3",
-                "leader-row-2", "leader-row-2"
+            "leader-row-1", "leader-row-2", "leader-row-3",
+            "leader-row-2", "leader-row-2"
         };
 
         for (int i = 0; i < Math.min(5, sorted.size()); i++) {
             Map.Entry<String, Double> entry = sorted.get(i);
             String user  = entry.getKey();
             double price = entry.getValue();
-            boolean isMine = (me != null && user.equals(me));
+            boolean isMine = (user.equals(me));
 
             HBox row = new HBox(8);
             row.setAlignment(Pos.CENTER_LEFT);
@@ -286,7 +288,7 @@ public class BidHistoryController {
             // Hiển thị tên đầy đủ nếu là mình, mask nếu là người khác
             Label lblName = new Label(isMine ? "Bạn" : maskUsername(user, false));
             lblName.setStyle("-fx-font-size:11px;-fx-font-weight:bold;" +
-                    (isMine ? "-fx-text-fill:#1D4ED8;" : "-fx-text-fill:#374151;"));
+                (isMine ? "-fx-text-fill:#1D4ED8;" : "-fx-text-fill:#374151;"));
 
             Region gap = new Region(); HBox.setHgrow(gap, Priority.ALWAYS);
 
@@ -320,7 +322,7 @@ public class BidHistoryController {
             if (bid.has("amount")) {
                 chartTick++;
                 priceSeries.getData().add(
-                        new XYChart.Data<>(chartTick, bid.get("amount").getAsDouble()));
+                    new XYChart.Data<>(chartTick, bid.get("amount").getAsDouble()));
             }
         }
     }
@@ -358,12 +360,12 @@ public class BidHistoryController {
         if (isMine || name == null || name.length() <= 3) return name;
         int show = Math.max(1, name.length() / 4);
         return name.substring(0, show)
-                + "*".repeat(Math.max(0, name.length() - show - 1))
-                + name.charAt(name.length() - 1);
+            + "*".repeat(Math.max(0, name.length() - show - 1))
+            + name.charAt(name.length() - 1);
     }
 
     private String str(JsonObject o, String key, String def) {
         return (o != null && o.has(key) && !o.get(key).isJsonNull())
-                ? o.get(key).getAsString() : def;
+            ? o.get(key).getAsString() : def;
     }
 }
