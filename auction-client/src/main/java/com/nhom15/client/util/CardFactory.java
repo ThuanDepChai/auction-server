@@ -138,6 +138,10 @@ public class CardFactory {
    */
   private static void applyBase64ToContainer(StackPane imgContainer, String base64,
                                              double imgHeight, Label placeholder) {
+    if (!Platform.isFxApplicationThread()) {
+      Platform.runLater(() -> applyBase64ToContainer(imgContainer, base64, imgHeight, placeholder));
+      return;
+    }
     try {
       if (base64 == null || base64.isEmpty()) {
         return;
@@ -163,6 +167,10 @@ public class CardFactory {
    */
   private static void applyImageToPane(StackPane imgPane, String base64,
                                        double fitWidth, double fitHeight) {
+    if (!Platform.isFxApplicationThread()) {
+      Platform.runLater(() -> applyImageToPane(imgPane, base64, fitWidth, fitHeight));
+      return;
+    }
     try {
       if (base64 == null || base64.isEmpty()) return;
       byte[] bytes = Base64.getDecoder().decode(base64);
