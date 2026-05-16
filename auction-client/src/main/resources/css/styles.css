@@ -82,3 +82,492 @@
 .font-montserrat {
     -fx-font-family: 'Montserrat';
 }
+
+.home-filter-panel {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 14;
+  -fx-border-color: #e6e8f0;
+  -fx-border-radius: 14;
+  -fx-padding: 18 20;
+}
+
+.home-filter-title {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 18px;
+  -fx-font-weight: 600;
+}
+
+.home-filter-label {
+  -fx-text-fill: #555555;
+  -fx-font-size: 12px;
+  -fx-font-weight: 600;
+}
+
+.home-filter-field {
+  -fx-min-width: 150px;
+}
+
+.home-filter-action {
+  -fx-padding: 18 0 0 0;
+}
+
+.home-filter-combo,
+.home-filter-input {
+  -fx-background-color: #f5f5f7;
+  -fx-background-radius: 10;
+  -fx-border-color: #e0e0e0;
+  -fx-border-radius: 10;
+  -fx-min-height: 38px;
+  -fx-font-size: 13px;
+}
+
+.home-filter-input {
+  -fx-padding: 0 12;
+}
+
+.home-filter-apply {
+  -fx-background-color: #0066cc;
+  -fx-background-radius: 999;
+  -fx-text-fill: white;
+  -fx-font-weight: 600;
+  -fx-padding: 0 20;
+  -fx-cursor: hand;
+}
+
+.home-filter-reset {
+  -fx-background-color: transparent;
+  -fx-border-color: #0066cc;
+  -fx-border-radius: 999;
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 13px;
+  -fx-font-weight: 600;
+  -fx-padding: 7 16;
+  -fx-cursor: hand;
+}
+
+.home-filter-hint {
+  -fx-text-fill: #777777;
+  -fx-font-size: 12px;
+}
+
+.market-header {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #e0e0e0;
+  -fx-border-width: 0 0 1 0;
+}
+
+.market-utility-row {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #eeeeee;
+  -fx-border-width: 0 0 1 0;
+}
+
+.utility-link,
+.utility-button {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 12px;
+}
+
+.utility-button {
+  -fx-background-color: transparent;
+  -fx-padding: 0;
+}
+
+.market-main-row {
+  -fx-background-color: #ffffff;
+}
+
+.market-logo-text {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-weight: 800;
+}
+
+.shop-category-button {
+  -fx-background-color: transparent;
+  -fx-text-fill: #333333;
+  -fx-font-size: 12px;
+  -fx-padding: 8 10;
+}
+
+.market-search-box {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 999;
+  -fx-border-color: #1d1d1f;
+  -fx-border-width: 1.4;
+  -fx-border-radius: 999;
+}
+
+.market-search-icon {
+  -fx-text-fill: #666666;
+  -fx-font-size: 20px;
+  -fx-padding: 0 8 0 0;
+}
+
+.market-search-input {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+  -fx-text-fill: #1d1d1f;
+  -fx-prompt-text-fill: #777777;
+}
+
+.market-search-category {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+  -fx-font-size: 12px;
+}
+
+.market-search-button,
+.sale-primary-button {
+  -fx-background-color: #0066cc;
+  -fx-background-radius: 999;
+  -fx-text-fill: white;
+  -fx-font-weight: 700;
+  -fx-cursor: hand;
+  -fx-padding: 9 22;
+}
+
+.market-icon-button {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 999;
+  -fx-border-color: #e0e0e0;
+  -fx-border-radius: 999;
+  -fx-pref-width: 38px;
+  -fx-pref-height: 38px;
+  -fx-font-size: 15px;
+}
+
+.market-sell-button {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 999;
+  -fx-border-color: #0066cc;
+  -fx-border-width: 1.2;
+  -fx-border-radius: 999;
+  -fx-text-fill: #0066cc;
+  -fx-font-weight: 700;
+  -fx-padding: 9 14;
+}
+
+#btnSell:hover {
+  -fx-effect: none;
+}
+
+.market-user-button {
+  -fx-background-color: transparent;
+  -fx-padding: 3 0;
+}
+
+.market-avatar {
+  -fx-background-color: #0066cc;
+  -fx-background-radius: 999;
+}
+
+.market-avatar-text {
+  -fx-text-fill: #ffffff;
+  -fx-font-weight: 800;
+  -fx-font-size: 14px;
+}
+
+.market-user-eyebrow {
+  -fx-text-fill: #777777;
+  -fx-font-size: 11px;
+}
+
+.market-user-name {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-weight: 700;
+  -fx-font-size: 13px;
+}
+
+.market-user-dropdown {
+  -fx-background-color: white;
+  -fx-background-radius: 12;
+  -fx-border-color: #eeeeee;
+  -fx-border-width: 1;
+  -fx-border-radius: 12;
+  -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 16, 0, 0, 6);
+}
+
+.market-dropdown-button,
+.market-dropdown-danger {
+  -fx-background-color: transparent;
+  -fx-alignment: CENTER_LEFT;
+  -fx-cursor: hand;
+  -fx-padding: 8 14;
+  -fx-font-size: 13px;
+}
+
+.market-dropdown-button {
+  -fx-text-fill: #1d1d1f;
+}
+
+.market-dropdown-danger {
+  -fx-text-fill: #c62828;
+}
+
+.market-dropdown-button:hover,
+.market-dropdown-danger:hover {
+  -fx-background-color: #f5f5f7;
+  -fx-background-radius: 8;
+}
+
+.market-nav-row {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #eeeeee;
+  -fx-border-width: 1 0 0 0;
+}
+
+.market-nav-button,
+.market-nav-active {
+  -fx-background-color: transparent;
+  -fx-background-radius: 8;
+  -fx-cursor: hand;
+  -fx-font-size: 13px;
+  -fx-padding: 6 13;
+}
+
+.market-nav-button {
+  -fx-text-fill: #444444;
+}
+
+.market-nav-active {
+  -fx-text-fill: #0066cc;
+  -fx-font-weight: 700;
+}
+
+.shopee-sale-banner {
+  -fx-background-color: #eaf6ff;
+  -fx-background-radius: 8;
+  -fx-border-color: #dbe9f7;
+  -fx-border-radius: 8;
+}
+
+.sale-eyebrow {
+  -fx-background-color: rgba(255,255,255,0.84);
+  -fx-background-radius: 999;
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+  -fx-padding: 5 12;
+}
+
+.sale-headline {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 34px;
+  -fx-font-weight: 900;
+}
+
+.sale-subtitle {
+  -fx-text-fill: #333333;
+  -fx-font-size: 15px;
+  -fx-font-weight: 600;
+}
+
+.sale-note {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 12px;
+  -fx-font-weight: 700;
+  -fx-padding: 10 0 0 0;
+}
+
+.sale-badge {
+  -fx-background-color: rgba(255,255,255,0.86);
+  -fx-background-radius: 16;
+  -fx-border-color: rgba(255,255,255,0.95);
+  -fx-border-radius: 16;
+}
+
+.sale-badge-value {
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 22px;
+  -fx-font-weight: 900;
+}
+
+.sale-badge-label {
+  -fx-text-fill: #333333;
+  -fx-font-size: 11px;
+  -fx-font-weight: 700;
+}
+
+.carousel-dot-active {
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 10px;
+}
+
+.carousel-dot {
+  -fx-text-fill: rgba(255,255,255,0.85);
+  -fx-font-size: 10px;
+}
+
+.brand-strip {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #e6e6e6;
+  -fx-border-radius: 4;
+  -fx-background-radius: 4;
+}
+
+.brand-strip-title {
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 13px;
+  -fx-font-weight: 800;
+  -fx-padding: 0 0 0 14;
+}
+
+.brand-strip-link {
+  -fx-background-color: transparent;
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 12px;
+  -fx-padding: 0 14 0 0;
+}
+
+.brand-tile {
+  -fx-alignment: CENTER;
+  -fx-pref-width: 150px;
+  -fx-pref-height: 66px;
+  -fx-background-color: #ffffff;
+  -fx-border-color: #eeeeee;
+  -fx-font-size: 20px;
+  -fx-font-weight: 900;
+  -fx-text-fill: #1d1d1f;
+}
+
+.market-sidebar {
+  -fx-background-color: transparent;
+  -fx-padding: 0 10 0 0;
+}
+
+.sidebar-title {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 14px;
+  -fx-font-weight: 800;
+}
+
+.sidebar-link,
+.sidebar-link-active {
+  -fx-background-color: transparent;
+  -fx-alignment: CENTER_LEFT;
+  -fx-padding: 4 0 4 0;
+  -fx-font-size: 13px;
+  -fx-cursor: hand;
+}
+
+.sidebar-link {
+  -fx-text-fill: #333333;
+}
+
+.sidebar-link-active {
+  -fx-text-fill: #0066cc;
+  -fx-font-weight: 800;
+}
+
+.breadcrumb-label {
+  -fx-text-fill: #666666;
+  -fx-font-size: 12px;
+}
+
+.market-section-title {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 28px;
+  -fx-font-weight: 900;
+}
+
+.sort-label {
+  -fx-text-fill: #555555;
+  -fx-font-size: 13px;
+  -fx-padding: 0 6 0 0;
+}
+
+.sort-button,
+.filter-chip {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 999;
+  -fx-border-color: #b8b8b8;
+  -fx-border-radius: 999;
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 13px;
+  -fx-padding: 7 16;
+}
+
+.section-link-button {
+  -fx-background-color: transparent;
+  -fx-text-fill: #0066cc;
+  -fx-font-size: 13px;
+  -fx-font-weight: 700;
+}
+
+.buyer-protection-banner {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 14;
+  -fx-border-color: #e0e0e0;
+  -fx-border-radius: 14;
+  -fx-padding: 0 28;
+}
+
+.buyer-protection-title {
+  -fx-text-fill: #1d1d1f;
+  -fx-font-size: 16px;
+  -fx-font-weight: 800;
+}
+
+.buyer-protection-text {
+  -fx-text-fill: #555555;
+  -fx-font-size: 13px;
+}
+
+.footer-cta {
+  -fx-background-color: #000000;
+}
+
+.footer-cta-title {
+  -fx-text-fill: #ffffff;
+  -fx-font-size: 16px;
+  -fx-font-weight: 800;
+}
+
+.footer-cta-text {
+  -fx-text-fill: #cccccc;
+  -fx-font-size: 13px;
+}
+
+.footer-cta-button {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 999;
+  -fx-text-fill: #1d1d1f;
+  -fx-font-weight: 800;
+  -fx-padding: 10 24;
+}
+
+.market-footer {
+  -fx-background-color: #1d1d1f;
+}
+
+.footer-heading {
+  -fx-text-fill: #ffffff;
+  -fx-font-size: 14px;
+  -fx-font-weight: 800;
+}
+
+.footer-link,
+.footer-copy {
+  -fx-text-fill: #cfcfcf;
+  -fx-font-size: 12px;
+}
+
+.newsletter-input {
+  -fx-background-color: #2b2b2d;
+  -fx-background-radius: 8;
+  -fx-border-color: #444444;
+  -fx-border-radius: 8;
+  -fx-text-fill: #ffffff;
+  -fx-prompt-text-fill: #999999;
+}
+
+.newsletter-button {
+  -fx-background-color: #0066cc;
+  -fx-background-radius: 999;
+  -fx-text-fill: #ffffff;
+  -fx-font-weight: 800;
+}
+
+.footer-separator .line {
+  -fx-border-color: #3a3a3c;
+}
