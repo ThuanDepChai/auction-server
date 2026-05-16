@@ -4,143 +4,354 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.effect.DropShadow?>
-<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.paint.Color?>
-<?import javafx.scene.text.Font?>
-<AnchorPane prefHeight="700.0" prefWidth="1100.0" style="-fx-background-color: #F4F7FC;"
-  xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+<?import javafx.scene.media.MediaView?>
+
+<StackPane fx:id="rootPane" prefHeight="820.0" prefWidth="1280.0"
+  stylesheets="@../css/auth.css"
+  xmlns="http://javafx.com/javafx/21"
+  xmlns:fx="http://javafx.com/fxml/1"
   fx:controller="com.nhom15.client.controller.LoginController">
+
   <children>
+    <Pane fx:id="bgAnimationPane" styleClass="particle-fallback"/>
 
-    <Pane fx:id="bgAnimationPane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-      AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
-
-    <StackPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-      AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-      <children>
-        <VBox alignment="CENTER" maxHeight="560.0" maxWidth="450.0" spacing="20.0"
-          style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 40, 0, 0, 15);">
+    <BorderPane fx:id="contentLayer" styleClass="page-layer">
+      <top>
+        <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="auth-nav">
+          <padding>
+            <Insets left="34.0" right="34.0"/>
+          </padding>
           <children>
-            <Label
-              style="-fx-text-fill: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-font-weight: bold;"
-              text="✧ Gemini">
-              <font>
-                <Font size="44.0"/>
-              </font>
-              <VBox.margin>
-                <Insets bottom="5.0"/>
-              </VBox.margin>
-            </Label>
-
-            <Label text="Chào mừng bạn quay trở lại!" textFill="#888888">
-              <font>
-                <Font size="14.0"/>
-              </font>
-              <VBox.margin>
-                <Insets bottom="5.0"/>
-              </VBox.margin>
-            </Label>
-
-            <VBox spacing="3.0">
+            <HBox alignment="CENTER_LEFT" spacing="10.0" minWidth="170.0">
               <children>
-                <TextField fx:id="txtUsername" maxWidth="Infinity" prefHeight="50.0"
-                  promptText="Tên đăng nhập"
-                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                  <font>
-                    <Font size="14.0"/>
-                  </font>
-                </TextField>
-                <Label fx:id="lblUsernameError" managed="false" text="Vui lòng nhập tên đăng nhập!"
-                  textFill="#d96570" visible="false">
-                  <font>
-                    <Font name="System Italic" size="12.0"/>
-                  </font>
-                  <padding>
-                    <Insets left="15.0"/>
-                  </padding>
-                </Label>
+                <ImageView fitHeight="34.0" fitWidth="34.0" preserveRatio="true"
+                  styleClass="brand-logo">
+                  <image>
+                    <Image url="@../images/logo_gemini.png"/>
+                  </image>
+                </ImageView>
+                <Label text="Gemini" styleClass="brand-name"/>
+              </children>
+            </HBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <HBox alignment="CENTER" spacing="8.0" styleClass="nav-links">
+              <children>
+                <Button mnemonicParsing="false" text="Trang chủ" styleClass="nav-link"/>
+                <Button mnemonicParsing="false" text="Tin tức &amp; Hướng dẫn" styleClass="nav-link"/>
+              </children>
+            </HBox>
+
+            <Separator orientation="VERTICAL" prefHeight="24.0"/>
+
+            <Button mnemonicParsing="false" onAction="#handleShowLogin" text="Đăng nhập"
+              styleClass="nav-action-secondary"/>
+            <Button mnemonicParsing="false" onAction="#handleShowRegister" text="Đăng ký"
+              styleClass="nav-action-primary"/>
+          </children>
+        </HBox>
+      </top>
+
+      <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="auth-scroll">
+          <content>
+            <VBox styleClass="landing-content">
+              <children>
+                <StackPane fx:id="heroMediaSection" styleClass="hero-media-section">
+                  <children>
+                    <MediaView fx:id="heroVideoView" managed="false" preserveRatio="true"/>
+                    <Pane styleClass="video-tint strong"/>
+                    <VBox alignment="CENTER" spacing="24.0" styleClass="hero-copy-panel">
+                      <children>
+                        <Label text="Khám phá. Trả giá. Sở hữu những món đồ độc bản cùng Gemini."
+                          styleClass="hero-title" textAlignment="CENTER" wrapText="true"/>
+                        <Label
+                          text="Nền tảng đấu giá và mua bán trực tuyến an toàn, minh bạch và sôi động nhất."
+                          styleClass="hero-copy" textAlignment="CENTER" wrapText="true"/>
+                        <Button mnemonicParsing="false" onAction="#handleShowRegister"
+                          text="Khám phá Đấu giá ngay" styleClass="hero-primary"/>
+                      </children>
+                    </VBox>
+                  </children>
+                </StackPane>
+
+                <VBox alignment="CENTER" spacing="30.0" styleClass="value-section">
+                  <children>
+                    <Label text="Tại sao chọn Gemini?" styleClass="section-title"
+                      textAlignment="CENTER" wrapText="true"/>
+                    <Label text="Mỗi phiên đấu giá được thiết kế để người mua yên tâm, người bán minh bạch và mọi giao dịch đều có dấu vết rõ ràng."
+                      styleClass="section-copy" textAlignment="CENTER" wrapText="true"/>
+                    <FlowPane alignment="CENTER" hgap="22.0" vgap="22.0" maxWidth="1120.0">
+                      <children>
+                        <VBox spacing="10.0" styleClass="value-card">
+                          <children>
+                            <Label text="Bảo mật tuyệt đối" styleClass="card-title"/>
+                            <Label text="Giao dịch an toàn, bảo vệ thông tin người mua và người bán."
+                              styleClass="card-copy" wrapText="true"/>
+                          </children>
+                        </VBox>
+                        <VBox spacing="10.0" styleClass="value-card">
+                          <children>
+                            <Label text="Hàng hóa kiểm định" styleClass="card-title"/>
+                            <Label text="100% sản phẩm có giá trị cao đều qua hệ thống thẩm định khắt khe."
+                              styleClass="card-copy" wrapText="true"/>
+                          </children>
+                        </VBox>
+                        <VBox spacing="10.0" styleClass="value-card">
+                          <children>
+                            <Label text="Đấu giá minh bạch" styleClass="card-title"/>
+                            <Label text="Hệ thống chống giá ảo, cập nhật thời gian thực không độ trễ."
+                              styleClass="card-copy" wrapText="true"/>
+                          </children>
+                        </VBox>
+                        <VBox spacing="10.0" styleClass="value-card">
+                          <children>
+                            <Label text="Hỗ trợ 24/7" styleClass="card-title"/>
+                            <Label text="Đội ngũ chuyên gia luôn sẵn sàng giải quyết khiếu nại."
+                              styleClass="card-copy" wrapText="true"/>
+                          </children>
+                        </VBox>
+                      </children>
+                    </FlowPane>
+                  </children>
+                </VBox>
+
+                <StackPane fx:id="bannerMediaSection" styleClass="image-banner-section">
+                  <children>
+                    <ImageView fx:id="bannerImageView" managed="false" preserveRatio="true"/>
+                  </children>
+                </StackPane>
+
+                <VBox alignment="CENTER" spacing="20.0" styleClass="banner-info-section">
+                  <children>
+                    <Label text="Gemini đưa trải nghiệm đấu giá lên một chuẩn mới"
+                      styleClass="section-title" textAlignment="CENTER" wrapText="true"/>
+                    <Label text="Từ theo dõi lượt trả giá, kiểm tra sản phẩm đến quản lý tài khoản, mọi thao tác được gom trong một giao diện sạch, rõ và tập trung vào quyết định của bạn."
+                      styleClass="section-copy" textAlignment="CENTER" wrapText="true"/>
+                  </children>
+                </VBox>
+
+                <VBox alignment="CENTER" spacing="18.0" styleClass="pre-video-section">
+                  <children>
+                    <Label text="Theo dõi những phiên đấu giá nổi bật tiếp theo"
+                      styleClass="section-title" textAlignment="CENTER" wrapText="true"/>
+                    <Label text="Các bộ sưu tập giá trị, sản phẩm hiếm và phiên đấu giá lớn sẽ được cập nhật liên tục trên Gemini."
+                      styleClass="section-copy" textAlignment="CENTER" wrapText="true"/>
+                  </children>
+                </VBox>
+
+                <StackPane fx:id="closingMediaSection" styleClass="closing-media-section">
+                  <children>
+                    <MediaView fx:id="closingVideoView" managed="false" preserveRatio="true"/>
+                  </children>
+                </StackPane>
+
+                <VBox spacing="26.0" styleClass="footer-section">
+                  <children>
+                    <GridPane hgap="30.0" vgap="28.0" maxWidth="1120.0" styleClass="footer-grid">
+                      <children>
+                        <VBox spacing="10.0" GridPane.columnIndex="0" GridPane.rowIndex="0"
+                          styleClass="footer-column">
+                          <children>
+                            <Label text="Về Gemini" styleClass="footer-title"/>
+                            <Label text="Giới thiệu công ty" styleClass="footer-link"/>
+                            <Label text="Tuyển dụng" styleClass="footer-link"/>
+                            <Label text="Báo chí" styleClass="footer-link"/>
+                          </children>
+                        </VBox>
+                        <VBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                          styleClass="footer-column">
+                          <children>
+                            <Label text="Hỗ trợ Khách hàng" styleClass="footer-title"/>
+                            <Label text="Trung tâm trợ giúp (FAQ)" styleClass="footer-link"/>
+                            <Label text="Hướng dẫn đấu giá" styleClass="footer-link"/>
+                            <Label text="Chính sách bảo mật" styleClass="footer-link"/>
+                            <Label text="Điều khoản sử dụng" styleClass="footer-link"/>
+                            <Label text="Chính sách hoàn tiền" styleClass="footer-link"/>
+                          </children>
+                        </VBox>
+                        <VBox spacing="10.0" GridPane.columnIndex="2" GridPane.rowIndex="0"
+                          styleClass="footer-column">
+                          <children>
+                            <Label text="Liên hệ" styleClass="footer-title"/>
+                            <Label text="Hotline: 0979919087" styleClass="footer-link"/>
+                            <Label text="Email: geminiauction@gmail.com" styleClass="footer-link"/>
+                            <Label text="Địa chỉ văn phòng: 36, Xuân Thuỷ" styleClass="footer-link"/>
+                          </children>
+                        </VBox>
+                        <VBox spacing="14.0" GridPane.columnIndex="3" GridPane.rowIndex="0"
+                          styleClass="footer-column newsletter-column">
+                          <children>
+                            <Label text="Mạng xã hội" styleClass="footer-title"/>
+                            <Label text="Facebook · Instagram · YouTube · X" styleClass="footer-link"/>
+                            <Label text="Đăng ký nhận bản tin" styleClass="footer-title"/>
+                            <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="newsletter-form">
+                              <children>
+                                <TextField promptText="Email của bạn" styleClass="newsletter-input"
+                                  HBox.hgrow="ALWAYS"/>
+                                <Button mnemonicParsing="false" text="Gửi" styleClass="newsletter-button"/>
+                              </children>
+                            </HBox>
+                            <Label text="Nhận thông báo về các phiên đấu giá lớn sắp diễn ra."
+                              styleClass="footer-note" wrapText="true"/>
+                          </children>
+                        </VBox>
+                      </children>
+                    </GridPane>
+                    <Label text="© 2026 Gemini Auction. All rights reserved." styleClass="footer-note"/>
+                  </children>
+                </VBox>
+              </children>
+            </VBox>
+          </content>
+        </ScrollPane>
+      </center>
+    </BorderPane>
+
+    <StackPane fx:id="modalLayer" managed="false" visible="false" styleClass="modal-layer"
+      onMouseClicked="#handleModalBackdropClick">
+      <children>
+        <Pane styleClass="modal-scrim"/>
+
+        <StackPane fx:id="authModal" maxHeight="-Infinity" maxWidth="460.0" minHeight="820.0"
+          styleClass="auth-modal"
+          onMouseClicked="#consumeClick">
+          <children>
+            <VBox fx:id="loginForm" spacing="13.0" styleClass="form-stack">
+              <children>
+                <HBox alignment="CENTER_LEFT">
+                  <children>
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                      <children>
+                        <Label text="Đăng nhập" styleClass="form-title"/>
+                        <Label text="Tiếp tục vào không gian đấu giá của bạn."
+                          styleClass="form-subtitle" wrapText="true"/>
+                      </children>
+                    </VBox>
+                    <Button mnemonicParsing="false" onAction="#handleCloseModal"
+                      text="×" styleClass="close-button"/>
+                  </children>
+                </HBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <TextField fx:id="txtUsername" maxWidth="Infinity" prefHeight="40.0"
+                      promptText="Tên đăng nhập" styleClass="auth-input"/>
+                    <Label fx:id="lblUsernameError" managed="false" text="Vui lòng nhập tên đăng nhập!"
+                      visible="false" styleClass="error-label"/>
+                  </children>
+                </VBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <TextField fx:id="txtEmail" maxWidth="Infinity" prefHeight="40.0"
+                      promptText="Email" styleClass="auth-input"/>
+                    <Label fx:id="lblEmailError" managed="false" text="Email không hợp lệ!"
+                      visible="false" styleClass="error-label"/>
+                  </children>
+                </VBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <PasswordField fx:id="txtPassword" maxWidth="Infinity" prefHeight="40.0"
+                      promptText="Mật khẩu" styleClass="auth-input"/>
+                    <Label fx:id="lblPasswordError" managed="false" text="Vui lòng nhập mật khẩu!"
+                      visible="false" styleClass="error-label"/>
+                  </children>
+                </VBox>
+
+                <Button fx:id="btnLogin" maxWidth="Infinity" mnemonicParsing="false"
+                  onAction="#handleLogin" prefHeight="48.0" text="ĐĂNG NHẬP"
+                  styleClass="form-primary-button"/>
+
+                <Button mnemonicParsing="false" onAction="#handleShowRegister"
+                  text="Chưa có tài khoản? Đăng ký ngay" styleClass="form-link-button"/>
               </children>
             </VBox>
 
-            <VBox spacing="3.0">
+            <VBox fx:id="registerForm" managed="false" visible="false" spacing="11.0"
+              styleClass="form-stack">
               <children>
-                <TextField fx:id="txtEmail" maxWidth="Infinity" prefHeight="50.0" promptText="Email"
-                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                  <font>
-                    <Font size="14.0"/>
-                  </font>
-                </TextField>
-                <Label fx:id="lblEmailError" managed="false" text="Email không hợp lệ!"
-                  textFill="#d96570" visible="false">
-                  <font>
-                    <Font name="System Italic" size="12.0"/>
-                  </font>
-                  <padding>
-                    <Insets left="15.0"/>
-                  </padding>
-                </Label>
+                <HBox alignment="CENTER_LEFT">
+                  <children>
+                    <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                      <children>
+                        <Label text="Tạo tài khoản" styleClass="form-title"/>
+                        <Label text="Đăng ký để bắt đầu đặt giá và theo dõi sản phẩm yêu thích."
+                          styleClass="form-subtitle" wrapText="true"/>
+                      </children>
+                    </VBox>
+                    <Button mnemonicParsing="false" onAction="#handleCloseModal"
+                      text="×" styleClass="close-button"/>
+                  </children>
+                </HBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <TextField fx:id="regUsername" maxWidth="Infinity" prefHeight="39.0"
+                      promptText="Tên đăng nhập" styleClass="auth-input"/>
+                    <Label fx:id="lblRegUsernameError" managed="false" visible="false"
+                      text="Tên đăng nhập đã tồn tại!" styleClass="error-label" wrapText="true"/>
+                  </children>
+                </VBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <TextField fx:id="regEmail" maxWidth="Infinity" prefHeight="39.0"
+                      promptText="Địa chỉ Email" styleClass="auth-input"/>
+                    <Label fx:id="lblRegEmailError" managed="false" visible="false"
+                      text="Email không hợp lệ!" styleClass="error-label" wrapText="true"/>
+                  </children>
+                </VBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <PasswordField fx:id="regPassword" maxWidth="Infinity" prefHeight="39.0"
+                      promptText="Mật khẩu (ít nhất 6 ký tự, có chữ và số)"
+                      styleClass="auth-input"/>
+                    <Label fx:id="lblRegPasswordError" managed="false" visible="false"
+                      text="Mật khẩu phải từ 6 ký tự, bao gồm cả chữ lẫn số!"
+                      styleClass="error-label" wrapText="true"/>
+                  </children>
+                </VBox>
+
+                <VBox spacing="5.0">
+                  <children>
+                    <PasswordField fx:id="regConfirmPassword" maxWidth="Infinity" prefHeight="39.0"
+                      promptText="Xác nhận lại mật khẩu" styleClass="auth-input"/>
+                    <Label fx:id="lblRegConfirmError" managed="false" visible="false"
+                      text="Mật khẩu không khớp!" styleClass="error-label" wrapText="true"/>
+                  </children>
+                </VBox>
+
+                <Button fx:id="btnRegister" maxWidth="Infinity" mnemonicParsing="false"
+                  onAction="#handleRegister" prefHeight="48.0" text="XÁC NHẬN ĐĂNG KÝ"
+                  styleClass="form-primary-button"/>
+
+                <Button mnemonicParsing="false" onAction="#handleShowLogin"
+                  text="Đã có tài khoản? Đăng nhập" styleClass="form-link-button"/>
               </children>
             </VBox>
-
-            <VBox spacing="3.0">
-              <children>
-                <PasswordField fx:id="txtPassword" maxWidth="Infinity" prefHeight="50.0"
-                  promptText="Mật khẩu"
-                  style="-fx-background-color: #F4F7FC; -fx-background-radius: 25; -fx-padding: 0 20 0 20;">
-                  <font>
-                    <Font size="14.0"/>
-                  </font>
-                </PasswordField>
-                <Label fx:id="lblPasswordError" managed="false" text="Vui lòng nhập mật khẩu!"
-                  textFill="#d96570" visible="false">
-                  <font>
-                    <Font name="System Italic" size="12.0"/>
-                  </font>
-                  <padding>
-                    <Insets left="15.0"/>
-                  </padding>
-                </Label>
-              </children>
-              <VBox.margin>
-                <Insets bottom="10.0"/>
-              </VBox.margin>
-            </VBox>
-
-            <Button fx:id="btnLogin" maxWidth="Infinity" mnemonicParsing="false"
-              onAction="#handleLogin" prefHeight="50.0"
-              style="-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-background-radius: 25; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;"
-              text="ĐĂNG NHẬP">
-              <font>
-                <Font size="15.0"/>
-              </font>
-              <effect>
-                <DropShadow height="10.0" offsetY="3.0" radius="4.5" width="10.0">
-                  <color>
-                    <Color blue="0.8" green="0.4" opacity="0.4" red="0.6"/>
-                  </color>
-                </DropShadow>
-              </effect>
-            </Button>
-
-            <Button fx:id="btnRegister" maxWidth="Infinity" mnemonicParsing="false"
-              onAction="#handleRegister" prefHeight="50.0"
-              style="-fx-background-color: #FFFFFF; -fx-border-color: linear-gradient(to right, #4285F4, #9B72CB, #D96570); -fx-border-radius: 25; -fx-background-radius: 25; -fx-text-fill: #9B72CB; -fx-font-weight: bold; -fx-cursor: hand;"
-              text="TẠO TÀI KHOẢN MỚI">
-              <font>
-                <Font size="15.0"/>
-              </font>
-            </Button>
           </children>
           <padding>
-            <Insets bottom="40.0" left="40.0" right="40.0" top="40.0"/>
+            <Insets bottom="24.0" left="28.0" right="28.0" top="24.0"/>
           </padding>
-        </VBox>
+        </StackPane>
       </children>
     </StackPane>
   </children>
-</AnchorPane>
+</StackPane>

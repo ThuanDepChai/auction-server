@@ -7,6 +7,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
@@ -18,596 +19,434 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<?import javafx.scene.media.MediaView?>
 <BorderPane prefHeight="800.0" prefWidth="1200.0"
-  style="-fx-background-color: #F5F4F0;"
+  style="-fx-background-color: #f5f5f7;"
   stylesheets="@../css/styles.css"
   xmlns="http://javafx.com/javafx/21"
   xmlns:fx="http://javafx.com/fxml/1"
   fx:controller="com.nhom15.client.controller.HomeController">
 
   <top>
-    <VBox style="-fx-background-color: #FFFFFF; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 3);">
+    <VBox styleClass="market-header">
       <children>
-
-        <!-- ── Hàng 1: Logo + Tìm kiếm + User menu ── -->
-        <HBox alignment="CENTER_LEFT" prefHeight="64.0" spacing="16.0">
+        <HBox alignment="CENTER_LEFT" prefHeight="30.0" styleClass="market-utility-row">
           <padding>
             <Insets left="28.0" right="28.0"/>
           </padding>
           <children>
-
-            <!-- Logo -->
-            <HBox alignment="CENTER" spacing="8.0">
+            <HBox alignment="CENTER_LEFT" spacing="16.0">
               <children>
-                <StackPane prefWidth="32.0" prefHeight="32.0"
-                  style="-fx-background-color: linear-gradient(to bottom right, #5C54E8, #9C5CE6); -fx-background-radius: 8;">
-                  <children>
-                    <Label text="✦" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
-                  </children>
-                </StackPane>
-                <Label text="Gemini"
-                  style="-fx-text-fill: #2A2560; -fx-font-weight: bold; -fx-cursor: hand;">
-                  <font><Font size="22.0"/></font>
+                <Label text="Hi! Đăng nhập hoặc đăng ký" styleClass="utility-link"/>
+                <Button mnemonicParsing="false" onAction="#handleSell" text="Kênh Người Bán" styleClass="utility-button"/>
+                <Label text="Tin tức &amp; Hướng dẫn" styleClass="utility-link"/>
+                <Label text="Tải ứng dụng" styleClass="utility-link"/>
+              </children>
+            </HBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <HBox alignment="CENTER_RIGHT" spacing="18.0">
+              <children>
+                <Label text="Ship to" styleClass="utility-link"/>
+                <Button mnemonicParsing="false" onAction="#handleSell" text="Sell" styleClass="utility-button"/>
+                <Label text="Wishlist" styleClass="utility-link"/>
+                <Button mnemonicParsing="false" onAction="#handleNotification" text="Thông báo" styleClass="utility-button"/>
+              </children>
+            </HBox>
+          </children>
+        </HBox>
+
+        <HBox alignment="CENTER_LEFT" prefHeight="72.0" spacing="16.0" styleClass="market-main-row">
+          <padding>
+            <Insets left="28.0" right="28.0"/>
+          </padding>
+          <children>
+            <HBox alignment="CENTER_LEFT" prefWidth="178.0" minWidth="178.0" spacing="9.0">
+              <children>
+                <ImageView fitHeight="42.0" fitWidth="42.0" preserveRatio="true">
+                  <image>
+                    <Image url="@../images/logo_gemini.png"/>
+                  </image>
+                </ImageView>
+                <Label text="Gemini" styleClass="market-logo-text">
+                  <font><Font size="26.0"/></font>
                 </Label>
               </children>
             </HBox>
 
-            <!-- Search box — tách rõ 3 vùng -->
-            <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" maxWidth="560.0"
-              style="-fx-border-color: #DDDBD2; -fx-border-radius: 12; -fx-border-width: 1.5;
-                     -fx-background-color: #F5F4F0; -fx-background-radius: 12;">
-              <padding>
-                <Insets left="14.0" right="4.0"/>
-              </padding>
+            <Button mnemonicParsing="false" text="Shop by category ▾" styleClass="shop-category-button"/>
+
+            <StackPane alignment="CENTER" HBox.hgrow="ALWAYS">
               <children>
-                <!-- Icon tìm kiếm -->
-                <Label text="🔍" style="-fx-font-size: 14px; -fx-padding: 0 6 0 0;"/>
-
-                <!-- Input -->
-                <TextField fx:id="txtSearch" promptText="Tìm kiếm sản phẩm..."
-                  style="-fx-background-color: transparent; -fx-border-color: transparent;"
-                  HBox.hgrow="ALWAYS">
-                  <font><Font size="14.0"/></font>
-                </TextField>
-
-                <!-- Divider -->
-                <Separator orientation="VERTICAL" prefHeight="22.0">
-                  <HBox.margin><Insets left="4.0" right="4.0"/></HBox.margin>
-                </Separator>
-
-                <!-- Dropdown danh mục -->
-                <ComboBox fx:id="cmbCategory" prefWidth="140.0" promptText="Tất cả"
-                  style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-font-size: 13px;"/>
-
-                <!-- Nút Tìm — tách ra ngoài rõ ràng -->
-                <Button fx:id="btnSearch" text="Tìm kiếm"
-                  onAction="#handleSearch"
-                  prefHeight="36.0" prefWidth="100.0"
-                  style="-fx-background-color: #5C54E8; -fx-background-radius: 9;
-                         -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-font-size: 13px;">
-                  <HBox.margin><Insets left="6.0"/></HBox.margin>
-                </Button>
-              </children>
-            </HBox>
-
-            <Region HBox.hgrow="ALWAYS"/>
-
-            <!-- Khu vực phải: Thông báo + Giỏ + Đăng bán + User -->
-            <HBox alignment="CENTER" spacing="8.0">
-              <children>
-
-                <!-- Thông báo -->
-                <Button mnemonicParsing="false" onAction="#handleNotification"
-                  prefWidth="36.0" prefHeight="36.0"
-                  style="-fx-background-color: #FFFFFF; -fx-border-color: #E2E0D8;
-                         -fx-border-width: 0.5; -fx-border-radius: 10; -fx-background-radius: 10;
-                         -fx-cursor: hand; -fx-font-size: 16px;"
-                  text="🔔"/>
-
-                <!-- Giỏ hàng -->
-                <Button mnemonicParsing="false" onAction="#handleCart"
-                  prefWidth="36.0" prefHeight="36.0"
-                  style="-fx-background-color: #FFFFFF; -fx-border-color: #E2E0D8;
-                         -fx-border-width: 0.5; -fx-border-radius: 10; -fx-background-radius: 10;
-                         -fx-cursor: hand; -fx-font-size: 16px;"
-                  text="🛒"/>
-
-                <!-- Nút Đăng bán -->
-                <Button fx:id="btnSell" mnemonicParsing="false" onAction="#handleSell"
-                  prefHeight="36.0"
-                  style="-fx-background-color: #FFFFFF; -fx-border-color: #5C54E8;
-                         -fx-border-width: 1.5; -fx-border-radius: 10; -fx-background-radius: 10;
-                         -fx-text-fill: #5C54E8; -fx-font-weight: bold; -fx-cursor: hand;
-                         -fx-padding: 0 14 0 14; -fx-font-size: 13px;"
-                  text="+ Đăng bán"/>
-
-                <Separator orientation="VERTICAL" prefHeight="28.0"/>
-
-                <!-- Avatar + dropdown -->
-                <AnchorPane>
+                <HBox alignment="CENTER" maxWidth="900.0" minWidth="520.0" prefWidth="860.0" spacing="12.0">
                   <children>
-                    <Button fx:id="btnUserMenu" mnemonicParsing="false" onAction="#handleUserMenu"
-                      style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 4 6 4 6;">
+                    <HBox alignment="CENTER_LEFT" prefHeight="42.0" HBox.hgrow="ALWAYS" styleClass="market-search-box">
+                      <padding>
+                        <Insets left="16.0" right="4.0"/>
+                      </padding>
+                      <children>
+                        <Label text="⌕" styleClass="market-search-icon"/>
+                        <TextField fx:id="txtSearch" promptText="Tìm sản phẩm, mã đấu giá hoặc người bán"
+                          HBox.hgrow="ALWAYS" styleClass="market-search-input">
+                          <font><Font size="14.0"/></font>
+                        </TextField>
+                        <Separator orientation="VERTICAL" prefHeight="22.0">
+                          <HBox.margin><Insets left="4.0" right="4.0"/></HBox.margin>
+                        </Separator>
+                        <ComboBox fx:id="cmbCategory" prefWidth="158.0" promptText="Tất cả" styleClass="market-search-category"/>
+                      </children>
+                    </HBox>
+                    <Button fx:id="btnSearch" mnemonicParsing="false" onAction="#handleSearch"
+                      prefHeight="42.0" prefWidth="118.0" text="Search" styleClass="market-search-button"/>
+                  </children>
+                </HBox>
+              </children>
+            </StackPane>
+
+            <HBox alignment="CENTER_RIGHT" minWidth="292.0" prefWidth="292.0" spacing="8.0">
+              <children>
+                <Button mnemonicParsing="false" onAction="#handleNotification" text="🔔" styleClass="market-icon-button"/>
+                <Button mnemonicParsing="false" onAction="#handleCart" text="🛒" styleClass="market-icon-button"/>
+                <Button fx:id="btnSell" mnemonicParsing="false" onAction="#handleSell" text="+ Đăng bán" styleClass="market-sell-button"/>
+
+                <AnchorPane prefWidth="116.0">
+                  <children>
+                    <Button fx:id="btnUserMenu" mnemonicParsing="false" onAction="#handleUserMenu" styleClass="market-user-button">
                       <graphic>
                         <HBox alignment="CENTER" spacing="8.0">
                           <children>
-                            <StackPane fx:id="avatarPane" prefHeight="36.0" prefWidth="36.0"
-                              style="-fx-background-color: linear-gradient(to bottom right, #5C54E8, #9C5CE6); -fx-background-radius: 50;">
+                            <StackPane fx:id="avatarPane" prefHeight="36.0" prefWidth="36.0" styleClass="market-avatar">
                               <children>
-                                <ImageView fx:id="imgAvatar" fitHeight="36.0" fitWidth="36.0"
-                                  preserveRatio="true" visible="false">
+                                <ImageView fx:id="imgAvatar" fitHeight="36.0" fitWidth="36.0" preserveRatio="true" visible="false">
                                   <clip>
                                     <javafx.scene.shape.Circle centerX="18.0" centerY="18.0" radius="18.0"/>
                                   </clip>
                                 </ImageView>
-                                <Label fx:id="lblAvatarInitial" text="U"
-                                  style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;"/>
+                                <Label fx:id="lblAvatarInitial" text="U" styleClass="market-avatar-text"/>
                               </children>
                             </StackPane>
                             <VBox alignment="CENTER_LEFT" spacing="1.0">
                               <children>
-                                <Label text="Xin chào," style="-fx-text-fill: #999999;">
-                                  <font><Font size="11.0"/></font>
-                                </Label>
-                                <Label fx:id="lblUsername" text="Người dùng"
-                                  style="-fx-font-weight: bold; -fx-text-fill: #2A2560;">
-                                  <font><Font size="13.0"/></font>
-                                </Label>
+                                <Label text="Xin chào," styleClass="market-user-eyebrow"/>
+                                <Label fx:id="lblUsername" text="Người dùng" styleClass="market-user-name"/>
                               </children>
                             </VBox>
-                            <Label text="▾" style="-fx-text-fill: #888888;">
-                              <font><Font size="11.0"/></font>
-                            </Label>
                           </children>
                         </HBox>
                       </graphic>
                     </Button>
 
-                    <!-- Dropdown menu -->
                     <VBox fx:id="userDropdown" visible="false" managed="false"
-                      layoutX="-30.0" layoutY="48.0" prefWidth="200.0" spacing="2.0"
-                      style="-fx-background-color: white; -fx-background-radius: 12;
-                             -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 16, 0, 0, 6);
-                             -fx-border-color: #EEEEEE; -fx-border-radius: 12; -fx-border-width: 0.5;">
+                      layoutX="-76.0" layoutY="46.0" prefWidth="206.0" spacing="2.0"
+                      styleClass="market-user-dropdown">
                       <padding>
                         <Insets bottom="8.0" left="5.0" right="5.0" top="8.0"/>
                       </padding>
                       <children>
                         <Button fx:id="btnProfile" maxWidth="Infinity" mnemonicParsing="false"
-                          onAction="#handleProfile"
-                          style="-fx-background-color: transparent; -fx-cursor: hand;
-                                 -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;
-                                 -fx-font-size: 13px;"
-                          text="👤  Trang cá nhân"/>
+                          onAction="#handleProfile" text="👤  Trang cá nhân" styleClass="market-dropdown-button"/>
                         <Button fx:id="btnMyOrders" maxWidth="Infinity" mnemonicParsing="false"
-                          onAction="#handleMyOrders"
-                          style="-fx-background-color: transparent; -fx-cursor: hand;
-                                 -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;
-                                 -fx-font-size: 13px;"
-                          text="📦  Đơn hàng của tôi"/>
+                          onAction="#handleMyOrders" text="📦  Đơn hàng của tôi" styleClass="market-dropdown-button"/>
                         <Button fx:id="btnSellerDashboard" maxWidth="Infinity" mnemonicParsing="false"
-                          onAction="#handleSellerDashboard"
-                          style="-fx-background-color: transparent; -fx-cursor: hand;
-                                 -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;
-                                 -fx-font-size: 13px;"
-                          text="🏪  Quản lý bán hàng"/>
+                          onAction="#handleSellerDashboard" text="🏪  Quản lý bán hàng" styleClass="market-dropdown-button"/>
                         <Button fx:id="btnWallet" maxWidth="Infinity" mnemonicParsing="false"
-                          onAction="#handleWallet"
-                          style="-fx-background-color: transparent; -fx-cursor: hand;
-                                 -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;
-                                 -fx-font-size: 13px;"
-                          text="💰  Ví của tôi"/>
+                          onAction="#handleWallet" text="💰  Ví của tôi" styleClass="market-dropdown-button"/>
                         <Separator>
                           <VBox.margin><Insets bottom="3.0" top="3.0"/></VBox.margin>
                         </Separator>
                         <Button fx:id="btnLogout" maxWidth="Infinity" mnemonicParsing="false"
-                          onAction="#handleLogout"
-                          style="-fx-background-color: transparent; -fx-cursor: hand;
-                                 -fx-alignment: CENTER_LEFT; -fx-padding: 8 15 8 15;
-                                 -fx-text-fill: #D96570; -fx-font-size: 13px;"
-                          text="🚪  Đăng xuất"/>
+                          onAction="#handleLogout" text="🚪  Đăng xuất" styleClass="market-dropdown-danger"/>
                       </children>
                     </VBox>
                   </children>
                 </AnchorPane>
-
               </children>
             </HBox>
           </children>
         </HBox>
 
-        <!-- ── Hàng 2: Nav danh mục ── -->
-        <HBox alignment="CENTER_LEFT" prefHeight="44.0" spacing="2.0"
-          style="-fx-border-color: #F0F0F0; -fx-border-width: 1 0 0 0;">
+        <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="4.0" styleClass="market-nav-row">
           <padding>
-            <Insets left="22.0" right="22.0"/>
+            <Insets left="28.0" right="28.0"/>
           </padding>
           <children>
-            <Button fx:id="btnCatHot" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-text-fill: #D96570; -fx-font-weight: bold;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;"
-              text="🔥 Giao dịch hot"/>
-            <Button fx:id="btnCatElectronics" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="📱 Điện tử"/>
-            <Button fx:id="btnCatFashion" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="👗 Thời trang"/>
-            <Button fx:id="btnCatHome" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="🏠 Nhà cửa &amp; Sân vườn"/>
-            <Button fx:id="btnCatCollect" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="🎨 Đồ sưu tầm"/>
-            <Button fx:id="btnCatSport" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="⚽ Thể thao"/>
-            <Button fx:id="btnCatBooks" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="📚 Sách &amp; Văn phòng"/>
-            <Button fx:id="btnCatToys" mnemonicParsing="false" onAction="#handleCategory"
-              style="-fx-background-color: transparent; -fx-cursor: hand;
-                     -fx-background-radius: 8; -fx-padding: 5 14 5 14; -fx-font-size: 13px;
-                     -fx-text-fill: #444444;"
-              text="🧸 Đồ chơi &amp; Trẻ em"/>
+            <Button fx:id="btnCatHot" mnemonicParsing="false" onAction="#handleCategory" text="Giao dịch hot" styleClass="market-nav-active"/>
+            <Button fx:id="btnCatElectronics" mnemonicParsing="false" onAction="#handleCategory" text="Điện tử" styleClass="market-nav-button"/>
+            <Button fx:id="btnCatFashion" mnemonicParsing="false" onAction="#handleCategory" text="Thời trang" styleClass="market-nav-button"/>
+            <Button fx:id="btnCatHome" mnemonicParsing="false" onAction="#handleCategory" text="Nhà cửa &amp; Sân vườn" styleClass="market-nav-button"/>
+            <Button fx:id="btnCatCollect" mnemonicParsing="false" onAction="#handleCategory" text="Đồ sưu tầm" styleClass="market-nav-button"/>
+            <Button fx:id="btnCatSport" mnemonicParsing="false" onAction="#handleCategory" text="Thể thao" styleClass="market-nav-button"/>
+            <Button fx:id="btnCatBooks" mnemonicParsing="false" onAction="#handleCategory" text="Sách &amp; Văn phòng" styleClass="market-nav-button"/>
+            <Button fx:id="btnCatToys" mnemonicParsing="false" onAction="#handleCategory" text="Đồ chơi &amp; Trẻ em" styleClass="market-nav-button"/>
           </children>
         </HBox>
-
       </children>
     </VBox>
   </top>
 
-  <!-- ── NỘI DUNG CHÍNH ── -->
   <center>
-    <ScrollPane fitToWidth="true"
-      style="-fx-background-color: transparent; -fx-background: transparent;"
-      fx:id="mainScrollPane">
+    <ScrollPane fx:id="mainScrollPane" fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;">
       <content>
         <VBox spacing="0.0">
+          <children>
+            <VBox spacing="18.0">
+              <padding>
+                <Insets bottom="34.0" left="32.0" right="32.0" top="18.0"/>
+              </padding>
+              <children>
+                <AnchorPane fx:id="bannerContainer" minHeight="250.0" prefHeight="250.0" maxHeight="250.0" styleClass="shopee-sale-banner">
+                  <children>
+                    <ImageView fx:id="bannerImageView" managed="false" preserveRatio="true"/>
 
-          <!-- === MAIN CONTENT AREA === -->
-          <VBox spacing="32.0">
-            <padding>
-              <Insets bottom="40.0" left="48.0" right="48.0" top="28.0"/>
-            </padding>
-            <children>
+                    <VBox layoutX="42.0" layoutY="34.0" spacing="10.0">
+                      <children>
+                        <Label text="GEMINI AUCTION FEST" styleClass="sale-eyebrow"/>
+                        <Label text="Săn deal đấu giá chạm đáy" styleClass="sale-headline"/>
+                        <Label text="Hàng độc bản, thương hiệu lớn, giá mở phiên hấp dẫn mỗi ngày." styleClass="sale-subtitle"/>
+                        <HBox spacing="10.0">
+                          <children>
+                            <Button text="Khám phá ngay" onAction="#handleSearch" styleClass="sale-primary-button"/>
+                            <Label text="Miễn phí đăng bán • Bảo vệ người mua" styleClass="sale-note"/>
+                          </children>
+                        </HBox>
+                      </children>
+                    </VBox>
 
-              <!-- Hero Banner -->
-              <AnchorPane fx:id="bannerContainer" prefHeight="170.0" minHeight="170.0" maxHeight="170.0"
-                style="-fx-background-color: #1E1B4B; -fx-background-radius: 18; -fx-overflow: hidden;">
-                <children>
+                    <HBox layoutX="492.0" layoutY="176.0" spacing="12.0">
+                      <children>
+                        <VBox alignment="CENTER" prefHeight="58.0" prefWidth="118.0" styleClass="sale-badge">
+                          <children>
+                            <Label text="50%" styleClass="sale-badge-value"/>
+                            <Label text="deal nổi bật" styleClass="sale-badge-label"/>
+                          </children>
+                        </VBox>
+                        <VBox alignment="CENTER" prefHeight="58.0" prefWidth="118.0" styleClass="sale-badge">
+                          <children>
+                            <Label text="24H" styleClass="sale-badge-value"/>
+                            <Label text="phiên hot" styleClass="sale-badge-label"/>
+                          </children>
+                        </VBox>
+                        <VBox alignment="CENTER" prefHeight="58.0" prefWidth="118.0" styleClass="sale-badge">
+                          <children>
+                            <Label text="0Đ" styleClass="sale-badge-value"/>
+                            <Label text="phí xem" styleClass="sale-badge-label"/>
+                          </children>
+                        </VBox>
+                      </children>
+                    </HBox>
 
-                  <MediaView fx:id="bannerMediaView" />
+                    <HBox alignment="CENTER" layoutX="586.0" layoutY="228.0" spacing="6.0">
+                      <children>
+                        <Label text="●" styleClass="carousel-dot-active"/>
+                        <Label text="●" styleClass="carousel-dot"/>
+                        <Label text="●" styleClass="carousel-dot"/>
+                        <Label text="●" styleClass="carousel-dot"/>
+                      </children>
+                    </HBox>
+                  </children>
+                </AnchorPane>
 
-                  <HBox layoutX="40.0" layoutY="28.0" alignment="CENTER_LEFT" spacing="6.0"
-                    style="-fx-background-color: rgba(255,255,255,0.12); -fx-background-radius: 20; -fx-padding: 4 12 4 12;">
-                    <children>
-                      <Label text="🔥" style="-fx-font-size: 12px;"/>
-                      <Label text="Ưu đãi có hạn"
-                        style="-fx-text-fill: #C4B5FD; -fx-font-size: 12px; -fx-font-weight: bold;"/>
-                    </children>
-                  </HBox>
+                <VBox spacing="0.0" styleClass="brand-strip">
+                  <children>
+                    <HBox alignment="CENTER_LEFT" prefHeight="44.0">
+                      <children>
+                        <Label text="GEMINI MALL" styleClass="brand-strip-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="Xem tất cả &gt;" styleClass="brand-strip-link"/>
+                      </children>
+                    </HBox>
+                    <GridPane hgap="0.0" vgap="0.0">
+                      <children>
+                        <Label text="SAMSUNG" GridPane.columnIndex="0" GridPane.rowIndex="0" styleClass="brand-tile"/>
+                        <Label text="APPLE" GridPane.columnIndex="1" GridPane.rowIndex="0" styleClass="brand-tile"/>
+                        <Label text="XIAOMI" GridPane.columnIndex="2" GridPane.rowIndex="0" styleClass="brand-tile"/>
+                        <Label text="NIKE" GridPane.columnIndex="3" GridPane.rowIndex="0" styleClass="brand-tile"/>
+                        <Label text="TOYOTA" GridPane.columnIndex="4" GridPane.rowIndex="0" styleClass="brand-tile"/>
+                        <Label text="CANON" GridPane.columnIndex="5" GridPane.rowIndex="0" styleClass="brand-tile"/>
+                        <Label text="BASEUS" GridPane.columnIndex="0" GridPane.rowIndex="1" styleClass="brand-tile"/>
+                        <Label text="SHOPDUNK" GridPane.columnIndex="1" GridPane.rowIndex="1" styleClass="brand-tile"/>
+                        <Label text="OPPO" GridPane.columnIndex="2" GridPane.rowIndex="1" styleClass="brand-tile"/>
+                        <Label text="VIVO" GridPane.columnIndex="3" GridPane.rowIndex="1" styleClass="brand-tile"/>
+                        <Label text="HONDA" GridPane.columnIndex="4" GridPane.rowIndex="1" styleClass="brand-tile"/>
+                        <Label text="ADIDAS" GridPane.columnIndex="5" GridPane.rowIndex="1" styleClass="brand-tile"/>
+                      </children>
+                    </GridPane>
+                  </children>
+                </VBox>
 
-                  <Label layoutX="40.0" layoutY="58.0" text="Ưu đãi mùa hè cực sốc"
-                    style="-fx-text-fill: white; -fx-font-weight: bold;">
-                    <font><Font size="30.0"/></font>
-                  </Label>
-                  <Label layoutX="40.0" layoutY="100.0"
-                    text="Giảm giá lên đến 50% cho các sản phẩm đấu giá hôm nay."
-                    style="-fx-text-fill: #A5B4FC;">
-                    <font><Font size="14.0"/></font>
-                  </Label>
-                  <Button layoutX="40.0" layoutY="130.0" prefHeight="34.0" prefWidth="120.0"
-                    text="Xem ngay →"
-                    style="-fx-background-color: white; -fx-background-radius: 10;
-                         -fx-text-fill: #2A2560; -fx-font-weight: bold; -fx-cursor: hand;
-                         -fx-font-size: 13px;"/>
+                <HBox alignment="TOP_LEFT" spacing="20.0">
+                  <children>
+                    <VBox minWidth="220.0" prefWidth="220.0" spacing="18.0" styleClass="market-sidebar">
+                      <children>
+                        <VBox spacing="8.0">
+                          <children>
+                            <Label text="Shop by category" styleClass="sidebar-title"/>
+                            <Button text="Tất cả danh mục" onAction="#handleSearch" styleClass="sidebar-link-active"/>
+                            <Button fx:id="btnSideElectronics" text="Điện tử" onAction="#handleCategory" styleClass="sidebar-link"/>
+                            <Button fx:id="btnSideFashion" text="Thời trang" onAction="#handleCategory" styleClass="sidebar-link"/>
+                            <Button fx:id="btnSideCar" text="Xe cộ" onAction="#handleCategory" styleClass="sidebar-link"/>
+                            <Button fx:id="btnSideCollect" text="Đồ sưu tầm" onAction="#handleCategory" styleClass="sidebar-link"/>
+                            <Button fx:id="btnSideSport" text="Thể thao" onAction="#handleCategory" styleClass="sidebar-link"/>
+                          </children>
+                        </VBox>
 
-                  <VBox layoutX="1030.0" layoutY="45.0" alignment="CENTER"
-                    style="-fx-background-color: rgba(255,255,255,0.1); -fx-background-radius: 12;
-                         -fx-border-color: rgba(255,255,255,0.2); -fx-border-width: 1;
-                         -fx-border-radius: 12; -fx-padding: 12 20 12 20;">
-                    <children>
-                      <Label text="50%" style="-fx-text-fill: white; -fx-font-weight: bold;">
-                        <font><Font size="28.0"/></font>
-                      </Label>
-                      <Label text="Giảm tối đa" style="-fx-text-fill: #A5B4FC; -fx-font-size: 12px;"/>
-                    </children>
-                  </VBox>
+                        <Separator/>
 
-                </children>
-              </AnchorPane>
+                        <VBox spacing="11.0">
+                          <children>
+                            <Label text="Bộ lọc tìm kiếm" styleClass="sidebar-title"/>
+                            <Label text="Khoảng giá" styleClass="home-filter-label"/>
+                            <ComboBox fx:id="cmbPriceFilter" onAction="#handleApplyFilters" maxWidth="Infinity" styleClass="home-filter-combo"/>
+                            <Label text="Mục sản phẩm" styleClass="home-filter-label"/>
+                            <ComboBox fx:id="cmbTypeFilter" onAction="#handleApplyFilters" maxWidth="Infinity" styleClass="home-filter-combo"/>
+                            <Label text="Năm sản xuất / tạo tác" styleClass="home-filter-label"/>
+                            <TextField fx:id="txtYearFilter" promptText="VD: 2020" maxWidth="Infinity" styleClass="home-filter-input"/>
+                            <Label text="Nhãn hàng / tác giả" styleClass="home-filter-label"/>
+                            <TextField fx:id="txtBrandFilter" promptText="VD: Nike, Toyota..." maxWidth="Infinity" styleClass="home-filter-input"/>
+                            <Label text="Sắp xếp" styleClass="home-filter-label"/>
+                            <ComboBox fx:id="cmbSortFilter" onAction="#handleApplyFilters" maxWidth="Infinity" styleClass="home-filter-combo"/>
+                            <HBox spacing="8.0">
+                              <children>
+                                <Button fx:id="btnApplyFilters" mnemonicParsing="false" onAction="#handleApplyFilters" text="Áp dụng" HBox.hgrow="ALWAYS" styleClass="home-filter-apply"/>
+                                <Button fx:id="btnResetFilters" mnemonicParsing="false" onAction="#handleResetFilters" text="Xóa" styleClass="home-filter-reset"/>
+                              </children>
+                            </HBox>
+                            <Label text="Gợi ý: ô tô dùng năm sản xuất; thời trang dùng nhãn hàng; nghệ thuật dùng tác giả hoặc năm tạo tác." wrapText="true" styleClass="home-filter-hint"/>
+                          </children>
+                        </VBox>
+                      </children>
+                    </VBox>
 
-              <!-- Sản phẩm nổi bật -->
-              <VBox spacing="14.0">
-                <children>
-                  <HBox alignment="CENTER_LEFT">
-                    <children>
-                      <Label text="⭐ Sản phẩm nổi bật"
-                        style="-fx-font-weight: bold; -fx-text-fill: #1A1830;">
-                        <font><Font size="20.0"/></font>
-                      </Label>
-                      <Region HBox.hgrow="ALWAYS"/>
-                      <Button mnemonicParsing="false"
-                        style="-fx-background-color: transparent; -fx-text-fill: #5C54E8;
-                               -fx-cursor: hand; -fx-font-size: 13px; -fx-font-weight: bold;"
-                        text="Xem tất cả →"/>
-                    </children>
-                  </HBox>
-                  <FlowPane fx:id="flowProducts" hgap="18.0" vgap="18.0"/>
-                </children>
-              </VBox>
+                    <VBox spacing="24.0" HBox.hgrow="ALWAYS">
+                      <children>
+                        <VBox spacing="12.0">
+                          <children>
+                            <Label text="Gemini &gt; Marketplace &gt; Sản phẩm nổi bật" styleClass="breadcrumb-label"/>
+                            <HBox alignment="CENTER_LEFT">
+                              <children>
+                                <Label text="Sản phẩm nổi bật" styleClass="market-section-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="Sắp xếp:" styleClass="sort-label"/>
+                                <Button text="Best Match ▾" styleClass="sort-button"/>
+                              </children>
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                              <children>
+                                <Button text="Brand ▾" styleClass="filter-chip"/>
+                                <Button text="Condition ▾" styleClass="filter-chip"/>
+                                <Button text="Price ▾" styleClass="filter-chip"/>
+                                <Button text="Buying Format ▾" styleClass="filter-chip"/>
+                                <Button text="☰ All Filters" styleClass="filter-chip"/>
+                              </children>
+                            </HBox>
+                            <FlowPane fx:id="flowProducts" hgap="18.0" vgap="22.0"/>
+                          </children>
+                        </VBox>
 
-              <!-- Đấu giá đang diễn ra -->
-              <VBox spacing="14.0">
-                <children>
-                  <HBox alignment="CENTER_LEFT">
-                    <children>
-                      <Label text="⏰ Đấu giá đang diễn ra"
-                        style="-fx-font-weight: bold; -fx-text-fill: #1A1830;">
-                        <font><Font size="20.0"/></font>
-                      </Label>
-                      <Region HBox.hgrow="ALWAYS"/>
-                      <Button mnemonicParsing="false"
-                        style="-fx-background-color: transparent; -fx-text-fill: #5C54E8;
-                               -fx-cursor: hand; -fx-font-size: 13px; -fx-font-weight: bold;"
-                        text="Xem tất cả →"/>
-                    </children>
-                  </HBox>
-                  <FlowPane fx:id="flowAuctions" hgap="18.0" vgap="18.0"/>
-                </children>
-              </VBox>
+                        <VBox spacing="12.0">
+                          <children>
+                            <HBox alignment="CENTER_LEFT">
+                              <children>
+                                <Label text="Đấu giá đang diễn ra" styleClass="market-section-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button mnemonicParsing="false" text="Xem tất cả →" styleClass="section-link-button"/>
+                              </children>
+                            </HBox>
+                            <FlowPane fx:id="flowAuctions" hgap="18.0" vgap="22.0"/>
+                          </children>
+                        </VBox>
 
-              <!-- Sắp kết thúc -->
-              <VBox spacing="14.0">
-                <children>
-                  <HBox alignment="CENTER_LEFT">
-                    <children>
-                      <Label text="🚨 Sắp kết thúc"
-                        style="-fx-font-weight: bold; -fx-text-fill: #1A1830;">
-                        <font><Font size="20.0"/></font>
-                      </Label>
-                      <Region HBox.hgrow="ALWAYS"/>
-                      <Button mnemonicParsing="false"
-                        style="-fx-background-color: transparent; -fx-text-fill: #5C54E8;
-                               -fx-cursor: hand; -fx-font-size: 13px; -fx-font-weight: bold;"
-                        text="Xem tất cả →"/>
-                    </children>
-                  </HBox>
-                  <FlowPane fx:id="flowEndingSoon" hgap="18.0" vgap="18.0"/>
-                </children>
-              </VBox>
+                        <HBox alignment="CENTER_LEFT" prefHeight="82.0" spacing="20.0" styleClass="buyer-protection-banner">
+                          <children>
+                            <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" spacing="4.0">
+                              <children>
+                                <Label text="Mua sắm an toàn với Gemini" styleClass="buyer-protection-title"/>
+                                <Label text="Bảo vệ người mua toàn diện • Thanh toán bảo mật • Hoàn tiền nhanh chóng" styleClass="buyer-protection-text"/>
+                              </children>
+                            </VBox>
+                            <Button text="Tìm hiểu thêm" styleClass="sale-primary-button"/>
+                          </children>
+                        </HBox>
+                      </children>
+                    </VBox>
+                  </children>
+                </HBox>
+              </children>
+            </VBox>
 
-              <!-- Banner mua sắm an toàn -->
-              <HBox alignment="CENTER_LEFT" prefHeight="80.0" spacing="20.0"
-                style="-fx-background-color: #EEF0FD; -fx-background-radius: 14;
-                       -fx-border-color: #D4D0F0; -fx-border-width: 0.5; -fx-border-radius: 14;
-                       -fx-padding: 0 32 0 32;">
-                <children>
-                  <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" spacing="4.0">
-                    <children>
-                      <Label text="🛡️  Mua sắm an toàn với Gemini"
-                        style="-fx-font-weight: bold; -fx-text-fill: #2A2560; -fx-font-size: 16px;"/>
-                      <Label text="Bảo vệ người mua toàn diện • Thanh toán bảo mật • Hoàn tiền nhanh chóng"
-                        style="-fx-text-fill: #6B63C4; -fx-font-size: 13px;"/>
-                    </children>
-                  </VBox>
-                  <Button text="Tìm hiểu thêm"
-                    style="-fx-background-color: #5C54E8; -fx-background-radius: 10;
-                           -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;
-                           -fx-padding: 8 20 8 20; -fx-font-size: 13px;"/>
-                </children>
-              </HBox>
+            <HBox alignment="CENTER_LEFT" prefHeight="72.0" spacing="24.0" styleClass="footer-cta">
+              <padding>
+                <Insets left="60.0" right="60.0"/>
+              </padding>
+              <children>
+                <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" spacing="3.0">
+                  <children>
+                    <Label text="Mua sắm dễ dàng hơn" styleClass="footer-cta-title"/>
+                    <Label text="Tận hưởng đấu giá uy tín, giao hàng nhanh và hoàn tiền không rắc rối." styleClass="footer-cta-text"/>
+                  </children>
+                </VBox>
+                <Button text="Bắt đầu ngay" styleClass="footer-cta-button"/>
+              </children>
+            </HBox>
 
-            </children>
-          </VBox>
-
-          <!-- ══════════════════════════════════════════ -->
-          <!-- FOOTER                                     -->
-          <!-- ══════════════════════════════════════════ -->
-
-          <!-- Banner trên footer -->
-          <HBox alignment="CENTER_LEFT" prefHeight="72.0"
-            style="-fx-background-color: #2A2560; -fx-padding: 0 60 0 60;" spacing="24.0">
-            <children>
-              <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS" spacing="3.0">
-                <children>
-                  <Label text="Mua sắm dễ dàng hơn"
-                    style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px;"/>
-                  <Label text="Tận hưởng đấu giá uy tín, giao hàng nhanh và hoàn tiền không rắc rối."
-                    style="-fx-text-fill: #A5B4FC; -fx-font-size: 13px;"/>
-                </children>
-              </VBox>
-              <Button text="Bắt đầu ngay"
-                style="-fx-background-color: white; -fx-background-radius: 20;
-                       -fx-text-fill: #2A2560; -fx-font-weight: bold; -fx-cursor: hand;
-                       -fx-padding: 10 24 10 24; -fx-font-size: 13px;"/>
-            </children>
-          </HBox>
-
-          <!-- Footer links -->
-          <VBox style="-fx-background-color: #1A1830;">
-            <children>
-
-              <!-- Link columns -->
-              <GridPane hgap="0.0" vgap="0.0">
-                <padding>
-                  <Insets bottom="36.0" left="60.0" right="60.0" top="36.0"/>
-                </padding>
-                <children>
-
-                  <!-- Cột 1: Mua -->
-                  <VBox GridPane.columnIndex="0" spacing="8.0" prefWidth="200.0">
-                    <children>
-                      <Label text="Mua hàng"
-                        style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;"/>
-                      <Separator style="-fx-background-color: #3A3560;">
-                        <VBox.margin><Insets bottom="4.0" top="4.0"/></VBox.margin>
-                      </Separator>
-                      <Label text="Đăng ký tài khoản"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Hỗ trợ đặt giá"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Tra cứu đơn hàng"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Bảo vệ người mua"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Chính sách hoàn tiền"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                    </children>
-                  </VBox>
-
-                  <!-- Cột 2: Bán -->
-                  <VBox GridPane.columnIndex="1" spacing="8.0" prefWidth="200.0">
-                    <children>
-                      <Label text="Bán hàng"
-                        style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;"/>
-                      <Separator style="-fx-background-color: #3A3560;">
-                        <VBox.margin><Insets bottom="4.0" top="4.0"/></VBox.margin>
-                      </Separator>
-                      <Label text="Bắt đầu bán ngay"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Hướng dẫn đăng tin"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Người bán doanh nghiệp"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Phí &amp; Hoa hồng"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Chương trình đối tác"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                    </children>
-                  </VBox>
-
-                  <!-- Cột 3: Hỗ trợ -->
-                  <VBox GridPane.columnIndex="2" spacing="8.0" prefWidth="200.0">
-                    <children>
-                      <Label text="Hỗ trợ &amp; Trợ giúp"
-                        style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;"/>
-                      <Separator style="-fx-background-color: #3A3560;">
-                        <VBox.margin><Insets bottom="4.0" top="4.0"/></VBox.margin>
-                      </Separator>
-                      <Label text="Trung tâm hỗ trợ"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Liên hệ chúng tôi"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Báo cáo vi phạm"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Câu hỏi thường gặp"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Trung tâm an toàn"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                    </children>
-                  </VBox>
-
-                  <!-- Cột 4: Về Gemini -->
-                  <VBox GridPane.columnIndex="3" spacing="8.0" prefWidth="200.0">
-                    <children>
-                      <Label text="Về Gemini"
-                        style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;"/>
-                      <Separator style="-fx-background-color: #3A3560;">
-                        <VBox.margin><Insets bottom="4.0" top="4.0"/></VBox.margin>
-                      </Separator>
-                      <Label text="Giới thiệu công ty"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Tin tức &amp; Sự kiện"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Tuyển dụng"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Trách nhiệm xã hội"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="Nhà đầu tư"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                    </children>
-                  </VBox>
-
-                  <!-- Cột 5: Kết nối -->
-                  <VBox GridPane.columnIndex="4" spacing="8.0" prefWidth="200.0">
-                    <children>
-                      <Label text="Kết nối với chúng tôi"
-                        style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;"/>
-                      <Separator style="-fx-background-color: #3A3560;">
-                        <VBox.margin><Insets bottom="4.0" top="4.0"/></VBox.margin>
-                      </Separator>
-                      <Label text="📘  Facebook"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="📸  Instagram"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="🐦  X (Twitter)"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="▶  YouTube"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                      <Label text="💼  LinkedIn"
-                        style="-fx-text-fill: #9090B0; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                    </children>
-                  </VBox>
-
-                </children>
-              </GridPane>
-
-              <!-- Divider -->
-              <Separator style="-fx-background-color: #2E2B50; -fx-opacity: 0.8;">
-                <VBox.margin><Insets left="60.0" right="60.0"/></VBox.margin>
-              </Separator>
-
-              <!-- Copyright bar -->
-              <HBox alignment="CENTER_LEFT" prefHeight="48.0" spacing="20.0">
-                <padding>
-                  <Insets left="60.0" right="60.0"/>
-                </padding>
-                <children>
-                  <!-- Logo nhỏ -->
-                  <HBox alignment="CENTER" spacing="6.0">
-                    <children>
-                      <StackPane prefWidth="20.0" prefHeight="20.0"
-                        style="-fx-background-color: linear-gradient(to bottom right, #5C54E8, #9C5CE6); -fx-background-radius: 5;">
-                        <children>
-                          <Label text="✦" style="-fx-text-fill: white; -fx-font-size: 9px;"/>
-                        </children>
-                      </StackPane>
-                      <Label text="Gemini"
-                        style="-fx-text-fill: #9090B0; -fx-font-weight: bold; -fx-font-size: 13px;"/>
-                    </children>
-                  </HBox>
-
-                  <Label text="Copyright © 2025 Gemini Inc. Bảo lưu mọi quyền."
-                    style="-fx-text-fill: #5A5880; -fx-font-size: 12px;"/>
-
-                  <Region HBox.hgrow="ALWAYS"/>
-
-                  <Label text="Điều khoản sử dụng"
-                    style="-fx-text-fill: #5A5880; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                  <Label text="•" style="-fx-text-fill: #3A3860; -fx-font-size: 12px;"/>
-                  <Label text="Chính sách bảo mật"
-                    style="-fx-text-fill: #5A5880; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                  <Label text="•" style="-fx-text-fill: #3A3860; -fx-font-size: 12px;"/>
-                  <Label text="Chính sách Cookie"
-                    style="-fx-text-fill: #5A5880; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                  <Label text="•" style="-fx-text-fill: #3A3860; -fx-font-size: 12px;"/>
-                  <Label text="Sơ đồ trang"
-                    style="-fx-text-fill: #5A5880; -fx-font-size: 12px; -fx-cursor: hand;"/>
-                </children>
-              </HBox>
-
-            </children>
-          </VBox>
-
+            <VBox styleClass="market-footer">
+              <padding>
+                <Insets bottom="24.0" left="60.0" right="60.0" top="34.0"/>
+              </padding>
+              <children>
+                <GridPane hgap="38.0" vgap="18.0">
+                  <children>
+                    <VBox GridPane.columnIndex="0" spacing="8.0" prefWidth="200.0">
+                      <children>
+                        <Label text="Gemini" styleClass="footer-heading"/>
+                        <Label text="Giới thiệu công ty" styleClass="footer-link"/>
+                        <Label text="Tuyển dụng" styleClass="footer-link"/>
+                        <Label text="Báo chí" styleClass="footer-link"/>
+                      </children>
+                    </VBox>
+                    <VBox GridPane.columnIndex="1" spacing="8.0" prefWidth="220.0">
+                      <children>
+                        <Label text="Hỗ trợ khách hàng" styleClass="footer-heading"/>
+                        <Label text="Trung tâm trợ giúp" styleClass="footer-link"/>
+                        <Label text="Hướng dẫn đấu giá" styleClass="footer-link"/>
+                        <Label text="Chính sách bảo mật" styleClass="footer-link"/>
+                        <Label text="Điều khoản sử dụng" styleClass="footer-link"/>
+                      </children>
+                    </VBox>
+                    <VBox GridPane.columnIndex="2" spacing="8.0" prefWidth="240.0">
+                      <children>
+                        <Label text="Liên hệ" styleClass="footer-heading"/>
+                        <Label text="Hotline: 0979919087" styleClass="footer-link"/>
+                        <Label text="Email: geminiauction@gmail.com" styleClass="footer-link"/>
+                        <Label text="Địa chỉ: 36, Xuân Thuỷ" styleClass="footer-link"/>
+                      </children>
+                    </VBox>
+                    <VBox GridPane.columnIndex="3" spacing="8.0" prefWidth="220.0">
+                      <children>
+                        <Label text="Theo dõi Gemini" styleClass="footer-heading"/>
+                        <Label text="Facebook • Instagram • YouTube • X" styleClass="footer-link"/>
+                        <TextField promptText="Email nhận bản tin" styleClass="newsletter-input"/>
+                        <Button text="Đăng ký" styleClass="newsletter-button"/>
+                      </children>
+                    </VBox>
+                  </children>
+                </GridPane>
+                <Separator styleClass="footer-separator">
+                  <VBox.margin><Insets bottom="16.0" top="24.0"/></VBox.margin>
+                </Separator>
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                  <children>
+                    <ImageView fitHeight="24.0" fitWidth="24.0" preserveRatio="true">
+                      <image>
+                        <Image url="@../images/logo_gemini.png"/>
+                      </image>
+                    </ImageView>
+                    <Label text="© 2026 Gemini Auction. All rights reserved." styleClass="footer-copy"/>
+                  </children>
+                </HBox>
+              </children>
+            </VBox>
+          </children>
         </VBox>
       </content>
     </ScrollPane>
   </center>
-
 </BorderPane>

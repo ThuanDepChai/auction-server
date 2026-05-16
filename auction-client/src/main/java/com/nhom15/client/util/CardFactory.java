@@ -41,7 +41,7 @@ public class CardFactory {
 
     Label lblName = createLabel(name, "-fx-font-size: 13px; -fx-text-fill: #333333;");
     Label lblPrice = createLabel(formatPrice(price) + "đ",
-            "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #D96570;");
+            "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1d1d1f;");
     Label lblSold = createLabel("Đã bán " + sold, "-fx-font-size: 11px; -fx-text-fill: #888888;");
 
     info.getChildren().addAll(lblName, lblPrice, lblSold);
@@ -63,16 +63,16 @@ public class CardFactory {
 
     Label lblName = createLabel(name, "-fx-font-size: 13px; -fx-text-fill: #333333;");
     Label lblPrice = createLabel("Giá hiện tại: " + formatPrice(curPrice) + "đ",
-            "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #4285F4;");
+            "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #0066cc;");
 
     Label lblCountdown = createLabel("⏰ --:--:--",
-            "-fx-font-size: 12px; -fx-text-fill: #D96570; -fx-font-weight: bold;");
+            "-fx-font-size: 12px; -fx-text-fill: #1d1d1f; -fx-font-weight: bold;");
     setupCountdown(lblCountdown, getStr(auction, "endTime", ""), activeTimers);
 
     Button btnBid = new Button("Đấu giá ngay");
     btnBid.setMaxWidth(Double.MAX_VALUE);
     btnBid.setStyle(
-            "-fx-background-color: linear-gradient(to right, #4285F4, #9B72CB); -fx-background-radius: 8; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 7 0 7 0;");
+            "-fx-background-color: #0066cc; -fx-background-radius: 999; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 7 0 7 0;");
     btnBid.setOnAction(e -> onBidClick.accept(auctionId));
 
     info.getChildren().addAll(lblName, lblPrice, lblCountdown, btnBid);
@@ -96,15 +96,15 @@ public class CardFactory {
     VBox card = new VBox();
     card.setPrefWidth(210);
     card.setStyle(
-            "-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 4); -fx-cursor: hand;");
+            "-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #e0e0e0; -fx-border-radius: 18; -fx-cursor: hand;");
     card.setOnMouseEntered(e -> card.setStyle(
-            card.getStyle().replace("0.08", "0.18").replace("10, 0, 0, 4", "15, 0, 0, 6")));
+            "-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #c7d8f2; -fx-border-radius: 18; -fx-cursor: hand;"));
     card.setOnMouseExited(e -> card.setStyle(
-            card.getStyle().replace("0.18", "0.08").replace("15, 0, 0, 6", "10, 0, 0, 4")));
+            "-fx-background-color: white; -fx-background-radius: 18; -fx-border-color: #e0e0e0; -fx-border-radius: 18; -fx-cursor: hand;"));
 
     StackPane imgContainer = new StackPane();
     imgContainer.setPrefHeight(imgHeight);
-    imgContainer.setStyle("-fx-background-color: #F4F7FC; -fx-background-radius: 10 10 0 0;");
+    imgContainer.setStyle("-fx-background-color: #f5f5f7; -fx-background-radius: 18 18 0 0;");
 
     Label placeholder = new Label("🖼");
     placeholder.setStyle("-fx-font-size: 36px; -fx-text-fill: #CCCCCC;");
@@ -209,7 +209,7 @@ public class CardFactory {
         long seconds = ChronoUnit.SECONDS.between(now, endTime) % 60;
         label.setText(String.format("⏰ %02d:%02d:%02d", hours, minutes, seconds));
         label.setStyle(
-                hours < 1 ? "-fx-font-size: 12px; -fx-text-fill: #D96570; -fx-font-weight: bold;"
+                hours < 1 ? "-fx-font-size: 12px; -fx-text-fill: #c62828; -fx-font-weight: bold;"
                         : "-fx-font-size: 12px; -fx-text-fill: #E8A838; -fx-font-weight: bold;");
       }));
       timeline.setCycleCount(Timeline.INDEFINITE);
@@ -298,12 +298,12 @@ public class CardFactory {
     lblName.setWrapText(true);
     lblName.setStyle("-fx-font-size: 12px; -fx-font-weight: bold;");
     Label lblPrice = new Label(price + "đ");
-    lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #D96570; -fx-font-weight: bold;");
+    lblPrice.setStyle("-fx-font-size: 13px; -fx-text-fill: #1d1d1f; -fx-font-weight: bold;");
     Label lblCat = new Label(category);
     lblCat.setStyle("-fx-font-size: 11px; -fx-text-fill: #888888;");
 
     String statusColor = "AVAILABLE".equals(status) ? "#E8F5E9:#27AE60"
-            : "IN_AUCTION".equals(status) ? "#EEF2FF:#4285F4" : "#FCE4EC:#C62828";
+            : "IN_AUCTION".equals(status) ? "#f5f5f7:#0066cc" : "#FCE4EC:#C62828";
     String[] sc = statusColor.split(":");
     Label lblStatus = new Label("AVAILABLE".equals(status) ? "Sẵn bán"
             : "IN_AUCTION".equals(status) ? "Đang đấu giá" : "Đã bán");
@@ -340,9 +340,9 @@ public class CardFactory {
     Label lblName = new Label(name);
     lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
     Label lblPrice = new Label("Giá hiện tại: " + curPrice + "đ");
-    lblPrice.setStyle("-fx-font-size: 12px; -fx-text-fill: #4285F4;");
+    lblPrice.setStyle("-fx-font-size: 12px; -fx-text-fill: #0066cc;");
     Label lblCountdown = new Label("⏰ --:--:--");
-    lblCountdown.setStyle("-fx-font-size: 11px; -fx-text-fill: #D96570; -fx-font-weight: bold;");
+    lblCountdown.setStyle("-fx-font-size: 11px; -fx-text-fill: #1d1d1f; -fx-font-weight: bold;");
     if ("ACTIVE".equals(status)) {
       setupCountdown(lblCountdown, endTime, new java.util.ArrayList<>());
     } else {
